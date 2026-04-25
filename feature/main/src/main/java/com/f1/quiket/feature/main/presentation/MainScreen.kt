@@ -35,10 +35,10 @@ fun MainScreen() {
         MainTab.entries.firstOrNull { tab -> tab.destination.route == currentRoute } ?: MainTab.Home
 
     Scaffold(
-        topBar = { QuiketTopBar(title = currentTab.label) },
+        //topBar = { QuiketTopBar(title = currentTab.label) },
         bottomBar = {
             NavigationBar(
-                containerColor = Color.Transparent,
+                containerColor = Color.White,
                 tonalElevation = 0.dp
             ) {
                 MainTab.entries.forEach { tab ->
