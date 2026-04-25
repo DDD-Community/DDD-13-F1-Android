@@ -3,7 +3,6 @@ package com.f1.quiket.feature.login.presentation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -39,9 +38,9 @@ fun LoginScreen(
                 style = MaterialTheme.typography.bodyLarge,
             )
             QuiketPrimaryButton(
-                label = "로그인하고 시작하기",
-                onClick = onLoginClick,
-                modifier = Modifier.fillMaxWidth(),
+                text = "로그인",
+                enabled = true,
+                onClick = onLoginClick
             )
         }
     }
