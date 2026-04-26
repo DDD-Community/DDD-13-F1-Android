@@ -33,6 +33,7 @@ dependencies {
     implementation(project(":core:navigation"))
     implementation(project(":feature:login"))
     implementation(project(":feature:main"))
+    implementation(project(":feature:onboarding"))
     implementation(project(":feature:splash"))
 
     implementation(libs.androidx.activity.compose)

@@ -7,7 +7,7 @@ Quiket은 학습 기록, 문제 풀이, 오답 관리 기능을 중심으로 개
 ## 현재 기준 상태
 
 ### 실제 앱 뼈대
-- 루트 앱 흐름은 `Splash -> Login -> Main`까지 연결되어 있다.
+- 루트 앱 흐름은 `Splash -> Onboarding/Login -> Main`까지 연결되어 있다.
 - `Main`은 바텀탭 shell 역할만 하고, 실제 탭 기능은 각 feature 모듈이 담당한다.
 - 바텀탭은 다음 4개로 나뉜다.
   - `홈` -> `:feature:home`
@@ -15,7 +15,7 @@ Quiket은 학습 기록, 문제 풀이, 오답 관리 기능을 중심으로 개
   - `오답노트` -> `:feature:review`
   - `마이` -> `:feature:mypage`
 - 현재 각 탭 feature는 화면 뼈대와 navigation 진입점까지 만들어져 있고, 실제 비즈니스 로직은 아직 붙지 않았다.
-- `Splash`는 아직 실제 로그인 상태를 읽지 않고, 임시로 로그인 화면으로 보내는 상태다.
+- `Splash`는 온보딩 완료 여부와 로그인 상태를 판단해 다음 화면으로 보내는 진입점이다.
 
 ### 레퍼런스 샘플
 - `:feature:sample`은 PokéAPI 기반 reference sample이다.
@@ -50,6 +50,7 @@ Quiket/
 │   └── testing/
 └── feature/
     ├── splash/
+    ├── onboarding/
     ├── login/
     ├── main/
     ├── home/
@@ -91,6 +92,8 @@ Quiket/
 ### `feature`
 - `:feature:splash`
   - 앱 진입 판단 화면
+- `:feature:onboarding`
+  - 첫 진입 사용자 온보딩 화면
 - `:feature:login`
   - 로그인 진입 화면
 - `:feature:main`
@@ -138,6 +141,18 @@ Quiket/
 - core 승격 기준
 - asset/resource 네이밍 규칙
 - 테스트 기준
+
+### [docs/codex-preflight.md](./docs/codex-preflight.md)
+- Codex 작업 전 재조회할 문서와 검증 기준
+
+### [docs/compose-screen-conventions.md](./docs/compose-screen-conventions.md)
+- Compose Route/Screen 분리
+- stateless 권장 기준
+- UI-local state 허용 기준
+
+### [docs/module-conventions.md](./docs/module-conventions.md)
+- feature 모듈 추가
+- navigation/Gradle/resource wiring 기준
 
 ## 현재 구현 범위 요약
 
