@@ -14,6 +14,7 @@
 - `:core:network`: Json, OkHttp, Retrofit
 - `:core:testing`: 공통 테스트 rule과 helper
 - `:feature:splash`: 앱 진입 판단 화면
+- `:feature:onboarding`: 첫 진입 사용자 온보딩 화면
 - `:feature:login`: 로그인 진입 화면
 - `:feature:main`: 바텀탭 shell과 내부 탭 네비게이션
 - `:feature:home`: 홈 탭 feature
@@ -24,10 +25,11 @@
 
 ## App flow
 1. 앱 시작점은 `:feature:splash`다.
-2. `Splash`는 로그인 여부 판단 뒤 `Login` 또는 `Main`으로 이동한다.
-3. `Main`은 비즈니스 feature가 아니라 바텀탭 shell이다.
-4. 실제 탭 기능은 `Home`, `History`, `Review`, `MyPage` 각 feature가 맡는다.
-5. shared DB를 쓸 경우 `:core:database`는 `db`, `di`, `dao`, `entity` 기준으로 단순하게 유지한다.
+2. `Splash`는 온보딩 완료 여부와 로그인 여부 판단 뒤 `Onboarding`, `Login`, 또는 `Main`으로 이동한다.
+3. `Onboarding`은 첫 진입 사용자에게만 노출되는 소개 흐름이다.
+4. `Main`은 비즈니스 feature가 아니라 바텀탭 shell이다.
+5. 실제 탭 기능은 `Home`, `History`, `Review`, `MyPage` 각 feature가 맡는다.
+6. shared DB를 쓸 경우 `:core:database`는 `db`, `di`, `dao`, `entity` 기준으로 단순하게 유지한다.
 
 ## Reference sample
 1. `:feature:sample`은 Hilt, Retrofit, Room, Paging3 예제를 보여주는 reference sample이다.

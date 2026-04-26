@@ -6,11 +6,11 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun SplashRoute(
-    onDecideNext: (Boolean) -> Unit,
+    onDecideNext: () -> Unit,
 ) {
     LaunchedEffect(Unit) {
-        delay(1200L)
-        onDecideNext(false)
+        delay(2600L)
+        onDecideNext()
     }
 
     SplashScreen()

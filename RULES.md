@@ -5,7 +5,7 @@
 - 의존 방향은 `app -> feature -> core`로 유지한다.
 - `core` 모듈은 서로 최소한으로만 연결한다.
 - 실제 기능은 `:feature:*`에 추가한다.
-- 실제 앱 기본 흐름은 `splash -> login -> main`으로 유지한다.
+- 실제 앱 기본 흐름은 `splash -> onboarding/login -> main`으로 유지한다.
 - 바텀탭의 실제 기능은 `home`, `history`, `review`, `mypage` 각 feature가 맡는다.
 - `:feature:main`은 바텀탭 shell 역할만 담당한다.
 - `:feature:sample`은 PokéAPI reference sample이며, 실제 서비스 엔트리와 분리해 둔다.
@@ -25,6 +25,7 @@
 - 네비게이션, 스낵바 같은 일회성 이벤트는 `Effect`로 분리한다.
 - 모든 화면 ViewModel은 `MviViewModel`을 기반으로 한다.
 - UI Composable에는 비즈니스 로직을 두지 않는다.
+- Compose 화면의 Route/Screen 분리와 state ownership은 `docs/compose-screen-conventions.md`를 따른다.
 
 ## Core promotion rule
 - 공통 코드는 두 feature 이상에서 실제 중복이 생겼을 때만 `core`로 승격한다.

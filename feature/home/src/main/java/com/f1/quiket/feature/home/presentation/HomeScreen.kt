@@ -42,6 +42,7 @@ import com.f1.quiket.core.designsystem.theme.Gray950
 import com.f1.quiket.core.designsystem.theme.Orange500
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
+import com.f1.quiket.core.designsystem.R as DesignSystemR
 import com.f1.quiket.feature.home.R
 import com.f1.quiket.feature.home.component.ExpandableFab
 import com.f1.quiket.feature.home.component.HomeEmptyActivityButton
@@ -86,7 +87,7 @@ fun HomeScreen() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_quiket_logo),
+                            painter = painterResource(DesignSystemR.drawable.logo_splash),
                             contentDescription = "Home Quiket Logo",
                             tint = Color.Unspecified,
                             modifier = Modifier.size(width = 90.dp, height = 28.dp)
