@@ -23,9 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieClipSpec
 import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.f1.quiket.core.designsystem.R as DesignSystemR
@@ -41,11 +39,9 @@ fun SplashScreen(
     )
     val progress by animateLottieCompositionAsState(
         composition = composition,
-        clipSpec = LottieClipSpec.Frame(
-            min = SPLASH_ANIMATION_START_FRAME,
-            max = SPLASH_ANIMATION_END_FRAME,
-        ),
-        iterations = LottieConstants.IterateForever,
+        speed = 1f,
+        iterations = 1,
+        ignoreSystemAnimatorScale = true,
     )
 
     BoxWithConstraints(
@@ -90,8 +86,6 @@ fun SplashScreen(
     }
 }
 
-private const val SPLASH_ANIMATION_START_FRAME = 100
-private const val SPLASH_ANIMATION_END_FRAME = 300
 private const val LOGO_TOP_RATIO = 148.46667f / 800f
 private const val SPLASH_ANIMATION_TOP_RATIO = 171.5f / 800f
 

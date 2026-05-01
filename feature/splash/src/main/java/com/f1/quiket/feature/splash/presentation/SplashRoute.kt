@@ -9,9 +9,11 @@ fun SplashRoute(
     onDecideNext: () -> Unit,
 ) {
     LaunchedEffect(Unit) {
-        delay(2600L)
+        delay(SPLASH_ANIMATION_DURATION_MILLIS)
         onDecideNext()
     }
 
     SplashScreen()
 }
+
+private const val SPLASH_ANIMATION_DURATION_MILLIS = 10_100L
