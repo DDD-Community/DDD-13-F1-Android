@@ -13,6 +13,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.f1.quiket.core.designsystem.component.HomeActionButton
 import com.f1.quiket.core.designsystem.component.HomeProfileCard
+import com.f1.quiket.core.designsystem.component.SubjectShortCard
 import com.f1.quiket.core.designsystem.theme.Black
 import com.f1.quiket.core.designsystem.theme.Brown50
 import com.f1.quiket.core.designsystem.theme.Gray100
@@ -42,17 +47,28 @@ import com.f1.quiket.core.designsystem.theme.Gray950
 import com.f1.quiket.core.designsystem.theme.Orange500
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
-import com.f1.quiket.core.designsystem.R as DesignSystemR
 import com.f1.quiket.feature.home.R
 import com.f1.quiket.feature.home.component.ExpandableFab
+import com.f1.quiket.feature.home.component.HomeActivityCard
 import com.f1.quiket.feature.home.component.HomeEmptyActivityButton
 import com.f1.quiket.feature.home.component.HomeEmptySubjectButton
+import com.f1.quiket.feature.home.component.HomeExamCard
+import com.f1.quiket.feature.home.model.Activity
+import com.f1.quiket.feature.home.model.ActivityType
+import com.f1.quiket.feature.home.model.Exam
+import com.f1.quiket.feature.home.model.Subject
 
 @Composable
 fun HomeScreen() {
     var isExpanded by remember { mutableStateOf(false) }
-    // 현재 선택된 탭 상태 (0: 내 과목, 1: 최근 활동)
     var selectedTab by remember { mutableStateOf(0) }
+
+    val exams = listOf(
+        Exam("정보처리기사", "2026.06.28", "D-60"),
+        Exam("SQLD", "2026.07.10", "D-82"),
+        Exam("오픽", "2026.08.01", "D-104")
+    )
+    val pagerState = rememberPagerState(pageCount = { exams.size })
 
     Box(
         modifier = Modifier
@@ -76,8 +92,8 @@ fun HomeScreen() {
                             top = 16.dp,
                             start = 24.dp,
                             end = 24.dp,
-                            bottom = 32.dp
-                        ) // 하단 여유 공간 추가
+                            bottom = 24.dp
+                        )
                 ) {
                     // 상단바
                     Row(
@@ -87,7 +103,7 @@ fun HomeScreen() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            painter = painterResource(DesignSystemR.drawable.logo_splash),
+                            painter = painterResource(com.f1.quiket.core.designsystem.R.drawable.ic_quiket_logo),
                             contentDescription = "Home Quiket Logo",
                             tint = Color.Unspecified,
                             modifier = Modifier.size(width = 90.dp, height = 28.dp)
@@ -151,10 +167,25 @@ fun HomeScreen() {
                 1200,
                 com.f1.quiket.core.designsystem.R.drawable.ic_profile,
                 { },
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(top = 10.dp, start = 16.dp, end = 16.dp)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) { page ->
+
+                val exam = exams[page]
+
+                HomeExamCard(
+                    examName = exam.name,
+                    date = exam.date,
+                    dDay = exam.dDay,
+                    onClick = {}
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth()
@@ -171,7 +202,6 @@ fun HomeScreen() {
                     onClick = { selectedTab = 1 },
                     modifier = Modifier.weight(0.7f)
                 )
-
                 Spacer(modifier = Modifier.weight(1.6f))
             }
 
@@ -180,11 +210,13 @@ fun HomeScreen() {
                 color = White,
                 shape = RoundedCornerShape(topEnd = 24.dp)
             ) {
-                Box(modifier = Modifier.padding(5.dp)) {
+                Box() {
                     if (selectedTab == 0) {
-                        EmptySubjectContent()
+                        //EmptySubjectContent()
+                        ActiveSubjectContent()
                     } else {
-                        EmptyActivityContent()
+                        //EmptyActivityContent()
+                        ActiveActivityContent()
                     }
                 }
             }
@@ -251,6 +283,88 @@ fun EmptySubjectContent() {
 }
 
 @Composable
+fun ActiveSubjectContent() {
+
+    var subjects by remember {
+        mutableStateOf(
+            listOf(
+                Subject("오픽 2주만에 IH 달성", "챕터 3", false),
+                Subject("Android 앱 개발", "챕터 7", true),
+                Subject("자료구조", "챕터 2", false),
+                Subject("운영체제", "챕터 5", false),
+            )
+        )
+    }
+
+    QuiketTheme {
+        Column(modifier = Modifier.fillMaxSize()) {
+
+            Row(
+                modifier = Modifier
+                    .height(24.dp)
+                    .padding(top = 10.dp, end = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    "전체 보기",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Gray600
+                )
+                Icon(
+                    painter = painterResource(R.drawable.ic_home_subject_total),
+                    contentDescription = null,
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+
+                val chunked = subjects.chunked(2)
+
+                items(chunked.size) { rowIndex ->
+
+                    val rowItems = chunked[rowIndex]
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        rowItems.forEachIndexed { index, subject ->
+                            SubjectShortCard(
+                                title = subject.title,
+                                chapter = subject.chapter,
+                                isStarred = subject.isStarred,
+                                modifier = Modifier.weight(1f),
+                                onStarToggle = {
+                                    val realIndex = rowIndex * 2 + index
+                                    subjects = subjects.mapIndexed { i, item ->
+                                        if (i == realIndex) item.copy(isStarred = !item.isStarred)
+                                        else item
+                                    }
+                                },
+                                onClick = {}
+                            )
+                        }
+
+                        // 짝 안 맞을 때 빈칸 유지
+                        if (rowItems.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun EmptyActivityContent() {
     QuiketTheme {
         Column {
@@ -262,6 +376,81 @@ fun EmptyActivityContent() {
     }
 }
 
+@Composable
+fun ActiveActivityContent() {
+    val activities = listOf(
+        Activity(
+            title = "서양철학사",
+            questionCount = 30,
+            activityType = ActivityType.MULTIPLE_CHOICE,
+            description = "잘하고 있어요!",
+            progressPercent = 56,
+            isQuizCreated = true
+        ),
+        Activity(
+            title = "기획자의 피그마 실무 워크...",
+            questionCount = 10,
+            activityType = ActivityType.SHORT_ANSWER,
+            description = "아직 퀴즈 문제를 풀지 않았어요!",
+            progressPercent = null,
+            isQuizCreated = false
+        ),
+        Activity(
+            title = "SQLD",
+            questionCount = 10,
+            activityType = ActivityType.OX_QUIZ,
+            description = "나머지 퀴즈로 이어서 풀어볼까요?",
+            progressPercent = 70,
+            isQuizCreated = false
+        )
+    )
+
+    QuiketTheme {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // 전체 보기 헤더
+            Row(
+                modifier = Modifier
+                    .height(24.dp)
+                    .padding(top = 10.dp, end = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    "전체 보기",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Gray600
+                )
+                Icon(
+                    painter = painterResource(R.drawable.ic_home_subject_total),
+                    contentDescription = null,
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+
+            // 활동 카드 리스트
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(activities) { activity ->
+                    HomeActivityCard(
+                        title = activity.title,
+                        questionCount = activity.questionCount,
+                        activityType = activity.activityType,
+                        description = activity.description,
+                        progressPercent = activity.progressPercent,
+                        isQuizCreated = activity.isQuizCreated,
+                        onClick = {}
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
@@ -269,3 +458,12 @@ fun HomeScreenPreview() {
         HomeScreen()
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun ActiveActivityContentPreview() {
+    QuiketTheme {
+        ActiveActivityContent()
+    }
+}
+
