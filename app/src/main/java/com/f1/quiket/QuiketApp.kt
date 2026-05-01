@@ -10,6 +10,13 @@ import androidx.navigation.compose.rememberNavController
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.feature.login.navigation.LoginDestination
 import com.f1.quiket.feature.login.navigation.loginGraph
+import com.f1.quiket.feature.login.navigation.navigateToLoginEmail
+import com.f1.quiket.feature.login.navigation.navigateToLoginEmailAfterPasswordReset
+import com.f1.quiket.feature.login.navigation.navigateToPasswordResetEmailVerification
+import com.f1.quiket.feature.login.navigation.navigateToPasswordResetNewPassword
+import com.f1.quiket.feature.login.navigation.navigateToSignUpEmailVerification
+import com.f1.quiket.feature.login.navigation.navigateToSignUpNickname
+import com.f1.quiket.feature.login.navigation.navigateToSignUpTerms
 import com.f1.quiket.feature.main.navigation.MainDestination
 import com.f1.quiket.feature.main.presentation.MainRoute
 import com.f1.quiket.feature.onboarding.navigation.OnboardingDestination
@@ -50,6 +57,27 @@ fun QuiketApp() {
             loginGraph(
                 onBackClick = {
                     navController.navigateUp()
+                },
+                onEmailLoginClick = {
+                    navController.navigateToLoginEmail()
+                },
+                onSignUpClick = {
+                    navController.navigateToSignUpEmailVerification()
+                },
+                onSignUpEmailVerified = {
+                    navController.navigateToSignUpNickname()
+                },
+                onSignUpNicknameComplete = {
+                    navController.navigateToSignUpTerms()
+                },
+                onForgotPasswordClick = {
+                    navController.navigateToPasswordResetEmailVerification()
+                },
+                onPasswordResetEmailVerified = {
+                    navController.navigateToPasswordResetNewPassword()
+                },
+                onPasswordResetComplete = {
+                    navController.navigateToLoginEmailAfterPasswordReset()
                 },
                 onLoginSuccess = {
                     navigateToRoot(navController, MainDestination.route, LoginDestination.route)

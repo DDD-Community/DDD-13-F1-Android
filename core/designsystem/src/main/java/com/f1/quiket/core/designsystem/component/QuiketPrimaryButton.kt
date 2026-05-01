@@ -34,6 +34,7 @@ fun QuiketPrimaryButton(
     enabled: Boolean = true,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    fillMaxWidth: Boolean = true,
     containerColor: Color = Brown950,
     contentColor: Color = White,
     disabledContainerColor: Color = Gray100,
@@ -44,7 +45,7 @@ fun QuiketPrimaryButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier
-            .fillMaxWidth()
+            .then(if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier)
             .height(48.dp),
         contentPadding = PaddingValues(vertical = 12.dp),
         shape = RoundedCornerShape(12.dp),

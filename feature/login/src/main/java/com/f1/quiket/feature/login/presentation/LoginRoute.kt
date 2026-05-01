@@ -5,12 +5,13 @@ import androidx.compose.runtime.Composable
 @Composable
 fun LoginRoute(
     onLoginSuccess: () -> Unit,
+    onEmailLoginClick: () -> Unit,
     onBackClick: () -> Unit = {},
     onSignUpClick: () -> Unit = {},
 ) {
     LoginScreen(
         onBackClick = onBackClick,
-        onQuiketLoginClick = onLoginSuccess,
+        onQuiketLoginClick = onEmailLoginClick,
         onKakaoLoginClick = onLoginSuccess,
         onSignUpClick = onSignUpClick,
     )

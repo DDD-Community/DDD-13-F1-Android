@@ -13,18 +13,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -35,12 +32,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieClipSpec
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.LottieConstants
-import com.airbnb.lottie.compose.animateLottieCompositionAsState
-import com.airbnb.lottie.compose.rememberLottieComposition
 import com.f1.quiket.core.designsystem.R as DesignSystemR
 import com.f1.quiket.core.designsystem.component.QuiketPrimaryButton
 import com.f1.quiket.core.designsystem.theme.Black
@@ -50,9 +41,6 @@ import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
 
 private val KakaoYellow = Color(0xFFFFE500)
-private val LoginAnimationSize = 460.dp
-private const val LOGIN_ANIMATION_START_FRAME = 100
-private const val LOGIN_ANIMATION_END_FRAME = 300
 
 @Composable
 fun LoginScreen(
@@ -127,29 +115,17 @@ private fun LoginLogo(
 private fun LoginCharacter(
     modifier: Modifier = Modifier,
 ) {
-    val composition by rememberLottieComposition(
-        spec = LottieCompositionSpec.Asset("lottie/anim_quiket_splash.json"),
-    )
-    val progress by animateLottieCompositionAsState(
-        composition = composition,
-        clipSpec = LottieClipSpec.Frame(
-            min = LOGIN_ANIMATION_START_FRAME,
-            max = LOGIN_ANIMATION_END_FRAME,
-        ),
-        iterations = LottieConstants.IterateForever,
-    )
-
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(230.dp)
-            .clipToBounds(),
+            .height(230.dp),
         contentAlignment = Alignment.Center,
     ) {
-        LottieAnimation(
-            composition = composition,
-            progress = { progress },
-            modifier = Modifier.requiredSize(LoginAnimationSize),
+        Image(
+            painter = painterResource(id = DesignSystemR.drawable.img_login_main),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.size(width = 328.dp, height = 230.dp),
         )
     }
 }
