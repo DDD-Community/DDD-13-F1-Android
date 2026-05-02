@@ -1,5 +1,6 @@
 package com.f1.quiket.core.network.di
 
+import com.f1.quiket.core.network.BuildConfig
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
 import dagger.Provides
@@ -56,8 +57,11 @@ object NetworkModule {
         okHttpClient: OkHttpClient,
         json: Json,
     ): Retrofit = Retrofit.Builder()
-        .baseUrl("https://quiket.local/")
+        .baseUrl(BuildConfig.QUIKET_API_BASE_URL.ensureTrailingSlash())
         .client(okHttpClient)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
+
+    private fun String.ensureTrailingSlash(): String =
+        if (endsWith("/")) this else "$this/"
 }
