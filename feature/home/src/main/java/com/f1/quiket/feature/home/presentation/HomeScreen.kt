@@ -56,10 +56,13 @@ import com.f1.quiket.feature.home.component.HomeExamCard
 import com.f1.quiket.feature.home.model.Activity
 import com.f1.quiket.feature.home.model.ActivityType
 import com.f1.quiket.feature.home.model.Exam
+import com.f1.quiket.feature.home.model.FabAction
 import com.f1.quiket.feature.home.model.Subject
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    onFabItemClick: (FabAction) -> Unit
+) {
     var isExpanded by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
 
@@ -210,7 +213,7 @@ fun HomeScreen() {
                 color = White,
                 shape = RoundedCornerShape(topEnd = 24.dp)
             ) {
-                Box() {
+                Box {
                     if (selectedTab == 0) {
                         //EmptySubjectContent()
                         ActiveSubjectContent()
@@ -237,7 +240,10 @@ fun HomeScreen() {
         ExpandableFab(
             isExpanded = isExpanded,
             onFabClick = { isExpanded = !isExpanded },
-            onItemClick = { isExpanded = false },
+            onItemClick = {
+                isExpanded = false
+                onFabItemClick(it)
+            },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
@@ -455,7 +461,9 @@ fun ActiveActivityContent() {
 @Composable
 fun HomeScreenPreview() {
     QuiketTheme {
-        HomeScreen()
+        HomeScreen(
+            onFabItemClick = {}
+        )
     }
 }
 
