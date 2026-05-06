@@ -31,12 +31,13 @@ import androidx.compose.ui.unit.dp
 import com.f1.quiket.core.designsystem.theme.Brown950
 import com.f1.quiket.core.designsystem.theme.White
 import com.f1.quiket.feature.home.R
+import com.f1.quiket.feature.home.model.FabAction
 
 @Composable
 fun ExpandableFab(
     isExpanded: Boolean,
     onFabClick: () -> Unit,
-    onItemClick: (String) -> Unit,
+    onItemClick: (FabAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -59,25 +60,25 @@ fun ExpandableFab(
                     SmallFab(
                         R.drawable.ic_small_floting_test, "시험 등록하기"
                     ) {
-                        onItemClick("시험 등록하기")
+                        onItemClick(FabAction.ScheduleExam)
                     }
 
                     SmallFab(
                         R.drawable.ic_small_floting_quiz, "퀴즈 만들기"
                     ) {
-                        onItemClick("퀴즈 만들기")
+                        onItemClick(FabAction.CreateQuiz)
                     }
 
                     SmallFab(
                         R.drawable.ic_small_floting_upload, "자료 업로드"
                     ) {
-                        onItemClick("자료 업로드")
+                        onItemClick(FabAction.Upload)
                     }
 
                     SmallFab(
                         R.drawable.ic_small_floting_add, "과목 추가"
                     ) {
-                        onItemClick("과목 추가")
+                        onItemClick(FabAction.AddSubject)
                     }
                 }
             }

@@ -17,11 +17,14 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.f1.quiket.core.designsystem.component.QuiketTopBar
 import com.f1.quiket.core.designsystem.theme.Brown950
 import com.f1.quiket.core.designsystem.theme.Gray400
 import com.f1.quiket.feature.history.navigation.historyGraph
+import com.f1.quiket.feature.home.navigation.AddSubjectDestination
+import com.f1.quiket.feature.home.navigation.CreateQuizDestination
 import com.f1.quiket.feature.home.navigation.HomeDestination
+import com.f1.quiket.feature.home.navigation.ScheduleExamDestination
+import com.f1.quiket.feature.home.navigation.UploadDestination
 import com.f1.quiket.feature.home.navigation.homeGraph
 import com.f1.quiket.feature.mypage.navigation.myPageGraph
 import com.f1.quiket.feature.review.navigation.reviewGraph
@@ -86,7 +89,20 @@ fun MainScreen() {
             startDestination = HomeDestination.route,
             modifier = Modifier.padding(paddingValues),
         ) {
-            homeGraph()
+            homeGraph(
+                navigateToScheduleExam = {
+                    navController.navigate(ScheduleExamDestination.route)
+                },
+                navigateToCreateQuiz = {
+                    navController.navigate(CreateQuizDestination.route)
+                },
+                navigateToUpload = {
+                    navController.navigate(UploadDestination.route)
+                },
+                navigateToAddSubject = {
+                    navController.navigate(AddSubjectDestination.route)
+                }
+            )
             historyGraph()
             reviewGraph()
             myPageGraph()
