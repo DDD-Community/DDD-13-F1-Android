@@ -30,11 +30,12 @@ import com.f1.quiket.feature.home.R
 
 @Composable
 fun HomeGuideTooltip(
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    modifier: Modifier
 ) {
     Column(
         horizontalAlignment = Alignment.End,
-        modifier = Modifier.padding(horizontal = 16.dp)
+        modifier = modifier
     ) {
         Canvas(
             modifier = Modifier
@@ -95,6 +96,7 @@ fun HomeGuideTooltip(
 @Composable
 fun HomeGuideTooltipPreview() {
     HomeGuideTooltip(
-        onClose = {}
+        onClose = {},
+        modifier = Modifier
     )
 }

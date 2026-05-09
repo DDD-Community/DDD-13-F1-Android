@@ -8,11 +8,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -29,11 +33,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.f1.quiket.core.designsystem.component.HomeActionButton
 import com.f1.quiket.core.designsystem.component.HomeProfileCard
 import com.f1.quiket.core.designsystem.component.SubjectShortCard
@@ -53,6 +65,7 @@ import com.f1.quiket.feature.home.component.HomeActivityCard
 import com.f1.quiket.feature.home.component.HomeEmptyActivityButton
 import com.f1.quiket.feature.home.component.HomeEmptySubjectButton
 import com.f1.quiket.feature.home.component.HomeExamCard
+import com.f1.quiket.feature.home.component.HomeGuideTooltip
 import com.f1.quiket.feature.home.model.Activity
 import com.f1.quiket.feature.home.model.ActivityType
 import com.f1.quiket.feature.home.model.Exam
@@ -61,10 +74,14 @@ import com.f1.quiket.feature.home.model.Subject
 
 @Composable
 fun HomeScreen(
+    uiState: HomeState,
+    onBoardingDone: () -> Unit,
     onFabItemClick: (FabAction) -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
+    var noteIconOffset by remember { mutableStateOf(Offset.Zero) }
+    var noteIconSize by remember { mutableStateOf(IntSize.Zero) }
 
     val exams = listOf(
         Exam("정보처리기사", "2026.06.28", "D-60"),
@@ -117,6 +134,10 @@ fun HomeScreen(
                             contentDescription = "Home Quiket Note",
                             tint = Color.Unspecified,
                             modifier = Modifier.size(24.dp)
+                                .onGloballyPositioned{ coordinates ->
+                                    noteIconOffset = coordinates.positionInRoot()
+                                    noteIconSize = coordinates.size
+                                }
                         )
                         Icon(
                             painter = painterResource(R.drawable.ic_home_alert),
@@ -127,8 +148,6 @@ fun HomeScreen(
                                 .size(24.dp)
                         )
                     }
-
-                    // 텍스트 영역
                     Text(
                         "오늘의 공부, 시작해 볼까요?",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -225,6 +244,18 @@ fun HomeScreen(
             }
         }
 
+        if (uiState.showOnboarding && noteIconOffset != Offset.Zero) {
+            val (yDp, endPadding) = rememberTooltipOffset(noteIconOffset, noteIconSize)
+            HomeGuideTooltip(
+                onClose = onBoardingDone,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset(y = yDp)
+                    .padding(end = endPadding)
+                    .zIndex(10f)
+            )
+        }
+
         if (isExpanded) {
             Box(
                 modifier = Modifier
@@ -249,6 +280,22 @@ fun HomeScreen(
                 .padding(16.dp)
         )
     }
+}
+
+@Composable
+fun rememberTooltipOffset(
+    noteIconOffset: Offset,
+    noteIconSize: IntSize
+): Pair<Dp, Dp> {
+    val density = LocalDensity.current
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+
+    val yDp = with(density) { (noteIconOffset.y + noteIconSize.height).toDp() } - statusBarHeight
+    val noteIconCenterDp = with(density) { (noteIconOffset.x + noteIconSize.width / 2).toDp() }
+    val endPadding = screenWidth - noteIconCenterDp - 19.dp
+
+    return Pair(yDp, endPadding)
 }
 
 @Composable
@@ -460,8 +507,15 @@ fun ActiveActivityContent() {
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
+    val uiState = HomeState(
+        isLoading = false,
+        showOnboarding = true
+    )
+
     QuiketTheme {
         HomeScreen(
+            uiState = uiState,
+            onBoardingDone = {},
             onFabItemClick = {}
         )
     }
