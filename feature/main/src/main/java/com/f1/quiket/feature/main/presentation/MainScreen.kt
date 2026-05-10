@@ -34,52 +34,54 @@ fun MainScreen() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route ?: MainTab.Home.destination.route
-    val currentTab =
-        MainTab.entries.firstOrNull { tab -> tab.destination.route == currentRoute } ?: MainTab.Home
+    val shouldShowBottomBar = MainTab.entries.any { tab ->
+        tab.destination.route == currentRoute
+    }
 
     Scaffold(
-        //topBar = { QuiketTopBar(title = currentTab.label) },
         bottomBar = {
-            NavigationBar(
-                containerColor = Color.White,
-                tonalElevation = 0.dp
-            ) {
-                MainTab.entries.forEach { tab ->
+            if (shouldShowBottomBar) {
+                NavigationBar(
+                    containerColor = Color.White,
+                    tonalElevation = 0.dp
+                ) {
+                    MainTab.entries.forEach { tab ->
 
-                    val selected = currentRoute == tab.destination.route
+                        val selected = currentRoute == tab.destination.route
 
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            navController.navigate(tab.destination.route) {
-                                launchSingleTop = true
-                                restoreState = true
-                                popUpTo(navController.graph.startDestinationId) {
-                                    saveState = true
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                navController.navigate(tab.destination.route) {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                    }
                                 }
-                            }
-                        },
-                        icon = {
-                            Icon(
-                                painter = painterResource(
-                                    id = if (selected) tab.selectedIconRes else tab.unselectedIconRes
-                                ),
-                                contentDescription = null,
-                                tint = Color.Unspecified
+                            },
+                            icon = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (selected) tab.selectedIconRes else tab.unselectedIconRes
+                                    ),
+                                    contentDescription = null,
+                                    tint = Color.Unspecified
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = tab.label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (selected) Brown950 else Gray400
+                                )
+                            },
+                            // 선택한 Bottom바 색상 제거
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = Color.Transparent
                             )
-                        },
-                        label = {
-                            Text(
-                                text = tab.label,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (selected) Brown950 else Gray400
-                            )
-                        },
-                        // 선택한 Bottom바 색상 제거
-                        colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = Color.Transparent
                         )
-                    )
+                    }
                 }
             }
         },
@@ -101,7 +103,10 @@ fun MainScreen() {
                 },
                 navigateToAddSubject = {
                     navController.navigate(AddSubjectDestination.route)
-                }
+                },
+                onBackClick = {
+                    navController.navigateUp()
+                },
             )
             historyGraph()
             reviewGraph()
