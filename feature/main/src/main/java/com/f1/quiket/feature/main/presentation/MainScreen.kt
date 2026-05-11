@@ -1,5 +1,6 @@
 package com.f1.quiket.feature.main.presentation
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -20,11 +21,11 @@ import androidx.navigation.compose.rememberNavController
 import com.f1.quiket.core.designsystem.theme.Brown950
 import com.f1.quiket.core.designsystem.theme.Gray400
 import com.f1.quiket.feature.history.navigation.historyGraph
-import com.f1.quiket.feature.home.navigation.AddSubjectDestination
-import com.f1.quiket.feature.home.navigation.CreateQuizDestination
+import com.f1.quiket.feature.floating.presentation.navigation.AddSubjectDestination
+import com.f1.quiket.feature.floating.presentation.navigation.CreateQuizDestination
+import com.f1.quiket.feature.floating.presentation.navigation.ScheduleExamDestination
+import com.f1.quiket.feature.floating.presentation.navigation.UploadDestination
 import com.f1.quiket.feature.home.navigation.HomeDestination
-import com.f1.quiket.feature.home.navigation.ScheduleExamDestination
-import com.f1.quiket.feature.home.navigation.UploadDestination
 import com.f1.quiket.feature.home.navigation.homeGraph
 import com.f1.quiket.feature.mypage.navigation.myPageGraph
 import com.f1.quiket.feature.review.navigation.reviewGraph
@@ -34,12 +35,19 @@ fun MainScreen() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route ?: MainTab.Home.destination.route
-    val currentTab =
-        MainTab.entries.firstOrNull { tab -> tab.destination.route == currentRoute } ?: MainTab.Home
+
+    val floatingRoutes = setOf(
+        AddSubjectDestination.route,
+        ScheduleExamDestination.route,
+        CreateQuizDestination.route,
+        UploadDestination.route,
+    )
+    val showBottomBar = currentRoute !in floatingRoutes
 
     Scaffold(
         //topBar = { QuiketTopBar(title = currentTab.label) },
         bottomBar = {
+            if (!showBottomBar) return@Scaffold
             NavigationBar(
                 containerColor = Color.White,
                 tonalElevation = 0.dp
@@ -87,9 +95,10 @@ fun MainScreen() {
         NavHost(
             navController = navController,
             startDestination = HomeDestination.route,
-            modifier = Modifier.padding(paddingValues),
+            modifier = Modifier.padding(if (showBottomBar) paddingValues else PaddingValues()),
         ) {
             homeGraph(
+                navController = navController,
                 navigateToScheduleExam = {
                     navController.navigate(ScheduleExamDestination.route)
                 },

@@ -9,14 +9,12 @@ plugins {
 }
 
 android {
-    namespace = "com.f1.quiket.feature.home"
+    namespace = "com.f1.quiket.feature.floating"
 }
 
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:navigation"))
-    implementation(project(":core:database"))
-    implementation(project(":feature:floating"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.navigation.compose)
