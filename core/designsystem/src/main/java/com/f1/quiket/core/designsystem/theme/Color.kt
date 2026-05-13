@@ -24,7 +24,7 @@ val Orange100 = Color(0xFFFFEDD4)
 val Orange200 = Color(0xFFFFD7A8)
 val Orange300 = Color(0xFFFFBB70)
 val Orange400 = Color(0xFFFF9237)
-val Orange500 = Color(0xFFFF7615)
+val Orange500 = Color(0xFFFF7615) // Secondary
 val Orange600 = Color(0xFFF05706)
 val Orange700 = Color(0xFFC74007)
 val Orange800 = Color(0xFF9E330E)
@@ -50,7 +50,7 @@ val Blue100 = Color(0xFFE2F2FC)
 val Blue200 = Color(0xFFBEE4F9)
 val Blue300 = Color(0xFF84CFF5)
 val Blue400 = Color(0xFF58BFEF)
-val Blue500 = Color(0xFF1B9EDC)
+val Blue500 = Color(0xFF1B9EDC) // Tertiary
 val Blue600 = Color(0xFF0D7EBC)
 val Blue700 = Color(0xFF0C6598)
 val Blue800 = Color(0xFF0E567E)
@@ -68,7 +68,7 @@ val Brown600 = Color(0xFF81604D)
 val Brown700 = Color(0xFF684C40)
 val Brown800 = Color(0xFF59403A)
 val Brown900 = Color(0xFF4E3935)
-val Brown950 = Color(0xFF2D1F1D)
+val Brown950 = Color(0xFF2D1F1D) // Primary
 
 // Yellow
 val Yellow50 = Color(0xFFFDFaed)
@@ -89,7 +89,10 @@ val PositiveBg = Color(0x3322C55E) // 20%
 val Negative = Color(0xFFEF4444)
 val NegativeBg = Color(0x33EF4444) // 20%
 
-// Dim
-val Selected = Color(0x1A22C55E) // 10%
-val Dimmed = Color(0xE622C55E) // 90%
-val Shadow = Color(0x1A22C55E)  // 10%
+// State
+val Selected = Color(0x1A96756C) // 10%
+val Dimmed = Color(0xB32A2A2A) // 70%
+val Tutorial = Color(0xE62A2A2A) // 90%
+
+// Shadow
+val Shadow = Color(0x1A2A2A2A) // 10%
