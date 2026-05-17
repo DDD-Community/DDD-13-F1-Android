@@ -28,6 +28,7 @@ import androidx.compose.ui.zIndex
 import com.f1.quiket.core.designsystem.component.HomeActionButton
 import com.f1.quiket.core.designsystem.component.HomeExamCard
 import com.f1.quiket.core.designsystem.component.HomeProfileCard
+import com.f1.quiket.core.designsystem.component.QuiketTopBar
 import com.f1.quiket.core.designsystem.theme.*
 import com.f1.quiket.feature.home.component.*
 import com.f1.quiket.feature.home.model.*
@@ -81,7 +82,7 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp)
                 ) {
-                    HomeTopBar(
+                    QuiketTopBar(
                         onNoteIconClick = {
                             tutorialPage = TutorialPage.FIRST
                             showTutorial = true
