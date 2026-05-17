@@ -26,14 +26,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.f1.quiket.core.designsystem.R
+import com.f1.quiket.core.designsystem.modifier.dashedBorder
 import com.f1.quiket.core.designsystem.theme.Brown100
 import com.f1.quiket.core.designsystem.theme.Brown300
 import com.f1.quiket.core.designsystem.theme.Brown50
@@ -199,6 +206,7 @@ fun ChapterChip(
 // 과목 추가 카드
 @Composable
 fun AddSubjectCard(
+    title: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -209,10 +217,10 @@ fun AddSubjectCard(
             .background(Gray50)
             .dashedBorder(
                 color = Gray300,
-                strokeWidth = 3f,
-                cornerRadius = 16f,
-                dashLength = 10f,
-                gapLength = 6f
+                strokeWidth = 2.dp,
+                cornerRadius = 12.dp,
+                dashLength = 7.dp,
+                gapLength = 5.dp
             )
             .clickable { onClick() },
         contentAlignment = Alignment.Center
@@ -229,7 +237,7 @@ fun AddSubjectCard(
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = "과목 추가",
+                text = title,
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontWeight = FontWeight.Medium
                 ),
@@ -238,29 +246,6 @@ fun AddSubjectCard(
         }
     }
 }
-
-// 과목 추가 border 점선 Modifier
-fun Modifier.dashedBorder(
-    color: Color,
-    strokeWidth: Float = 3f,
-    cornerRadius: Float = 16f,
-    dashLength: Float = 10f,
-    gapLength: Float = 10f
-) = this.then(
-    Modifier.drawBehind {
-        drawRoundRect(
-            color = color,
-            size = size,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerRadius),
-            style = Stroke(
-                width = strokeWidth,
-                pathEffect = PathEffect.dashPathEffect(
-                    floatArrayOf(dashLength, gapLength)
-                )
-            )
-        )
-    }
-)
 
 @Preview
 @Composable
@@ -319,7 +304,10 @@ private fun AddSubjectCardPreview() {
                 .padding(16.dp)
                 .width(150.dp),
         ) {
-            AddSubjectCard(onClick = {})
+            AddSubjectCard(
+                "과목 추가",
+                onClick = {}
+            )
         }
     }
 }
