@@ -3,6 +3,7 @@ package com.f1.quiket.feature.home.presentation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -25,7 +26,9 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.f1.quiket.core.designsystem.component.HomeActionButton
+import com.f1.quiket.core.designsystem.component.HomeExamCard
 import com.f1.quiket.core.designsystem.component.HomeProfileCard
+import com.f1.quiket.core.designsystem.component.QuiketTopBar
 import com.f1.quiket.core.designsystem.theme.*
 import com.f1.quiket.feature.home.component.*
 import com.f1.quiket.feature.home.model.*
@@ -79,7 +82,7 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp)
                 ) {
-                    HomeTopBar(
+                    QuiketTopBar(
                         onNoteIconClick = {
                             tutorialPage = TutorialPage.FIRST
                             showTutorial = true
@@ -262,7 +265,10 @@ fun HomeScreen(
                     "챕터, 파트",
                     " 별로 분류해 보관할\n수 있어요",
                     TooltipAlignment.Step1,
-                    subjectTabRect
+                    subjectTabRect,
+                    arrowStartOffset = Offset(-30f, -1f),
+                    arrowEndOffset = Offset(0f, -10f),
+                    arrowCurvature = 0.3f
                 ),
                 TutorialStep(
                     2,
@@ -270,7 +276,10 @@ fun HomeScreen(
                     "pdf, 이미지,\n텍스트",
                     "로 업로드할 수 있어요",
                     TooltipAlignment.Step2,
-                    uploadButtonRect
+                    uploadButtonRect,
+                    arrowStartOffset = Offset(-150f, -60f),
+                    arrowEndOffset = Offset(40f, -30f),
+                    arrowCurvature = -0.3f
                 ),
                 TutorialStep(
                     3,
@@ -278,7 +287,10 @@ fun HomeScreen(
                     "\nAI가 퀴즈를 만들어줘요",
                     "",
                     TooltipAlignment.Step3,
-                    quizButtonRect
+                    quizButtonRect,
+                    arrowStartOffset = Offset(30f, 0f),
+                    arrowEndOffset = Offset(40f, -50f),
+                    arrowCurvature = 0.3f
                 )
             )
             val secondPageSteps = listOf(
@@ -288,7 +300,10 @@ fun HomeScreen(
                     "도토리",
                     "를 쓸 수 있어요!",
                     TooltipAlignment.Step4,
-                    profileCardRect
+                    profileCardRect,
+                    arrowStartOffset = Offset(-160f, 5f),
+                    arrowEndOffset = Offset(-30f, -55f),
+                    arrowCurvature = -0.3f
                 ),
                 TutorialStep(
                     5,
@@ -296,7 +311,10 @@ fun HomeScreen(
                     " 항목",
                     "을 볼 수 있어요",
                     TooltipAlignment.Step5,
-                    activityTabRect
+                    activityTabRect,
+                    arrowStartOffset = Offset(-30f, -1f),
+                    arrowEndOffset = Offset(0f, -15f),
+                    arrowCurvature = 0.3f
                 ),
                 TutorialStep(
                     6,
@@ -304,17 +322,46 @@ fun HomeScreen(
                     "과목 추가,\n강의 업로드, 퀴즈 만들기",
                     " 등을 \n모두 할 수 있어요!",
                     TooltipAlignment.Step6,
-                    fabRect
+                    fabRect,
+                    arrowStartOffset = Offset(0f, 0f),
+                    arrowEndOffset = Offset(-40f, -30f),
+                    arrowCurvature = 0.3f
+                )
+            )
+            val thirdPageSteps = listOf(
+                TutorialStep(
+                    7,
+                    "퀴켓의 마스코트 다람쥐,\n",
+                    "",
+                    "'큐링이'에요.",
+                    TooltipAlignment.Step7,
+                    profileCardRect,
+                    arrowStartOffset = Offset(-160f, 5f),
+                    arrowEndOffset = Offset(-30f, -55f),
+                    arrowCurvature = -0.3f
+                ),
+                TutorialStep(
+                    8,
+                    "획득한 도토리를 통해 '도토리\n",
+                    "",
+                    "상점'에서 큐링이를 위한 아이\n템을 구매할 수 있게 돼요!",
+                    TooltipAlignment.Step8,
+                    profileCardRect,
+                    arrowStartOffset = Offset(100f, 0f),
+                    arrowEndOffset = Offset(170f, 50f),
+                    arrowCurvature = 0.3f
                 )
             )
             HomeTutorialOverlay(
                 currentPage = tutorialPage,
                 firstPageSteps = firstPageSteps,
                 secondPageSteps = secondPageSteps,
+                thirdPageSteps = thirdPageSteps,
                 onNext = {
                     when (tutorialPage) {
                         TutorialPage.FIRST -> tutorialPage = TutorialPage.SECOND
-                        TutorialPage.SECOND -> showTutorial = false
+                        TutorialPage.SECOND -> tutorialPage = TutorialPage.THIRD
+                        TutorialPage.THIRD -> showTutorial = false
                     }
                 },
                 onSkip = { showTutorial = false },
@@ -349,6 +396,30 @@ fun HomeScreen(
                     fabRect =
                         Rect(pos.x, pos.y, pos.x + coords.size.width, pos.y + coords.size.height)
                 }
+        )
+    }
+}
+
+@Preview(name = "Home — 기본", showBackground = true, showSystemUi = true)
+@Composable
+private fun HomeScreenPreview() {
+    QuiketTheme {
+        HomeScreen(
+            uiState = HomeState(isLoading = false, showOnboarding = false),
+            onBoardingDone = {},
+            onFabItemClick = {},
+        )
+    }
+}
+
+@Preview(name = "Home — 온보딩 툴팁", showBackground = true, showSystemUi = true)
+@Composable
+private fun HomeScreenOnboardingPreview() {
+    QuiketTheme {
+        HomeScreen(
+            uiState = HomeState(isLoading = false, showOnboarding = true),
+            onBoardingDone = {},
+            onFabItemClick = {},
         )
     }
 }

@@ -71,22 +71,3 @@ fun TutorialTooltip(
         )
     }
 }
-
-@Preview
-@Composable
-fun TutorialTooltipPreview() {
-    var subjectAreaRect by remember { mutableStateOf<Rect?>(null) }
-
-    QuiketTheme {
-        TutorialTooltip(
-            TutorialStep(
-                1,
-                "공부하고 싶은 과목을 추가해\n",
-                "챕터, 파트",
-                " 별로 분류해 보관할 \n수 있어요",
-                TooltipAlignment.Step1,
-                subjectAreaRect
-            ), modifier = Modifier
-        )
-    }
-}

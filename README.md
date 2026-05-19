@@ -101,6 +101,8 @@ Quiket/
   - 내부 탭 navigation 조립
 - `:feature:home`
   - 홈 탭
+- `:feature:floating`
+  - 홈 - Floating 버튼 탭
 - `:feature:history`
   - 기록 탭
 - `:feature:review`

@@ -1,4 +1,4 @@
-package com.f1.quiket.feature.home.component
+package com.f1.quiket.core.designsystem.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,6 +24,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.f1.quiket.core.designsystem.R
 import com.f1.quiket.core.designsystem.theme.Brown950
 import com.f1.quiket.core.designsystem.theme.Gray50
 import com.f1.quiket.core.designsystem.theme.Gray900
@@ -57,7 +58,7 @@ fun HomeExamCard(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                painter = painterResource(com.f1.quiket.feature.home.R.drawable.ic_home_exam),
+                painter = painterResource(R.drawable.ic_home_exam),
                 contentDescription = null,
                 tint = Color.Unspecified,
                 modifier = Modifier.size(20.dp)

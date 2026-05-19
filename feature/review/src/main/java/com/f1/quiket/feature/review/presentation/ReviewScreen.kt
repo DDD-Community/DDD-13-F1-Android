@@ -1,31 +1,69 @@
 package com.f1.quiket.feature.review.presentation
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.f1.quiket.core.designsystem.R
+import com.f1.quiket.core.designsystem.component.QuiketTopBar
+import com.f1.quiket.core.designsystem.theme.Brown50
+import com.f1.quiket.core.designsystem.theme.Gray600
+import com.f1.quiket.core.designsystem.theme.QuiketTheme
 
 @Composable
 fun ReviewScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
+    Scaffold(
+        containerColor = Brown50,
+        topBar = {
+            QuiketTopBar(
+                onNoteIconClick = {},
+                modifier = Modifier.padding(horizontal = 24.dp),
+            )
+        },
+    ) { innerPadding ->
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
         ) {
-            Text(text = "오답노트", style = MaterialTheme.typography.headlineMedium)
             Text(
-                text = "틀린 문제를 다시 정리하고 복습할 오답노트 화면 뼈대입니다.",
-                style = MaterialTheme.typography.bodyLarge,
+                text = "오답은 지금 공사 중이에요",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(top=36.dp, start = 16.dp)
+            )
+            Text(
+                text = "곧 만나요!",
+                modifier = Modifier.padding(top=12.dp, start = 16.dp, bottom = 30.dp),
+                color = Gray600
+            )
+            Icon(
+                painter = painterResource(R.drawable.ic_coming_soon),
+                contentDescription = null,
+                tint = Color.Unspecified,
+                modifier = Modifier.fillMaxWidth()
+                    .height(390.dp)
             )
         }
+    }
+}
+
+
+@Preview
+@Composable
+fun ReviewScreenPreview() {
+    QuiketTheme {
+        ReviewScreen()
     }
 }

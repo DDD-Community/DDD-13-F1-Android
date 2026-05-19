@@ -10,6 +10,7 @@ import com.f1.quiket.feature.floating.domain.model.ExamType
 import com.f1.quiket.feature.floating.domain.model.StudyField
 import com.f1.quiket.feature.floating.domain.model.StudyPurpose
 import com.f1.quiket.feature.floating.domain.model.UsagePurpose
+import com.f1.quiket.feature.floating.presentation.screen.subjectdetail.SubjectDetailScreen
 
 @Composable
 fun AddSubjectScreen(
@@ -50,7 +51,14 @@ fun AddSubjectScreen(
             usagePurpose = state.usagePurpose,
             onBackClick = { depth = 2 },
             onSkipClick = onFinish,
-            onCreateClick = onFinish,
+            onCreateClick = { depth = 4 },
+        )
+
+        4 -> SubjectDetailScreen(
+            subjectName = state.subjectName.ifBlank { "새 과목" },
+            studyPurposeLabel = state.studyPurpose?.title ?: "",
+            examTypeLabel = state.examType?.label ?: state.studyField?.label ?: state.usagePurpose?.title ?: "",
+            onBackClick = onFinish,
         )
     }
 }
