@@ -39,7 +39,7 @@ fun SplashScreen(
     )
     val progress by animateLottieCompositionAsState(
         composition = composition,
-        speed = 1f,
+        speed = 2f,
         iterations = 1,
         ignoreSystemAnimatorScale = true,
     )

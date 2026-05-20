@@ -1,6 +1,5 @@
 package com.f1.quiket.feature.main.presentation
 
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +34,9 @@ fun MainScreen() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route ?: MainTab.Home.destination.route
+    val shouldShowBottomBar = MainTab.entries.any { tab ->
+        tab.destination.route == currentRoute
+    }
 
     val floatingRoutes = setOf(
         AddSubjectDestination.route,
@@ -54,40 +56,41 @@ fun MainScreen() {
             ) {
                 MainTab.entries.forEach { tab ->
 
-                    val selected = currentRoute == tab.destination.route
+                        val selected = currentRoute == tab.destination.route
 
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            navController.navigate(tab.destination.route) {
-                                launchSingleTop = true
-                                restoreState = true
-                                popUpTo(navController.graph.startDestinationId) {
-                                    saveState = true
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                navController.navigate(tab.destination.route) {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                    }
                                 }
-                            }
-                        },
-                        icon = {
-                            Icon(
-                                painter = painterResource(
-                                    id = if (selected) tab.selectedIconRes else tab.unselectedIconRes
-                                ),
-                                contentDescription = null,
-                                tint = Color.Unspecified
+                            },
+                            icon = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (selected) tab.selectedIconRes else tab.unselectedIconRes
+                                    ),
+                                    contentDescription = null,
+                                    tint = Color.Unspecified
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = tab.label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (selected) Brown950 else Gray400
+                                )
+                            },
+                            // 선택한 Bottom바 색상 제거
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = Color.Transparent
                             )
-                        },
-                        label = {
-                            Text(
-                                text = tab.label,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (selected) Brown950 else Gray400
-                            )
-                        },
-                        // 선택한 Bottom바 색상 제거
-                        colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = Color.Transparent
                         )
-                    )
+                    }
                 }
             }
         },
@@ -110,7 +113,10 @@ fun MainScreen() {
                 },
                 navigateToAddSubject = {
                     navController.navigate(AddSubjectDestination.route)
-                }
+                },
+                onBackClick = {
+                    navController.navigateUp()
+                },
             )
             historyGraph()
             reviewGraph()
