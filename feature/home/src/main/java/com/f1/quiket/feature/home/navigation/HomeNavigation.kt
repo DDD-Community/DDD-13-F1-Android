@@ -3,10 +3,6 @@ package com.f1.quiket.feature.home.navigation
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.f1.quiket.feature.home.floating.AddSubjectScreen
-import com.f1.quiket.feature.home.floating.ScheduleExamScreen
-import com.f1.quiket.feature.home.floating.UploadScreen
-import com.f1.quiket.feature.home.presentation.CreateQuizRoute
 import com.f1.quiket.feature.floating.presentation.navigation.AddSubjectDestination
 import com.f1.quiket.feature.floating.presentation.navigation.CreateQuizDestination
 import com.f1.quiket.feature.floating.presentation.navigation.ScheduleExamDestination
@@ -22,8 +18,7 @@ fun NavGraphBuilder.homeGraph(
     navigateToScheduleExam: () -> Unit,
     navigateToCreateQuiz: () -> Unit,
     navigateToUpload: () -> Unit,
-    navigateToAddSubject: () -> Unit,
-    onBackClick: () -> Unit,
+    navigateToAddSubject: () -> Unit
 ) {
     composable(route = HomeDestination.route) {
         HomeRoute(
@@ -38,10 +33,7 @@ fun NavGraphBuilder.homeGraph(
         ScheduleExamScreen()
     }
     composable(CreateQuizDestination.route) {
-        CreateQuizRoute(
-            onBackClick = onBackClick,
-            onAddSubjectClick = navigateToAddSubject,
-        )
+        CreateQuizScreen()
     }
     composable(UploadDestination.route) {
         UploadScreen()

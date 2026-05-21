@@ -1,4 +1,4 @@
-package com.f1.quiket.feature.home.floating
+package com.f1.quiket.feature.floating.presentation.screen
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Text
