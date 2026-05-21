@@ -55,7 +55,7 @@ fun QuiketTopBar(
                 .clickable { onNoteIconClick() },
         )
         Icon(
-            painter = painterResource(R.drawable.ic_home_alert),
+            painter = painterResource(R.drawable.ic_alert),
             contentDescription = "Home Quiket Alert",
             tint = Color.Unspecified,
             modifier = Modifier

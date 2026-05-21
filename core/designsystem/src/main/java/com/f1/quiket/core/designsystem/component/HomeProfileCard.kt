@@ -88,7 +88,7 @@ fun HomeProfileCard(
             Spacer(modifier = Modifier.width(8.dp))
 
             Icon(
-                painter = painterResource(R.drawable.ic_home_profile_next),
+                painter = painterResource(R.drawable.ic_next),
                 contentDescription = null,
                 tint = White,
                 modifier = Modifier.size(20.dp)
@@ -104,7 +104,7 @@ private fun HomeProfileCardPreview() {
         HomeProfileCard(
             nickname = "송미짱",
             acornCount = 12,
-            profileImageRes = R.drawable.ic_profile,
+            profileImageRes = R.drawable.ic_qring_profile,
             onClick = {},
             modifier = Modifier.padding(16.dp)
         )

@@ -160,7 +160,7 @@ fun HomeScreen(
             HomeProfileCard(
                 "송미짱짱짱",
                 1200,
-                com.f1.quiket.core.designsystem.R.drawable.ic_profile,
+                com.f1.quiket.core.designsystem.R.drawable.ic_qring_profile,
                 {},
                 modifier = Modifier
                     .padding(top = 10.dp, start = 16.dp, end = 16.dp)

@@ -31,7 +31,7 @@ import com.f1.quiket.feature.mypage.navigation.myPageGraph
 import com.f1.quiket.feature.review.navigation.reviewGraph
 
 @Composable
-fun MainScreen() {
+fun MainScreen(onLogout: () -> Unit) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route ?: MainTab.Home.destination.route
@@ -114,7 +114,7 @@ fun MainScreen() {
             )
             historyGraph()
             reviewGraph()
-            myPageGraph()
+            myPageGraph(navController, onLogout = onLogout)
         }
     }
 }
