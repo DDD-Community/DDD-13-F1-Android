@@ -26,6 +26,11 @@ data class MyProfile(
     val createdAt: String?,
 )
 
+data class EmailVerificationSent(
+    val email: String,
+    val expiresInSeconds: Long,
+)
+
 data class PasswordChange(
     val currentPassword: String,
     val newPassword: String,

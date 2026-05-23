@@ -1,16 +1,20 @@
 package com.f1.quiket.feature.mypage.data.mapper
 
 import com.f1.quiket.feature.mypage.data.remote.AccountDeleteRequest
+import com.f1.quiket.feature.mypage.data.remote.EmailVerificationSentDataResponse
 import com.f1.quiket.feature.mypage.data.remote.FcmTokenUpdateRequest
 import com.f1.quiket.feature.mypage.data.remote.FeedbackCreateRequest
 import com.f1.quiket.feature.mypage.data.remote.FeedbackDataResponse
 import com.f1.quiket.feature.mypage.data.remote.GamificationDataResponse
+import com.f1.quiket.feature.mypage.data.remote.MyEmailChangeConfirmRequest
+import com.f1.quiket.feature.mypage.data.remote.MyEmailChangeRequest
 import com.f1.quiket.feature.mypage.data.remote.MyProfileDataResponse
 import com.f1.quiket.feature.mypage.data.remote.NicknameUpdateRequest
 import com.f1.quiket.feature.mypage.data.remote.NotificationSettingsDataResponse
 import com.f1.quiket.feature.mypage.data.remote.NotificationSettingsUpdateRequest
 import com.f1.quiket.feature.mypage.data.remote.PasswordChangeRequest
 import com.f1.quiket.feature.mypage.domain.model.AccountDelete
+import com.f1.quiket.feature.mypage.domain.model.EmailVerificationSent
 import com.f1.quiket.feature.mypage.domain.model.Feedback
 import com.f1.quiket.feature.mypage.domain.model.FeedbackCategory
 import com.f1.quiket.feature.mypage.domain.model.FeedbackCreate
@@ -47,6 +51,23 @@ fun MyProfileDataResponse.toDomain(): MyProfile = MyProfile(
 
 fun String.toNicknameUpdateRequest(): NicknameUpdateRequest = NicknameUpdateRequest(
     nickname = this,
+)
+
+fun String.toMyEmailChangeRequest(): MyEmailChangeRequest = MyEmailChangeRequest(
+    newEmail = this,
+)
+
+fun EmailVerificationSentDataResponse.toDomain(): EmailVerificationSent = EmailVerificationSent(
+    email = email,
+    expiresInSeconds = expiresInSeconds,
+)
+
+fun toMyEmailChangeConfirmRequest(
+    newEmail: String,
+    verificationCode: String,
+): MyEmailChangeConfirmRequest = MyEmailChangeConfirmRequest(
+    newEmail = newEmail,
+    verificationCode = verificationCode,
 )
 
 fun PasswordChange.toRequest(): PasswordChangeRequest = PasswordChangeRequest(

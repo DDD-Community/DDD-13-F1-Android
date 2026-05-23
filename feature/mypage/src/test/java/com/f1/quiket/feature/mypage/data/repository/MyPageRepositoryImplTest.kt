@@ -6,10 +6,13 @@ import com.f1.quiket.core.network.model.NetworkResult
 import com.f1.quiket.core.network.retrofit.ApiResponseHandler
 import com.f1.quiket.core.network.retrofit.NetworkErrorMapper
 import com.f1.quiket.feature.mypage.data.remote.AccountDeleteRequest
+import com.f1.quiket.feature.mypage.data.remote.EmailVerificationSentDataResponse
 import com.f1.quiket.feature.mypage.data.remote.FcmTokenUpdateRequest
 import com.f1.quiket.feature.mypage.data.remote.FeedbackCreateRequest
 import com.f1.quiket.feature.mypage.data.remote.FeedbackDataResponse
 import com.f1.quiket.feature.mypage.data.remote.GamificationDataResponse
+import com.f1.quiket.feature.mypage.data.remote.MyEmailChangeConfirmRequest
+import com.f1.quiket.feature.mypage.data.remote.MyEmailChangeRequest
 import com.f1.quiket.feature.mypage.data.remote.MyPageApi
 import com.f1.quiket.feature.mypage.data.remote.MyProfileDataResponse
 import com.f1.quiket.feature.mypage.data.remote.NicknameUpdateRequest
@@ -47,6 +50,60 @@ class MyPageRepositoryImplTest {
         val result = repository.updateMyNickname("도토리장인")
 
         val profile = (result as NetworkResult.Success).data
+        assertThat(profile.nickname).isEqualTo("도토리장인")
+    }
+
+    @Test
+    fun requestMyEmailChange_success_mapsRequestBody() = runTest {
+        val api = FakeMyPageApi()
+        val repository = repository(api)
+
+        api.requestMyEmailChangeHandler = { request ->
+            assertThat(request).isEqualTo(MyEmailChangeRequest(newEmail = "new.user@example.com"))
+            successResponse(
+                code = "MY_EMAIL_CHANGE_VERIFICATION_SENT",
+                data = EmailVerificationSentDataResponse(
+                    email = request.newEmail,
+                    expiresInSeconds = 600,
+                ),
+            )
+        }
+
+        val result = repository.requestMyEmailChange("new.user@example.com")
+
+        val verification = (result as NetworkResult.Success).data
+        assertThat(verification.email).isEqualTo("new.user@example.com")
+        assertThat(verification.expiresInSeconds).isEqualTo(600)
+    }
+
+    @Test
+    fun confirmMyEmailChange_success_mapsRequestBody() = runTest {
+        val api = FakeMyPageApi()
+        val repository = repository(api)
+
+        api.confirmMyEmailChangeHandler = { request ->
+            assertThat(request).isEqualTo(
+                MyEmailChangeConfirmRequest(
+                    newEmail = "new.user@example.com",
+                    verificationCode = "123456",
+                ),
+            )
+            successResponse(
+                code = "MY_EMAIL_CHANGE_SUCCESS",
+                data = profileResponse(
+                    nickname = "도토리장인",
+                    email = request.newEmail,
+                ),
+            )
+        }
+
+        val result = repository.confirmMyEmailChange(
+            newEmail = "new.user@example.com",
+            verificationCode = "123456",
+        )
+
+        val profile = (result as NetworkResult.Success).data
+        assertThat(profile.email).isEqualTo("new.user@example.com")
         assertThat(profile.nickname).isEqualTo("도토리장인")
     }
 
@@ -112,6 +169,12 @@ class MyPageRepositoryImplTest {
         var updateMyNicknameHandler:
             suspend (NicknameUpdateRequest) -> Response<ApiResponse<MyProfileDataResponse>> =
             { unhandled("updateMyNickname") }
+        var requestMyEmailChangeHandler:
+            suspend (MyEmailChangeRequest) -> Response<ApiResponse<EmailVerificationSentDataResponse>> =
+            { unhandled("requestMyEmailChange") }
+        var confirmMyEmailChangeHandler:
+            suspend (MyEmailChangeConfirmRequest) -> Response<ApiResponse<MyProfileDataResponse>> =
+            { unhandled("confirmMyEmailChange") }
         var createFeedbackHandler:
             suspend (FeedbackCreateRequest) -> Response<ApiResponse<FeedbackDataResponse>> =
             { unhandled("createFeedback") }
@@ -125,6 +188,14 @@ class MyPageRepositoryImplTest {
         override suspend fun updateMyNickname(
             request: NicknameUpdateRequest,
         ): Response<ApiResponse<MyProfileDataResponse>> = updateMyNicknameHandler(request)
+
+        override suspend fun requestMyEmailChange(
+            request: MyEmailChangeRequest,
+        ): Response<ApiResponse<EmailVerificationSentDataResponse>> = requestMyEmailChangeHandler(request)
+
+        override suspend fun confirmMyEmailChange(
+            request: MyEmailChangeConfirmRequest,
+        ): Response<ApiResponse<MyProfileDataResponse>> = confirmMyEmailChangeHandler(request)
 
         override suspend fun updateMyPassword(
             request: PasswordChangeRequest,
@@ -160,9 +231,12 @@ class MyPageRepositoryImplTest {
             encodeDefaults = true
         }
 
-        fun profileResponse(nickname: String): MyProfileDataResponse = MyProfileDataResponse(
+        fun profileResponse(
+            nickname: String,
+            email: String = "user@example.com",
+        ): MyProfileDataResponse = MyProfileDataResponse(
             id = "user-1",
-            email = "user@example.com",
+            email = email,
             nickname = nickname,
             dotoriBalance = 20,
             emailVerified = true,

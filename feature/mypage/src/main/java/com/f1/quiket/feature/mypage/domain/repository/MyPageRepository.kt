@@ -2,6 +2,7 @@ package com.f1.quiket.feature.mypage.domain.repository
 
 import com.f1.quiket.core.network.model.NetworkResult
 import com.f1.quiket.feature.mypage.domain.model.AccountDelete
+import com.f1.quiket.feature.mypage.domain.model.EmailVerificationSent
 import com.f1.quiket.feature.mypage.domain.model.Feedback
 import com.f1.quiket.feature.mypage.domain.model.FeedbackCreate
 import com.f1.quiket.feature.mypage.domain.model.Gamification
@@ -15,6 +16,13 @@ interface MyPageRepository {
     suspend fun getMyProfile(): NetworkResult<MyProfile>
 
     suspend fun updateMyNickname(nickname: String): NetworkResult<MyProfile>
+
+    suspend fun requestMyEmailChange(newEmail: String): NetworkResult<EmailVerificationSent>
+
+    suspend fun confirmMyEmailChange(
+        newEmail: String,
+        verificationCode: String,
+    ): NetworkResult<MyProfile>
 
     suspend fun updateMyPassword(request: PasswordChange): NetworkResult<Unit>
 

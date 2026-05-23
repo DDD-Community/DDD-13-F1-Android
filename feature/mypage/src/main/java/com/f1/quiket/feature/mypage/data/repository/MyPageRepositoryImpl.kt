@@ -5,10 +5,13 @@ import com.f1.quiket.core.network.model.NetworkResult
 import com.f1.quiket.core.network.retrofit.ApiResponseHandler
 import com.f1.quiket.feature.mypage.data.mapper.toDomain
 import com.f1.quiket.feature.mypage.data.mapper.toFcmTokenUpdateRequest
+import com.f1.quiket.feature.mypage.data.mapper.toMyEmailChangeConfirmRequest
+import com.f1.quiket.feature.mypage.data.mapper.toMyEmailChangeRequest
 import com.f1.quiket.feature.mypage.data.mapper.toNicknameUpdateRequest
 import com.f1.quiket.feature.mypage.data.mapper.toRequest
 import com.f1.quiket.feature.mypage.data.remote.MyPageApi
 import com.f1.quiket.feature.mypage.domain.model.AccountDelete
+import com.f1.quiket.feature.mypage.domain.model.EmailVerificationSent
 import com.f1.quiket.feature.mypage.domain.model.Feedback
 import com.f1.quiket.feature.mypage.domain.model.FeedbackCreate
 import com.f1.quiket.feature.mypage.domain.model.Gamification
@@ -49,6 +52,31 @@ class MyPageRepositoryImpl @Inject constructor(
                 mapper = { response -> response.toDomain() },
             )
         }
+
+    override suspend fun requestMyEmailChange(newEmail: String): NetworkResult<EmailVerificationSent> =
+        withContext(dispatchers.io) {
+            responseHandler.execute(
+                call = { api.requestMyEmailChange(newEmail.toMyEmailChangeRequest()) },
+                mapper = { response -> response.toDomain() },
+            )
+        }
+
+    override suspend fun confirmMyEmailChange(
+        newEmail: String,
+        verificationCode: String,
+    ): NetworkResult<MyProfile> = withContext(dispatchers.io) {
+        responseHandler.execute(
+            call = {
+                api.confirmMyEmailChange(
+                    toMyEmailChangeConfirmRequest(
+                        newEmail = newEmail,
+                        verificationCode = verificationCode,
+                    ),
+                )
+            },
+            mapper = { response -> response.toDomain() },
+        )
+    }
 
     override suspend fun updateMyPassword(request: PasswordChange): NetworkResult<Unit> =
         withContext(dispatchers.io) {

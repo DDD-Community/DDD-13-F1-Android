@@ -26,6 +26,18 @@ interface MyPageApi {
     ): Response<ApiResponse<MyProfileDataResponse>>
 
     @Headers(AuthenticatedRequest.HEADER)
+    @POST("my/email/change-requests")
+    suspend fun requestMyEmailChange(
+        @Body request: MyEmailChangeRequest,
+    ): Response<ApiResponse<EmailVerificationSentDataResponse>>
+
+    @Headers(AuthenticatedRequest.HEADER)
+    @POST("my/email/change-confirm")
+    suspend fun confirmMyEmailChange(
+        @Body request: MyEmailChangeConfirmRequest,
+    ): Response<ApiResponse<MyProfileDataResponse>>
+
+    @Headers(AuthenticatedRequest.HEADER)
     @PATCH("my/password")
     suspend fun updateMyPassword(
         @Body request: PasswordChangeRequest,

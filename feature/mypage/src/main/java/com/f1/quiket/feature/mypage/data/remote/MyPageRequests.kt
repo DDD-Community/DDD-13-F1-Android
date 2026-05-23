@@ -8,6 +8,17 @@ data class NicknameUpdateRequest(
 )
 
 @Serializable
+data class MyEmailChangeRequest(
+    val newEmail: String,
+)
+
+@Serializable
+data class MyEmailChangeConfirmRequest(
+    val newEmail: String,
+    val verificationCode: String,
+)
+
+@Serializable
 data class PasswordChangeRequest(
     val currentPassword: String,
     val newPassword: String,

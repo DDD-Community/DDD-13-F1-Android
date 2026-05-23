@@ -31,6 +31,12 @@ data class MyProfileDataResponse(
 )
 
 @Serializable
+data class EmailVerificationSentDataResponse(
+    val email: String,
+    val expiresInSeconds: Long,
+)
+
+@Serializable
 data class NotificationSettingsDataResponse(
     val fcmTokenRegistered: Boolean? = null,
     val activityEnabled: Boolean,
