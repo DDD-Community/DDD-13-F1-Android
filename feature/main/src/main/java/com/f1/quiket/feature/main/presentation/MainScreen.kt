@@ -53,7 +53,6 @@ fun MainScreen() {
                 tonalElevation = 0.dp
             ) {
                 MainTab.entries.forEach { tab ->
-
                     val selected = currentRoute == tab.destination.route
 
                     NavigationBarItem(
