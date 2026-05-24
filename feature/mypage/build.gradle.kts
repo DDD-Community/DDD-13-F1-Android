@@ -17,6 +17,7 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:navigation"))
+    implementation(project(":core:common"))
     implementation(project(":core:network"))
 
     implementation(libs.androidx.core.ktx)
@@ -26,6 +27,9 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.hilt.android)
+    implementation(libs.androidx.foundation)
+    implementation(libs.androidx.hilt.navigation.compose)
+
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.retrofit)

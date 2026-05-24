@@ -85,7 +85,11 @@ fun QuiketApp() {
             )
 
             composable(route = MainDestination.route) {
-                MainRoute()
+                MainRoute(
+                    onLogout = {
+                        navigateToRoot(navController, LoginDestination.route, MainDestination.route)
+                    },
+                )
             }
         }
     }
