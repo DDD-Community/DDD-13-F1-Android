@@ -12,7 +12,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.f1.quiket.core.designsystem.theme.Orange100
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
 import com.f1.quiket.feature.mypage.component.AcornShopButton
@@ -20,6 +19,7 @@ import com.f1.quiket.feature.mypage.component.CharacterRoomSection
 import com.f1.quiket.feature.mypage.component.LevelProfileSection
 import com.f1.quiket.feature.mypage.component.MyPageTopBar
 import com.f1.quiket.feature.mypage.component.StatsRow
+import com.f1.quiket.feature.mypage.component.getRoomBackgroundColor
 import com.f1.quiket.feature.mypage.data.model.CharacterLevel
 import com.f1.quiket.feature.mypage.data.model.UserProfile
 
@@ -38,17 +38,19 @@ fun MyPageScreen(
             onSettingsClick = { onIntent(MyPageIntent.NavigateToSettings) },
         )
 
+        // getRoomBackgroundColor를 Single Source of Truth로 사용하여
+        // LevelProfileSection 영역과 CharacterRoomSection 배경색을 항상 동일하게 유지
+        val roomBgColor = getRoomBackgroundColor(state.characterLevel.level)
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Orange100),
+                .background(roomBgColor),
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
             LevelProfileSection(
                 nickname = state.profile.nickname,
                 level = state.characterLevel.level,
-                progress = state.characterLevel.progressIn(state.totalQuizCount),
-                totalQuizCount = state.totalQuizCount,
+                progress = state.characterLevel.progressIn(state.totalXp),
             )
 
             CharacterRoomSection(
@@ -77,18 +79,18 @@ fun MyPageScreen(
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true, name = "MyPage — 기본")
+@Preview(showBackground = true, showSystemUi = true, name = "MyPage — Lv.1 첫걸음 다람쥐")
 @Composable
-private fun MyPageScreenPreview() {
+private fun MyPageScreenLv1Preview() {
     QuiketTheme {
         MyPageScreen(
             state = MyPageState(
                 isLoading = false,
-                profile = UserProfile(nickname = "큐링이"),
-                characterLevel = CharacterLevel.STUDIOUS,
-                totalQuizCount = 20,
-                acornCount = 42,
-                streakDays = 7,
+                profile = UserProfile(nickname = "첫걸음 다람쥐"),
+                characterLevel = CharacterLevel.FIRST_STEP,
+                totalXp = 50,
+                acornCount = 5,
+                streakDays = 1,
                 unlockedRoomItems = setOf(RoomItem.BASIC_ROOM),
             ),
             onIntent = {},
@@ -96,19 +98,76 @@ private fun MyPageScreenPreview() {
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true, name = "MyPage — Lv3 아이템 해금")
+@Preview(showBackground = true, showSystemUi = true, name = "MyPage — Lv.2 결심한 다람쥐")
+@Composable
+private fun MyPageScreenLv2Preview() {
+    QuiketTheme {
+        MyPageScreen(
+            state = MyPageState(
+                isLoading = false,
+                profile = UserProfile(nickname = "결심한 다람쥐"),
+                characterLevel = CharacterLevel.DETERMINED,
+                totalXp = 220,
+                acornCount = 22,
+                streakDays = 3,
+                unlockedRoomItems = setOf(RoomItem.BASIC_ROOM, RoomItem.PLANT),
+            ),
+            onIntent = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true, name = "MyPage — Lv.3 펜굴리는 다람쥐")
 @Composable
 private fun MyPageScreenLv3Preview() {
     QuiketTheme {
         MyPageScreen(
             state = MyPageState(
                 isLoading = false,
-                profile = UserProfile(nickname = "큐링큐링"),
+                profile = UserProfile(nickname = "펜굴리는 다람쥐"),
+                characterLevel = CharacterLevel.PEN_ROLLING,
+                totalXp = 600,
+                acornCount = 60,
+                streakDays = 10,
+                unlockedRoomItems = setOf(RoomItem.BASIC_ROOM, RoomItem.PLANT, RoomItem.RUG),
+            ),
+            onIntent = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true, name = "MyPage — Lv.4 노력형 다람쥐")
+@Composable
+private fun MyPageScreenLv4Preview() {
+    QuiketTheme {
+        MyPageScreen(
+            state = MyPageState(
+                isLoading = false,
+                profile = UserProfile(nickname = "노력형 다람쥐"),
+                characterLevel = CharacterLevel.HARDWORKING,
+                totalXp = 1300,
+                acornCount = 130,
+                streakDays = 21,
+                unlockedRoomItems = setOf(RoomItem.BASIC_ROOM, RoomItem.PLANT, RoomItem.RUG, RoomItem.SOFA),
+            ),
+            onIntent = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true, name = "MyPage — Lv.5 열공 다람쥐")
+@Composable
+private fun MyPageScreenLv5Preview() {
+    QuiketTheme {
+        MyPageScreen(
+            state = MyPageState(
+                isLoading = false,
+                profile = UserProfile(nickname = "열공 다람쥐"),
                 characterLevel = CharacterLevel.STUDIOUS,
-                totalQuizCount = 200,
-                acornCount = 120,
-                streakDays = 30,
-                unlockedRoomItems = setOf(RoomItem.BASIC_ROOM, RoomItem.RUG, RoomItem.SOFA),
+                totalXp = 2500,
+                acornCount = 250,
+                streakDays = 45,
+                unlockedRoomItems = setOf(RoomItem.BASIC_ROOM, RoomItem.PLANT, RoomItem.RUG, RoomItem.SOFA, RoomItem.CLOCK),
             ),
             onIntent = {},
         )

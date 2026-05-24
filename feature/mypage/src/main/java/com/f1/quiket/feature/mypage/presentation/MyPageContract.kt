@@ -10,7 +10,7 @@ data class MyPageState(
     val isLoading: Boolean = true,
     val profile: UserProfile = UserProfile(),
     val characterLevel: CharacterLevel = CharacterLevel.FIRST_STEP,
-    val totalQuizCount: Int = 0,
+    val totalXp: Int = 0,
     val streakDays: Int = 0,
     val acornCount: Int = 0,
     val unlockedRoomItems: Set<RoomItem> = setOf(RoomItem.BASIC_ROOM),
@@ -18,10 +18,10 @@ data class MyPageState(
 
 enum class RoomItem {
     BASIC_ROOM,
-    RUG,
-    SOFA,
-    BOOKSHELF,
-    FULL_ROOM,
+    PLANT,   // Lv.2 화분
+    RUG,     // Lv.3 카펫
+    SOFA,    // Lv.4 소파
+    CLOCK,   // Lv.5 시계
 }
 
 sealed interface MyPageIntent: UiIntent {

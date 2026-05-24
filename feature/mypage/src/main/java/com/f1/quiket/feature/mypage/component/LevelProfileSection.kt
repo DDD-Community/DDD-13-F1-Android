@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -44,7 +43,6 @@ fun LevelProfileSection(
     nickname: String,
     level: Int,
     progress: Float,
-    totalQuizCount: Int,
     modifier: Modifier = Modifier,
 ) {
     val animatedProgress by animateFloatAsState(
@@ -145,7 +143,6 @@ private fun LevelProfileSectionPreview() {
             nickname = "큐링큐링큐링",
             level = 3,
             progress = 0.6f,
-            totalQuizCount = 120,
         )
     }
 }

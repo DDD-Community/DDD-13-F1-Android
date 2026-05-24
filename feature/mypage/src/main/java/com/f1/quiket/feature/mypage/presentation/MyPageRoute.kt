@@ -3,13 +3,14 @@ package com.f1.quiket.feature.mypage.presentation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun MyPageRoute(
     onNavigateToSettings: () -> Unit,
-    viewModel: MyPageViewModel = androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel(),
+    viewModel: MyPageViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
