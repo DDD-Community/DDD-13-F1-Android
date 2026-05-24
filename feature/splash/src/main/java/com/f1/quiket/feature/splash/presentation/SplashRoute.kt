@@ -16,4 +16,4 @@ fun SplashRoute(
     SplashScreen()
 }
 
-private const val SPLASH_ANIMATION_DURATION_MILLIS = 10_100L
+private const val SPLASH_ANIMATION_DURATION_MILLIS = 5_050L
