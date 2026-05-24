@@ -35,6 +35,7 @@ dependencies {
     implementation(libs.kotlinx.metadata.jvm)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.retrofit)
+    implementation(libs.lottie.compose)
     ksp(libs.hilt.compiler)
 
     testImplementation(project(":core:testing"))

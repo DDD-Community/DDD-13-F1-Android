@@ -7,14 +7,18 @@ import com.f1.quiket.feature.floating.presentation.navigation.AddSubjectDestinat
 import com.f1.quiket.feature.floating.presentation.navigation.CreateQuizDestination
 import com.f1.quiket.feature.floating.presentation.navigation.ScheduleExamDestination
 import com.f1.quiket.feature.floating.presentation.navigation.UploadDestination
-import com.f1.quiket.feature.floating.presentation.screen.CreateQuizScreen
 import com.f1.quiket.feature.floating.presentation.screen.ScheduleExamScreen
 import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
 import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectScreen
+import com.f1.quiket.feature.home.presentation.CreateQuizRoute
 import com.f1.quiket.feature.home.presentation.HomeRoute
+import com.f1.quiket.feature.home.presentation.QuizStartRoute
 
 fun NavGraphBuilder.homeGraph(
     navController: NavController,
+    isQuizGenerating: Boolean,
+    onQuizGenerationStarted: () -> Unit,
+    navigateToQuizStart: () -> Unit,
     navigateToScheduleExam: () -> Unit,
     navigateToCreateQuiz: () -> Unit,
     navigateToUpload: () -> Unit,
@@ -22,6 +26,8 @@ fun NavGraphBuilder.homeGraph(
 ) {
     composable(route = HomeDestination.route) {
         HomeRoute(
+            isQuizGenerating = isQuizGenerating,
+            navigateToQuizStart = navigateToQuizStart,
             navigateToScheduleExam = navigateToScheduleExam,
             navigateToCreateQuiz = navigateToCreateQuiz,
             navigateToUpload = navigateToUpload,
@@ -33,7 +39,16 @@ fun NavGraphBuilder.homeGraph(
         ScheduleExamScreen()
     }
     composable(CreateQuizDestination.route) {
-        CreateQuizScreen()
+        CreateQuizRoute(
+            onBackClick = { navController.popBackStack() },
+            onAddSubjectClick = { navController.navigate(AddSubjectDestination.route) },
+            onCreateQuizClick = onQuizGenerationStarted,
+        )
+    }
+    composable(QuizStartDestination.route) {
+        QuizStartRoute(
+            onBackClick = { navController.popBackStack() },
+        )
     }
     composable(UploadDestination.route) {
         UploadScreen()
