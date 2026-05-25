@@ -12,6 +12,7 @@ import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
 import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectScreen
 import com.f1.quiket.feature.home.presentation.CreateQuizRoute
 import com.f1.quiket.feature.home.presentation.HomeRoute
+import com.f1.quiket.feature.home.presentation.QuizPlayAllRoute
 import com.f1.quiket.feature.home.presentation.QuizStartRoute
 
 fun NavGraphBuilder.homeGraph(
@@ -48,6 +49,12 @@ fun NavGraphBuilder.homeGraph(
     composable(QuizStartDestination.route) {
         QuizStartRoute(
             onBackClick = { navController.popBackStack() },
+            onStartClick = { navController.navigate(QuizPlayAllDestination.route) },
+        )
+    }
+    composable(QuizPlayAllDestination.route) {
+        QuizPlayAllRoute(
+            onCloseClick = { navController.popBackStack() },
         )
     }
     composable(UploadDestination.route) {

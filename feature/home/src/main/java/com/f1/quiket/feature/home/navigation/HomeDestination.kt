@@ -9,3 +9,7 @@ data object HomeDestination : QuiketDestination {
 data object QuizStartDestination : QuiketDestination {
     override val route: String = "home/quiz-start"
 }
+
+data object QuizPlayAllDestination : QuiketDestination {
+    override val route: String = "home/quiz-play/all"
+}

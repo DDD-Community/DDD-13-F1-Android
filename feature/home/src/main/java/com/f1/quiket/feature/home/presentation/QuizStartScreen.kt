@@ -72,11 +72,12 @@ import com.f1.quiket.feature.home.R
 @Composable
 fun QuizStartRoute(
     onBackClick: () -> Unit,
+    onStartClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     QuizStartScreen(
         onBackClick = onBackClick,
-        onStartClick = {},
+        onStartClick = onStartClick,
         modifier = modifier,
     )
 }
