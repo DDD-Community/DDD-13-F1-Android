@@ -54,7 +54,6 @@ fun AddSubjectStep1Screen(
         ) {
             // ── TopBar ──────────────────────────────────────
             AddSubjectTopBar(
-                title = "과목 추가",
                 onBackClick = onBackClick,
             )
 

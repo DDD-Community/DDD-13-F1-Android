@@ -1,6 +1,5 @@
 package com.f1.quiket.feature.main.presentation
 
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -23,8 +22,12 @@ import com.f1.quiket.core.designsystem.theme.Gray400
 import com.f1.quiket.feature.history.navigation.historyGraph
 import com.f1.quiket.feature.floating.presentation.navigation.AddSubjectDestination
 import com.f1.quiket.feature.floating.presentation.navigation.CreateQuizDestination
+import com.f1.quiket.feature.floating.presentation.navigation.LectureSelectDestination
+import com.f1.quiket.feature.floating.presentation.navigation.LectureUploadFileDestination
 import com.f1.quiket.feature.floating.presentation.navigation.ScheduleExamDestination
 import com.f1.quiket.feature.floating.presentation.navigation.UploadDestination
+import com.f1.quiket.feature.floating.presentation.navigation.lectureSelectGraph
+import com.f1.quiket.feature.floating.presentation.navigation.lectureUploadFileGraph
 import com.f1.quiket.feature.home.navigation.HomeDestination
 import com.f1.quiket.feature.home.navigation.homeGraph
 import com.f1.quiket.feature.mypage.navigation.myPageGraph
@@ -94,7 +97,7 @@ fun MainScreen(onLogout: () -> Unit) {
         NavHost(
             navController = navController,
             startDestination = HomeDestination.route,
-            modifier = Modifier.padding(if (showBottomBar) paddingValues else PaddingValues()),
+            modifier = Modifier.padding(bottom = if (showBottomBar) paddingValues.calculateBottomPadding() else 0.dp),
         ) {
             homeGraph(
                 navController = navController,
@@ -114,6 +117,8 @@ fun MainScreen(onLogout: () -> Unit) {
             historyGraph()
             reviewGraph()
             myPageGraph(navController, onLogout = onLogout)
+            lectureSelectGraph(navController = navController, onFinish = { navController.popBackStack() })
+            lectureUploadFileGraph(navController = navController, onFinish = { navController.popBackStack() })
         }
     }
 }

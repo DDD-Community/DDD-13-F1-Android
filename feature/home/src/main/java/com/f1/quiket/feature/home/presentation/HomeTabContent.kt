@@ -1,8 +1,6 @@
 package com.f1.quiket.feature.home.presentation
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -58,7 +56,8 @@ fun EmptySubjectContent() {
 
 @Composable
 fun ActiveSubjectContent(
-    onSubjectAreaPositioned: (Rect) -> Unit = {}
+    onSubjectAreaPositioned: (Rect) -> Unit = {},
+    onSubjectClick: (Subject) -> Unit = {},
 ) {
     var subjects by remember {
         mutableStateOf(
@@ -73,7 +72,7 @@ fun ActiveSubjectContent(
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .onGloballyPositioned { coords ->
                 val pos = coords.positionInRoot()
                 onSubjectAreaPositioned(
@@ -102,15 +101,14 @@ fun ActiveSubjectContent(
             )
         }
 
-        LazyColumn(
+        Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(vertical = 12.dp, horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             val chunked = subjects.chunked(2)
-            items(chunked.size) { rowIndex ->
-                val rowItems = chunked[rowIndex]
+            chunked.forEachIndexed { rowIndex, rowItems ->
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -128,7 +126,7 @@ fun ActiveSubjectContent(
                                     else item
                                 }
                             },
-                            onClick = {}
+                            onClick = { onSubjectClick(subject) }
                         )
                     }
                     if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
@@ -156,7 +154,7 @@ fun ActiveActivityContent() {
         Activity("SQLD", 10, ActivityType.OX_QUIZ, "나머지 퀴즈로 이어서 풀어볼까요?", 70, false)
     )
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .height(24.dp)
@@ -173,13 +171,13 @@ fun ActiveActivityContent() {
             )
         }
 
-        LazyColumn(
+        Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(vertical = 12.dp, horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(activities) { activity ->
+            activities.forEach { activity ->
                 HomeActivityCard(
                     title = activity.title,
                     questionCount = activity.questionCount,

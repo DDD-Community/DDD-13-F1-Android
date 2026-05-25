@@ -54,3 +54,35 @@ data object AddSubjectStep3Destination : QuiketDestination {
         append("&$ARG_USAGE=${usagePurpose?.name ?: ""}")
     }
 }
+
+/**
+ * 과목 선택 화면.
+ * 강의가 지정되어 있을 때만 진입합니다.
+ */
+data object LectureSelectDestination : QuiketDestination {
+    override val route: String = "lecture_select"
+}
+
+/**
+ * 자료 추가 화면.
+ * - 강의 없이 바로 진입: route = "lecture_upload_file"
+ * - 과목 선택 후 진입 : route = "lecture_upload_file/{lectureId}/{lectureTitle}/{chapterCount}"
+ */
+data object LectureUploadFileDestination : QuiketDestination {
+    const val ARG_LECTURE_ID = "lectureId"
+    const val ARG_LECTURE_TITLE = "lectureTitle"
+    const val ARG_CHAPTER_COUNT = "chapterCount"
+
+    // 강의 지정 없이 바로 진입하는 경우
+    override val route: String = "lecture_upload_file"
+
+    // 과목 선택 후 진입하는 경우
+    const val routeWithArgs =
+        "lecture_upload_file/{$ARG_LECTURE_ID}/{$ARG_LECTURE_TITLE}/{$ARG_CHAPTER_COUNT}"
+
+    fun createRoute(
+        lectureId: String,
+        lectureTitle: String,
+        chapterCount: Int,
+    ) = "lecture_upload_file/$lectureId/$lectureTitle/$chapterCount"
+}

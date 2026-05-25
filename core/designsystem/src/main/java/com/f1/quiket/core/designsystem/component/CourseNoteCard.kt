@@ -1,5 +1,6 @@
 package com.f1.quiket.core.designsystem.component
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -125,7 +126,9 @@ fun SubjectLongCard(
     chapter: String,
     part: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    @DrawableRes trailingIconRes: Int = R.drawable.ic_subject_card_next,
+    trailingContent: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -166,11 +169,15 @@ fun SubjectLongCard(
                         fontWeight = FontWeight.Bold
                     )
                 )
-                Icon(
-                    contentDescription = null,
-                    painter = painterResource(R.drawable.ic_subject_card_next),
-                    tint = Color.Unspecified
-                )
+                if (trailingContent != null) {
+                    trailingContent()
+                } else {
+                    Icon(
+                        contentDescription = null,
+                        painter = painterResource(trailingIconRes),
+                        tint = Color.Unspecified
+                    )
+                }
             }
             Spacer(modifier = Modifier.weight(1f))
             Text(

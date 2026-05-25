@@ -96,7 +96,7 @@ fun AddSubjectStep3Screen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            AddSubjectTopBar(title = "과목 추가", onBackClick = onBackClick)
+            AddSubjectTopBar(onBackClick = onBackClick)
             Spacer(modifier = Modifier.height(4.dp))
             AddSubjectProgressBar(currentStep = 3)
             Spacer(modifier = Modifier.height(28.dp))

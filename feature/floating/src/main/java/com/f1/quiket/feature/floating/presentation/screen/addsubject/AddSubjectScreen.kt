@@ -10,6 +10,7 @@ import com.f1.quiket.feature.floating.domain.model.ExamType
 import com.f1.quiket.feature.floating.domain.model.StudyField
 import com.f1.quiket.feature.floating.domain.model.StudyPurpose
 import com.f1.quiket.feature.floating.domain.model.UsagePurpose
+import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
 import com.f1.quiket.feature.floating.presentation.screen.subjectdetail.SubjectDetailScreen
 
 @Composable
@@ -59,6 +60,16 @@ fun AddSubjectScreen(
             studyPurposeLabel = state.studyPurpose?.title ?: "",
             examTypeLabel = state.examType?.label ?: state.studyField?.label ?: state.usagePurpose?.title ?: "",
             onBackClick = onFinish,
+            onChapterAddClick = { depth = 5 },
+            onUploadClick = { depth = 5 },
+        )
+
+        5 -> UploadScreen(
+            lectureTitle = state.subjectName.ifBlank { "새 과목" },
+            lecturePurpose = state.studyPurpose?.title,
+            chapterCount = 0,
+            onBackClick = { depth = 4 },
+            onNextClick = { depth = 4 },
         )
     }
 }

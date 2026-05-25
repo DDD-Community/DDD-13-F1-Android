@@ -16,8 +16,12 @@ import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectS
 import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectStep1Screen
 import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectStep2Screen
 import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectStep3Screen
+import com.f1.quiket.feature.floating.presentation.screen.lectureselect.LectureSelectScreen
+
+// ─── Floating Graph ────────────────────────────────────────────────────────────
 
 fun NavGraphBuilder.floatingGraph(
+    navController: NavController,
     onFinish: () -> Unit,
 ) {
     composable(ScheduleExamDestination.route) {
@@ -27,12 +31,17 @@ fun NavGraphBuilder.floatingGraph(
         CreateQuizScreen()
     }
     composable(UploadDestination.route) {
-        UploadScreen()
+        UploadScreen(
+            onBackClick = { navController.popBackStack() },
+            onNextClick = onFinish,
+        )
     }
     composable(AddSubjectDestination.route) {
         AddSubjectScreen(onFinish = onFinish)
     }
 }
+
+// ─── AddSubject Graph ──────────────────────────────────────────────────────────
 
 fun NavGraphBuilder.addSubjectGraph(
     navController: NavController,
@@ -44,7 +53,6 @@ fun NavGraphBuilder.addSubjectGraph(
             onBackClick = { navController.popBackStack() },
             onSkipClick = onFinish,
             onNextClick = { subjectName, purpose ->
-                // subjectName은 ViewModel로 전달하거나 SavedStateHandle 활용 권장
                 navController.navigate(AddSubjectStep2Destination.createRoute(purpose))
             },
         )
@@ -119,6 +127,70 @@ fun NavGraphBuilder.addSubjectGraph(
             onBackClick = { navController.popBackStack() },
             onSkipClick = onFinish,
             onCreateClick = onFinish,
+        )
+    }
+}
+
+// ─── LectureUpload Graph ───────────────────────────────────────────────────────
+
+/**
+ * 과목 선택 화면.
+ * 강의가 지정된 경우에만 진입합니다.
+ */
+fun NavGraphBuilder.lectureSelectGraph(
+    navController: NavController,
+    onFinish: () -> Unit,
+) {
+    composable(route = LectureSelectDestination.route) {
+        LectureSelectScreen(
+            onBackClick = { navController.popBackStack() },
+            onLectureSelected = { lectureId, lectureTitle, chapterCount ->
+                navController.navigate(
+                    LectureUploadFileDestination.createRoute(lectureId, lectureTitle, chapterCount)
+                )
+            },
+        )
+    }
+}
+
+/**
+ * 자료 추가 화면.
+ * - 강의 지정 없이 바로 진입하는 경우
+ * - 과목 선택 후 진입하는 경우 (lectureId, lectureTitle, chapterCount 포함)
+ */
+fun NavGraphBuilder.lectureUploadFileGraph(
+    navController: NavController,
+    onFinish: () -> Unit,
+) {
+    // 강의 지정 없이 바로 진입
+    composable(route = LectureUploadFileDestination.route) {
+        UploadScreen(
+            onBackClick = { navController.popBackStack() },
+            onNextClick = onFinish,
+        )
+    }
+
+    // 과목 선택 후 진입
+    composable(
+        route = LectureUploadFileDestination.routeWithArgs,
+        arguments = listOf(
+            navArgument(LectureUploadFileDestination.ARG_LECTURE_ID) {
+                type = NavType.StringType
+            },
+            navArgument(LectureUploadFileDestination.ARG_LECTURE_TITLE) {
+                type = NavType.StringType
+            },
+            navArgument(LectureUploadFileDestination.ARG_CHAPTER_COUNT) {
+                type = NavType.IntType
+            },
+        ),
+    ) { backStack ->
+        val args = backStack.arguments
+        UploadScreen(
+            lectureTitle = args?.getString(LectureUploadFileDestination.ARG_LECTURE_TITLE),
+            chapterCount = args?.getInt(LectureUploadFileDestination.ARG_CHAPTER_COUNT),
+            onBackClick = { navController.popBackStack() },
+            onNextClick = onFinish,
         )
     }
 }

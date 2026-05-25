@@ -1,4 +1,4 @@
-package com.f1.quiket.feature.floating.presentation.component
+package com.f1.quiket.feature.floating.presentation.component.upload
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,14 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.f1.quiket.core.designsystem.theme.Gray950
-import com.f1.quiket.core.designsystem.theme.QuiketTheme
-import com.f1.quiket.feature.floating.R
 
 @Composable
-fun AddSubjectTopBar(
+fun UploadTopBar(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -40,7 +37,7 @@ fun AddSubjectTopBar(
         }
         Spacer(modifier = Modifier.weight(1f))
         Text(
-            text = "과목 추가",
+            text = "자료 추가",
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.titleSmall.copy(
                 fontWeight = FontWeight.Medium,
@@ -50,18 +47,8 @@ fun AddSubjectTopBar(
         Spacer(modifier = Modifier.weight(1f))
         Icon(
             painter = painterResource(com.f1.quiket.core.designsystem.R.drawable.ic_topbar_back),
-            contentDescription = "Null Icon",
+            contentDescription = null,
             tint = Color.Transparent,
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun AddSubjectTopBarPreview() {
-    QuiketTheme {
-        AddSubjectTopBar(
-            onBackClick = {}
         )
     }
 }

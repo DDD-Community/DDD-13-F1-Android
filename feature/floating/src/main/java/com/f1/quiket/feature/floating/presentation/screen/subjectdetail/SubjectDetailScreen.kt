@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -113,6 +116,8 @@ fun SubjectDetailScreen(
     studyPurposeLabel: String,
     examTypeLabel: String,
     onBackClick: () -> Unit = {},
+    onChapterAddClick: () -> Unit = {},
+    onUploadClick: () -> Unit = {},
 ) {
     var selectedChapter by remember { mutableStateOf<Chapter?>(null) }
 
@@ -136,11 +141,16 @@ fun SubjectDetailScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(bottom = innerPadding.calculateBottomPadding())
                 .verticalScroll(rememberScrollState()),
         ) {
 
             Column(modifier = Modifier.background(Green800)) {
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .windowInsetsTopHeight(WindowInsets.statusBars),
+                )
                 SubjectDetailTopBar(
                     title = subjectName,
                     isStarred = isStarred,
@@ -172,7 +182,7 @@ fun SubjectDetailScreen(
                     text = "자료 업로드",
                     iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_upload,
                     backgroundColor = Gray100,
-                    onClick = {},
+                    onClick = onUploadClick,
                     modifier = Modifier
                         .height(103.dp)
                         .weight(1f)
@@ -209,6 +219,7 @@ fun SubjectDetailScreen(
             MySubjectSection(
                 chapters = sampleChapters,
                 onChapterClick = { selectedChapter = it },
+                onChapterAddClick = onChapterAddClick,
             )
         }
     }
@@ -275,6 +286,7 @@ private fun SubjectHeaderSection(
 private fun MySubjectSection(
     chapters: List<Chapter>,
     onChapterClick: (Chapter) -> Unit,
+    onChapterAddClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -340,14 +352,14 @@ private fun MySubjectSection(
                 .padding(horizontal = 16.dp)
                 .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
                 .background(White)
-                .clickable { }
+                .clickable { onChapterAddClick() }
                 .padding(vertical = 14.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AddSubjectCard(
                 title = "챕터 추가",
-                onClick = {},
+                onClick = onChapterAddClick,
             )
         }
 
