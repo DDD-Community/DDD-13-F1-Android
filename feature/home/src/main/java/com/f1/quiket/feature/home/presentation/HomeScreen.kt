@@ -1,5 +1,11 @@
 package com.f1.quiket.feature.home.presentation
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -25,17 +31,22 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -43,6 +54,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.f1.quiket.core.designsystem.component.HomeActionButton
 import com.f1.quiket.core.designsystem.component.HomeExamCard
 import com.f1.quiket.core.designsystem.component.HomeProfileCard
@@ -56,22 +71,25 @@ import com.f1.quiket.core.designsystem.theme.Gray900
 import com.f1.quiket.core.designsystem.theme.Orange500
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
+import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
+import com.f1.quiket.feature.floating.presentation.screen.lectureselect.LectureSelectScreen
+import com.f1.quiket.feature.floating.presentation.screen.subjectdetail.SubjectDetailScreen
 import com.f1.quiket.feature.home.component.ExpandableFab
 import com.f1.quiket.feature.home.component.HomeGuideTooltip
 import com.f1.quiket.feature.home.component.HomeTutorialOverlay
 import com.f1.quiket.feature.home.model.Exam
-import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
-import com.f1.quiket.feature.floating.presentation.screen.lectureselect.LectureSelectScreen
-import com.f1.quiket.feature.floating.presentation.screen.subjectdetail.SubjectDetailScreen
 import com.f1.quiket.feature.home.model.FabAction
 import com.f1.quiket.feature.home.model.Subject
 import com.f1.quiket.feature.home.model.TutorialPage
 import com.f1.quiket.feature.home.model.buildTutorialPages
+import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(
     uiState: HomeState,
+    isQuizGenerating: Boolean = false,
     onBoardingDone: () -> Unit,
+    onQuizCardClick: () -> Unit,
     onFabItemClick: (FabAction) -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -114,6 +132,7 @@ fun HomeScreen(
             )
             return
         }
+
         2 -> {
             LectureSelectScreen(
                 onBackClick = { depth = 1 },
@@ -125,6 +144,7 @@ fun HomeScreen(
             )
             return
         }
+
         3 -> {
             UploadScreen(
                 lectureTitle = selectedSubject?.title,
@@ -135,6 +155,7 @@ fun HomeScreen(
             )
             return
         }
+
         4 -> {
             UploadScreen(
                 lectureTitle = selectedLectureTitle,
@@ -146,6 +167,7 @@ fun HomeScreen(
             return
         }
     }
+    val quizActionText = rememberQuizGeneratingText(isQuizGenerating)
 
     // 온보딩 툴팁
     var noteIconOffset by remember { mutableStateOf(Offset.Zero) }
@@ -278,6 +300,13 @@ fun HomeScreen(
                                     onClick = {},
                                     modifier = Modifier.fillMaxWidth()
                                 )
+                                if (isQuizGenerating) {
+                                    QuizGeneratingSparkleOverlay(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .clip(RoundedCornerShape(12.dp))
+                                    )
+                                }
                             }
                         }
                     }
@@ -441,7 +470,8 @@ fun HomeScreen(
                 .padding(16.dp)
                 .onGloballyPositioned { coords ->
                     val pos = coords.positionInRoot()
-                    fabRect = Rect(pos.x, pos.y, pos.x + coords.size.width, pos.y + coords.size.height)
+                    fabRect =
+                        Rect(pos.x, pos.y, pos.x + coords.size.width, pos.y + coords.size.height)
                 }
         )
 
@@ -457,6 +487,110 @@ fun HomeScreen(
     }
 }
 
+@Composable
+private fun rememberQuizGeneratingText(isGenerating: Boolean): String {
+    var dotCount by remember { mutableIntStateOf(1) }
+
+    LaunchedEffect(isGenerating) {
+        if (!isGenerating) {
+            dotCount = 1
+            return@LaunchedEffect
+        }
+
+        dotCount = 1
+        while (true) {
+            delay(1_000L)
+            dotCount = if (dotCount == 3) 1 else dotCount + 1
+        }
+    }
+
+    return if (isGenerating) {
+        "퀴즈 생성 중${".".repeat(dotCount)}"
+    } else {
+        "퀴즈 만들기"
+    }
+}
+
+@Composable
+private fun QuizGeneratingSparkleOverlay(
+    modifier: Modifier = Modifier,
+) {
+    val hasSparkleAsset = rememberAssetAvailable(QUIZ_GENERATING_SPARKLE_ASSET)
+
+    if (!hasSparkleAsset) {
+        QuizGeneratingSparkleFallback(
+            modifier = modifier,
+        )
+        return
+    }
+
+    val composition by rememberLottieComposition(
+        spec = LottieCompositionSpec.Asset(QUIZ_GENERATING_SPARKLE_ASSET),
+    )
+    val progress by animateLottieCompositionAsState(
+        composition = composition,
+        iterations = Int.MAX_VALUE,
+        ignoreSystemAnimatorScale = true,
+    )
+
+    val loadedComposition = composition
+    if (loadedComposition != null) {
+        LottieAnimation(
+            composition = loadedComposition,
+            progress = { progress },
+            modifier = modifier,
+            contentScale = ContentScale.Crop,
+        )
+    } else {
+        QuizGeneratingSparkleFallback(
+            modifier = modifier,
+        )
+    }
+}
+
+@Composable
+private fun rememberAssetAvailable(assetPath: String): Boolean {
+    val context = LocalContext.current
+    return remember(context, assetPath) {
+        runCatching {
+            context.assets.open(assetPath).use { }
+        }.isSuccess
+    }
+}
+
+@Composable
+private fun QuizGeneratingSparkleFallback(
+    modifier: Modifier = Modifier,
+) {
+    val transition = rememberInfiniteTransition(label = "quiz_generating_sparkle")
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 1_200,
+                easing = LinearEasing,
+            ),
+        ),
+        label = "quiz_generating_sparkle_phase",
+    )
+
+    Canvas(modifier = modifier) {
+        QuizGeneratingSparkleDots.forEach { sparkle ->
+            val rawPulse = (phase + sparkle.phaseOffset) % 1f
+            val pulse = if (rawPulse < 0.5f) rawPulse * 2f else (1f - rawPulse) * 2f
+            drawCircle(
+                color = White.copy(alpha = 0.18f + pulse * 0.28f),
+                radius = sparkle.radiusDp.dp.toPx() * (0.75f + pulse * 0.3f),
+                center = Offset(
+                    x = size.width * sparkle.xFraction,
+                    y = size.height * sparkle.yFraction,
+                ),
+            )
+        }
+    }
+}
+
 @Preview(name = "Home — 기본", showBackground = true, showSystemUi = true)
 @Composable
 private fun HomeScreenPreview() {
@@ -464,6 +598,7 @@ private fun HomeScreenPreview() {
         HomeScreen(
             uiState = HomeState(isLoading = false, showOnboarding = false),
             onBoardingDone = {},
+            onQuizCardClick = {},
             onFabItemClick = {},
         )
     }
@@ -476,6 +611,21 @@ private fun HomeScreenOnboardingPreview() {
         HomeScreen(
             uiState = HomeState(isLoading = false, showOnboarding = true),
             onBoardingDone = {},
+            onQuizCardClick = {},
+            onFabItemClick = {},
+        )
+    }
+}
+
+@Preview(name = "Home — 퀴즈 생성 중", showBackground = true, showSystemUi = true)
+@Composable
+private fun HomeScreenQuizGeneratingPreview() {
+    QuiketTheme {
+        HomeScreen(
+            uiState = HomeState(isLoading = false, showOnboarding = false),
+            isQuizGenerating = true,
+            onBoardingDone = {},
+            onQuizCardClick = {},
             onFabItemClick = {},
         )
     }
@@ -494,3 +644,20 @@ fun rememberTooltipOffset(
     val endPadding = screenWidth - noteIconCenterDp - 19.dp
     return Pair(yDp, endPadding)
 }
+
+private const val QUIZ_GENERATING_SPARKLE_ASSET = "lottie/anim_quiz_generating_sparkle.json"
+
+private data class SparkleDot(
+    val xFraction: Float,
+    val yFraction: Float,
+    val radiusDp: Float,
+    val phaseOffset: Float,
+)
+
+private val QuizGeneratingSparkleDots = listOf(
+    SparkleDot(xFraction = 0.46f, yFraction = 0.28f, radiusDp = 4.5f, phaseOffset = 0.00f),
+    SparkleDot(xFraction = 0.62f, yFraction = 0.32f, radiusDp = 5.0f, phaseOffset = 0.17f),
+    SparkleDot(xFraction = 0.82f, yFraction = 0.42f, radiusDp = 4.0f, phaseOffset = 0.34f),
+    SparkleDot(xFraction = 0.58f, yFraction = 0.64f, radiusDp = 4.0f, phaseOffset = 0.51f),
+    SparkleDot(xFraction = 0.90f, yFraction = 0.72f, radiusDp = 5.0f, phaseOffset = 0.68f),
+)

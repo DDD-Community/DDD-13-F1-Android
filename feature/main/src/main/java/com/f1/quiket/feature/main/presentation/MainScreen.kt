@@ -10,6 +10,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -19,16 +22,15 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.f1.quiket.core.designsystem.theme.Brown950
 import com.f1.quiket.core.designsystem.theme.Gray400
-import com.f1.quiket.feature.history.navigation.historyGraph
 import com.f1.quiket.feature.floating.presentation.navigation.AddSubjectDestination
 import com.f1.quiket.feature.floating.presentation.navigation.CreateQuizDestination
-import com.f1.quiket.feature.floating.presentation.navigation.LectureSelectDestination
-import com.f1.quiket.feature.floating.presentation.navigation.LectureUploadFileDestination
 import com.f1.quiket.feature.floating.presentation.navigation.ScheduleExamDestination
 import com.f1.quiket.feature.floating.presentation.navigation.UploadDestination
 import com.f1.quiket.feature.floating.presentation.navigation.lectureSelectGraph
 import com.f1.quiket.feature.floating.presentation.navigation.lectureUploadFileGraph
+import com.f1.quiket.feature.history.navigation.historyGraph
 import com.f1.quiket.feature.home.navigation.HomeDestination
+import com.f1.quiket.feature.home.navigation.QuizStartDestination
 import com.f1.quiket.feature.home.navigation.homeGraph
 import com.f1.quiket.feature.mypage.navigation.myPageGraph
 import com.f1.quiket.feature.review.navigation.reviewGraph
@@ -36,6 +38,7 @@ import com.f1.quiket.feature.review.navigation.reviewGraph
 @Composable
 fun MainScreen(onLogout: () -> Unit) {
     val navController = rememberNavController()
+    var isQuizGenerating by rememberSaveable { mutableStateOf(false) }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route ?: MainTab.Home.destination.route
 
@@ -43,6 +46,7 @@ fun MainScreen(onLogout: () -> Unit) {
         AddSubjectDestination.route,
         ScheduleExamDestination.route,
         CreateQuizDestination.route,
+        QuizStartDestination.route,
         UploadDestination.route,
     )
     val showBottomBar = currentRoute !in floatingRoutes
@@ -101,6 +105,13 @@ fun MainScreen(onLogout: () -> Unit) {
         ) {
             homeGraph(
                 navController = navController,
+                isQuizGenerating = isQuizGenerating,
+                onQuizGenerationStarted = {
+                    isQuizGenerating = true
+                },
+                navigateToQuizStart = {
+                    navController.navigate(QuizStartDestination.route)
+                },
                 navigateToScheduleExam = {
                     navController.navigate(ScheduleExamDestination.route)
                 },
