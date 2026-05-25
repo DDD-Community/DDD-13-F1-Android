@@ -86,7 +86,7 @@ fun AddSubjectStep3Screen(
     usagePurpose: UsagePurpose? = null,
     onBackClick: () -> Unit = {},
     onSkipClick: () -> Unit = {},
-    onCreateClick: () -> Unit = {},
+    onCreateClick: (String) -> Unit = {},
 ) {
     var showSkipSheet by remember { mutableStateOf(false) }
 
@@ -142,6 +142,7 @@ fun AddSubjectStep3Screen(
                         onSkipClick = { showSkipSheet = true },
                         onCreateClick = onCreateClick,
                     )
+
                 }
             }
         }
@@ -162,7 +163,7 @@ fun AddSubjectStep3Screen(
 @Composable
 private fun UniversitySection(
     onSkipClick: () -> Unit,
-    onCreateClick: () -> Unit,
+    onCreateClick: (String) -> Unit,
 ) {
     var selectedMajor by remember { mutableStateOf<UniversityMajorCategory?>(null) }
     var majorName by remember { mutableStateOf("") }
@@ -211,7 +212,9 @@ private fun UniversitySection(
             buttonText = "과목 만들기",
             isEnabled = isEnabled,
             onSkipClick = onSkipClick,
-            onNextClick = onCreateClick,
+            onNextClick = {
+                onCreateClick("${selectedMajor?.label} · $majorName · ${selectedCourseType?.label}")
+            },
         )
     }
 }
@@ -222,7 +225,7 @@ private fun UniversitySection(
 @Composable
 private fun MiddleHighSection(
     onSkipClick: () -> Unit,
-    onCreateClick: () -> Unit,
+    onCreateClick: (String) -> Unit,
 ) {
     var selectedCurriculum by remember { mutableStateOf<MiddleHighCurriculum?>(null) }
     var selectedSubjectType by remember { mutableStateOf<MiddleHighSubjectType?>(null) }
@@ -269,7 +272,10 @@ private fun MiddleHighSection(
             buttonText = "과목 만들기",
             isEnabled = isEnabled,
             onSkipClick = onSkipClick,
-            onNextClick = onCreateClick,
+            onNextClick = {
+                val subjectTypeLabel = customSubjectType.ifBlank { selectedSubjectType?.label ?: "" }
+                onCreateClick("${selectedCurriculum?.label} · $subjectTypeLabel")
+            },
         )
     }
 
@@ -291,7 +297,7 @@ private fun MiddleHighSection(
 @Composable
 private fun CertificateSection(
     onSkipClick: () -> Unit,
-    onCreateClick: () -> Unit,
+    onCreateClick: (String) -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     var selectedCert by remember { mutableStateOf("") }
@@ -401,7 +407,7 @@ private fun CertificateSection(
             buttonText = "과목 만들기",
             isEnabled = isEnabled,
             onSkipClick = onSkipClick,
-            onNextClick = onCreateClick,
+            onNextClick = { onCreateClick(selectedCert) },
         )
     }
 }
@@ -412,7 +418,7 @@ private fun CertificateSection(
 @Composable
 private fun LanguageSection(
     onSkipClick: () -> Unit,
-    onCreateClick: () -> Unit,
+    onCreateClick: (String) -> Unit,
 ) {
     var selectedLanguage by remember { mutableStateOf<LanguageType?>(null) }
     var selectedEnglishTest by remember { mutableStateOf<EnglishTestType?>(null) }
@@ -501,7 +507,15 @@ private fun LanguageSection(
             buttonText = "과목 만들기",
             isEnabled = isEnabled,
             onSkipClick = onSkipClick,
-            onNextClick = onCreateClick,
+            onNextClick = {
+                val testLabel = when (selectedLanguage) {
+                    LanguageType.ENGLISH -> customTestName.ifBlank { selectedEnglishTest?.label ?: "" }
+                    LanguageType.JAPANESE -> customTestName.ifBlank { selectedJapaneseTest?.label ?: "" }
+                    LanguageType.CHINESE -> customTestName.ifBlank { selectedChineseTest?.label ?: "" }
+                    null -> ""
+                }
+                onCreateClick("${selectedLanguage?.label} · $testLabel")
+            },
         )
     }
 
@@ -531,7 +545,7 @@ private fun LanguageSection(
 @Composable
 private fun CivilServantSection(
     onSkipClick: () -> Unit,
-    onCreateClick: () -> Unit,
+    onCreateClick: (String) -> Unit,
 ) {
     var selectedGrade by remember { mutableStateOf<CivilServantGrade?>(null) }
     var selectedSeries by remember { mutableStateOf<CivilServantSeries?>(null) }
@@ -564,7 +578,7 @@ private fun CivilServantSection(
             buttonText = "과목 만들기",
             isEnabled = isEnabled,
             onSkipClick = onSkipClick,
-            onNextClick = onCreateClick,
+            onNextClick = { onCreateClick("${selectedGrade?.label} · ${selectedSeries?.label}") },
         )
     }
 }
@@ -575,7 +589,7 @@ private fun CivilServantSection(
 @Composable
 private fun ExamOtherSection(
     onSkipClick: () -> Unit,
-    onCreateClick: () -> Unit,
+    onCreateClick: (String) -> Unit,
 ) {
     var text by remember { mutableStateOf("") }
     val isEnabled = text.isNotBlank()
@@ -611,7 +625,7 @@ private fun ExamOtherSection(
             buttonText = "과목 만들기",
             isEnabled = isEnabled,
             onSkipClick = onSkipClick,
-            onNextClick = onCreateClick,
+            onNextClick = { onCreateClick(text) },
         )
     }
 }
@@ -622,7 +636,7 @@ private fun ExamOtherSection(
 @Composable
 private fun FamiliaritySection(
     onSkipClick: () -> Unit,
-    onCreateClick: () -> Unit,
+    onCreateClick: (String) -> Unit,
 ) {
     var selected by remember { mutableStateOf<FamiliarityLevel?>(null) }
     val isEnabled = selected != null
@@ -656,7 +670,7 @@ private fun FamiliaritySection(
             buttonText = "과목 만들기",
             isEnabled = isEnabled,
             onSkipClick = onSkipClick,
-            onNextClick = onCreateClick,
+            onNextClick = { onCreateClick(selected?.label ?: "") },
         )
     }
 }
@@ -702,7 +716,7 @@ private fun FamiliarityItem(
 @Composable
 private fun AdditionalDescriptionSection(
     onSkipClick: () -> Unit,
-    onCreateClick: () -> Unit,
+    onCreateClick: (String) -> Unit,
 ) {
     var text by remember { mutableStateOf("") }
     val isEnabled = text.isNotBlank()
@@ -734,7 +748,7 @@ private fun AdditionalDescriptionSection(
             buttonText = "과목 만들기",
             isEnabled = isEnabled,
             onSkipClick = onSkipClick,
-            onNextClick = onCreateClick,
+            onNextClick = { onCreateClick(text) },
         )
     }
 }

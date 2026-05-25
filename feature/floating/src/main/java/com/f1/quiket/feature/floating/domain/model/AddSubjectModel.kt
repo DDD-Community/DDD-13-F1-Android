@@ -156,6 +156,7 @@ enum class FamiliarityLevel(val label: String, val description: String) {
 data class AddSubjectState(
     val subjectName: String = "",
     val studyPurpose: StudyPurpose? = null,
+    val step3Label: String = "",
 
     // EXAM path
     val examType: ExamType? = null,

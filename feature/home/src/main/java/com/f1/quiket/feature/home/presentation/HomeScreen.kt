@@ -79,6 +79,16 @@ fun HomeScreen(
     var showNoSubjectPopup by remember { mutableStateOf(false) }
     var selectedSubject by remember { mutableStateOf<Subject?>(null) }
     var depth by remember { mutableStateOf(0) }
+    var subjects by remember {
+        mutableStateOf(
+            listOf(
+                Subject("오픽 2주만에 IH 달성", "챕터 3", false),
+                Subject("Android 앱 개발", "챕터 7", true),
+                Subject("자료구조", "챕터 2", false),
+                Subject("운영체제", "챕터 5", false),
+            )
+        )
+    }
 
     // 강의 선택 후 UploadScreen에 넘길 정보
     var selectedLectureTitle by remember { mutableStateOf("") }
@@ -89,11 +99,18 @@ fun HomeScreen(
         1 -> {
             SubjectDetailScreen(
                 subjectName = selectedSubject?.title ?: "",
-                studyPurposeLabel = selectedSubject?.chapter ?: "",
+                studyPurposeLabel = "",
                 examTypeLabel = "",
+                detailLabel = "",
                 onBackClick = { depth = 0 },
                 onUploadClick = { depth = 2 },
                 onChapterAddClick = { depth = 3 },
+                onSubjectNameChanged = { newName ->
+                    subjects = subjects.map { s ->
+                        if (s.title == selectedSubject?.title) s.copy(title = newName) else s
+                    }
+                    selectedSubject = selectedSubject?.copy(title = newName)
+                },
             )
             return
         }
@@ -339,6 +356,8 @@ fun HomeScreen(
                     Box {
                         if (selectedTab == 0) {
                             ActiveSubjectContent(
+                                subjects = subjects,
+                                onSubjectsChange = { subjects = it },
                                 onSubjectAreaPositioned = {},
                                 onSubjectClick = { subject ->
                                     selectedSubject = subject

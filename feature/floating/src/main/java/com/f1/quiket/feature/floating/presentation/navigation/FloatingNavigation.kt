@@ -51,7 +51,7 @@ fun NavGraphBuilder.addSubjectGraph(
     composable(route = AddSubjectStep1Destination.route) {
         AddSubjectStep1Screen(
             onBackClick = { navController.popBackStack() },
-            onSkipClick = onFinish,
+            onSkipClick = { _ -> onFinish() },
             onNextClick = { subjectName, purpose ->
                 navController.navigate(AddSubjectStep2Destination.createRoute(purpose))
             },
@@ -126,7 +126,7 @@ fun NavGraphBuilder.addSubjectGraph(
             usagePurpose = usagePurpose,
             onBackClick = { navController.popBackStack() },
             onSkipClick = onFinish,
-            onCreateClick = onFinish,
+            onCreateClick = { _ -> onFinish() },
         )
     }
 }

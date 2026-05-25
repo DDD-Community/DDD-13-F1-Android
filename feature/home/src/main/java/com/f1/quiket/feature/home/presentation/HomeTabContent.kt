@@ -56,20 +56,11 @@ fun EmptySubjectContent() {
 
 @Composable
 fun ActiveSubjectContent(
+    subjects: List<Subject>,
+    onSubjectsChange: (List<Subject>) -> Unit = {},
     onSubjectAreaPositioned: (Rect) -> Unit = {},
     onSubjectClick: (Subject) -> Unit = {},
 ) {
-    var subjects by remember {
-        mutableStateOf(
-            listOf(
-                Subject("오픽 2주만에 IH 달성", "챕터 3", false),
-                Subject("Android 앱 개발", "챕터 7", true),
-                Subject("자료구조", "챕터 2", false),
-                Subject("운영체제", "챕터 5", false),
-            )
-        )
-    }
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -121,10 +112,10 @@ fun ActiveSubjectContent(
                             modifier = Modifier.weight(1f),
                             onStarToggle = {
                                 val realIndex = rowIndex * 2 + index
-                                subjects = subjects.mapIndexed { i, item ->
+                                onSubjectsChange(subjects.mapIndexed { i, item ->
                                     if (i == realIndex) item.copy(isStarred = !item.isStarred)
                                     else item
-                                }
+                                })
                             },
                             onClick = { onSubjectClick(subject) }
                         )
