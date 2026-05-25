@@ -55,6 +55,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import com.f1.quiket.core.designsystem.component.BaseTextField
+import com.f1.quiket.core.designsystem.component.QuiketOutlinedButton
 import com.f1.quiket.core.designsystem.component.QuiketPrimaryButton
 import com.f1.quiket.core.designsystem.theme.Black
 import com.f1.quiket.core.designsystem.theme.Brown100
@@ -252,7 +253,7 @@ private fun QuizTypeSection(
             QuizTypeTooltip(
                 onDismiss = onTooltipDismiss,
                 modifier = Modifier
-                    .offset(x = 45.dp, y = 33.dp)
+                    .offset(x = 61.dp, y = 33.dp)
                     .zIndex(1f),
             )
         }
@@ -303,7 +304,7 @@ private fun QuizTypeTooltip(
     ) {
         Canvas(
             modifier = Modifier
-                .padding(start = 112.dp)
+                .padding(start = 15.dp)
                 .size(width = 14.dp, height = 8.dp),
         ) {
             val path = Path().apply {
@@ -649,7 +650,7 @@ private fun CustomQuestionCountDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    DialogSecondaryButton(
+                    QuiketOutlinedButton(
                         text = "취소",
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
@@ -664,43 +665,6 @@ private fun CustomQuestionCountDialog(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun DialogSecondaryButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val shape = RoundedCornerShape(12.dp)
-
-    Box(
-        modifier = modifier
-            .height(48.dp)
-            .clip(shape)
-            .background(White)
-            .border(
-                width = 2.dp,
-                color = Brown950,
-                shape = shape,
-            )
-            .clickable(
-                role = Role.Button,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = text,
-            color = Gray950,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = 16.sp,
-                lineHeight = 24.sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center,
-            ),
-        )
     }
 }
 

@@ -9,6 +9,8 @@ import com.f1.quiket.feature.home.model.FabAction
 @Composable
 fun HomeRoute(
     viewModel: HomeViewModel = hiltViewModel(),
+    isQuizGenerating: Boolean,
+    navigateToQuizStart: () -> Unit,
     navigateToScheduleExam: () -> Unit,
     navigateToCreateQuiz: () -> Unit,
     navigateToUpload: () -> Unit,
@@ -18,11 +20,13 @@ fun HomeRoute(
 
     HomeScreen(
         uiState = uiState,
+        isQuizGenerating = isQuizGenerating,
         onBoardingDone = {
             viewModel.dispatch(
                 HomeIntent.OnboardingDoneClick
             )
         },
+        onQuizCardClick = navigateToQuizStart,
         onFabItemClick = { action ->
             when (action) {
                 FabAction.ScheduleExam -> navigateToScheduleExam()
