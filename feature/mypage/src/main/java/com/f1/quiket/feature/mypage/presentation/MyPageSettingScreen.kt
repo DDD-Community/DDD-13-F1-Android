@@ -40,6 +40,11 @@ fun MyPageSettingScreen(
             .background(White)
             .verticalScroll(rememberScrollState()),
     ) {
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsTopHeight(WindowInsets.statusBars),
+        )
         SettingTopBar(onBackClick = { onIntent(MyPageSettingIntent.NavigateBack) })
 
         Spacer(modifier = Modifier.height(8.dp))

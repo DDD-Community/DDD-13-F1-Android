@@ -9,14 +9,34 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,10 +61,27 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.f1.quiket.core.designsystem.component.HomeActionButton
 import com.f1.quiket.core.designsystem.component.HomeExamCard
 import com.f1.quiket.core.designsystem.component.HomeProfileCard
+import com.f1.quiket.core.designsystem.component.NoSubjectPopup
 import com.f1.quiket.core.designsystem.component.QuiketTopBar
-import com.f1.quiket.core.designsystem.theme.*
-import com.f1.quiket.feature.home.component.*
-import com.f1.quiket.feature.home.model.*
+import com.f1.quiket.core.designsystem.theme.Black
+import com.f1.quiket.core.designsystem.theme.Brown50
+import com.f1.quiket.core.designsystem.theme.Gray100
+import com.f1.quiket.core.designsystem.theme.Gray600
+import com.f1.quiket.core.designsystem.theme.Gray900
+import com.f1.quiket.core.designsystem.theme.Orange500
+import com.f1.quiket.core.designsystem.theme.QuiketTheme
+import com.f1.quiket.core.designsystem.theme.White
+import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
+import com.f1.quiket.feature.floating.presentation.screen.lectureselect.LectureSelectScreen
+import com.f1.quiket.feature.floating.presentation.screen.subjectdetail.SubjectDetailScreen
+import com.f1.quiket.feature.home.component.ExpandableFab
+import com.f1.quiket.feature.home.component.HomeGuideTooltip
+import com.f1.quiket.feature.home.component.HomeTutorialOverlay
+import com.f1.quiket.feature.home.model.Exam
+import com.f1.quiket.feature.home.model.FabAction
+import com.f1.quiket.feature.home.model.Subject
+import com.f1.quiket.feature.home.model.TutorialPage
+import com.f1.quiket.feature.home.model.buildTutorialPages
 import kotlinx.coroutines.delay
 
 @Composable
@@ -57,6 +94,79 @@ fun HomeScreen(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
+    var showNoSubjectPopup by remember { mutableStateOf(false) }
+    var selectedSubject by remember { mutableStateOf<Subject?>(null) }
+    var depth by remember { mutableStateOf(0) }
+    var subjects by remember {
+        mutableStateOf(
+            listOf(
+                Subject("오픽 2주만에 IH 달성", "챕터 3", false),
+                Subject("Android 앱 개발", "챕터 7", true),
+                Subject("자료구조", "챕터 2", false),
+                Subject("운영체제", "챕터 5", false),
+            )
+        )
+    }
+
+    // 강의 선택 후 UploadScreen에 넘길 정보
+    var selectedLectureTitle by remember { mutableStateOf("") }
+    var selectedLectureChapterCount by remember { mutableStateOf(0) }
+
+    // depth 1 ~ 3: SubjectDetail / LectureSelect / Upload
+    when (depth) {
+        1 -> {
+            SubjectDetailScreen(
+                subjectName = selectedSubject?.title ?: "",
+                studyPurposeLabel = "",
+                examTypeLabel = "",
+                detailLabel = "",
+                onBackClick = { depth = 0 },
+                onUploadClick = { depth = 2 },
+                onChapterAddClick = { depth = 3 },
+                onSubjectNameChanged = { newName ->
+                    subjects = subjects.map { s ->
+                        if (s.title == selectedSubject?.title) s.copy(title = newName) else s
+                    }
+                    selectedSubject = selectedSubject?.copy(title = newName)
+                },
+            )
+            return
+        }
+
+        2 -> {
+            LectureSelectScreen(
+                onBackClick = { depth = 1 },
+                onLectureSelected = { _, title, count ->
+                    selectedLectureTitle = title
+                    selectedLectureChapterCount = count
+                    depth = 4
+                },
+            )
+            return
+        }
+
+        3 -> {
+            UploadScreen(
+                lectureTitle = selectedSubject?.title,
+                lecturePurpose = selectedSubject?.chapter,
+                chapterCount = 0,
+                onBackClick = { depth = 1 },
+                onNextClick = { depth = 1 },
+            )
+            return
+        }
+
+        4 -> {
+            UploadScreen(
+                lectureTitle = selectedLectureTitle,
+                lecturePurpose = null,
+                chapterCount = selectedLectureChapterCount,
+                onBackClick = { depth = 2 },
+                onNextClick = { depth = 1 },
+            )
+            return
+        }
+    }
     val quizActionText = rememberQuizGeneratingText(isQuizGenerating)
 
     // 온보딩 툴팁
@@ -68,7 +178,6 @@ fun HomeScreen(
     var quizButtonRect by remember { mutableStateOf<Rect?>(null) }
     var profileCardRect by remember { mutableStateOf<Rect?>(null) }
     var activityTabRect by remember { mutableStateOf<Rect?>(null) }
-    var subjectAreaRect by remember { mutableStateOf<Rect?>(null) }
     var fabRect by remember { mutableStateOf<Rect?>(null) }
     var subjectTabRect by remember { mutableStateOf<Rect?>(null) }
 
@@ -89,16 +198,17 @@ fun HomeScreen(
             .background(Brown50)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
+            // ── TopBar (고정) ────────────────────────────────────────────
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = White,
-                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp)
-                ) {
+                Column {
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .windowInsetsTopHeight(WindowInsets.statusBars),
+                    )
                     QuiketTopBar(
                         onNoteIconClick = {
                             tutorialPage = TutorialPage.FIRST
@@ -109,157 +219,183 @@ fun HomeScreen(
                             noteIconSize = size
                         },
                     )
+                }
+            }
 
-                    Text(
-                        "오늘의 공부, 시작해 볼까요?",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = Black,
-                        modifier = Modifier.padding(top = 36.dp, bottom = 12.dp)
-                    )
-                    Text(
-                        "내 강의 노트를 업로드 하거나 퀴즈를 만들어 보세요 !",
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                        color = Gray600
-                    )
-
-                    // 자료업로드
-                    Row(
+            // ── TopBar 아래 스크롤 영역 ──────────────────────────────────
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                // 상단 흰 카드 (제목 + 액션 버튼)
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = White,
+                    shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+                ) {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            .padding(start = 24.dp, end = 24.dp, bottom = 24.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .onGloballyPositioned { coords ->
-                                    val pos = coords.positionInRoot()
-                                    uploadButtonRect = Rect(
-                                        pos.x, pos.y,
-                                        pos.x + coords.size.width,
-                                        pos.y + coords.size.height
-                                    )
-                                }
-                        ) {
-                            HomeActionButton(
-                                text = "자료 업로드",
-                                iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_upload,
-                                backgroundColor = Gray100,
-                                onClick = {},
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
+                        Text(
+                            "오늘의 공부, 시작해 볼까요?",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Black,
+                            modifier = Modifier.padding(top = 16.dp, bottom = 12.dp)
+                        )
+                        Text(
+                            "내 강의 노트를 업로드 하거나 퀴즈를 만들어 보세요 !",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = Gray600
+                        )
 
-                        Box(
+                        Row(
                             modifier = Modifier
-                                .weight(1f)
-                                .onGloballyPositioned { coords ->
-                                    val pos = coords.positionInRoot()
-                                    quizButtonRect = Rect(
-                                        pos.x, pos.y,
-                                        pos.x + coords.size.width,
-                                        pos.y + coords.size.height
+                                .fillMaxWidth()
+                                .padding(top = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .onGloballyPositioned { coords ->
+                                        val pos = coords.positionInRoot()
+                                        uploadButtonRect = Rect(
+                                            pos.x, pos.y,
+                                            pos.x + coords.size.width,
+                                            pos.y + coords.size.height
+                                        )
+                                    }
+                            ) {
+                                HomeActionButton(
+                                    text = "자료 업로드",
+                                    iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_upload,
+                                    backgroundColor = Gray100,
+                                    onClick = {
+                                        if (uiState.hasSubjects) onFabItemClick(FabAction.Upload)
+                                        else showNoSubjectPopup = true
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .onGloballyPositioned { coords ->
+                                        val pos = coords.positionInRoot()
+                                        quizButtonRect = Rect(
+                                            pos.x, pos.y,
+                                            pos.x + coords.size.width,
+                                            pos.y + coords.size.height
+                                        )
+                                    }
+                            ) {
+                                HomeActionButton(
+                                    text = "퀴즈 만들기",
+                                    iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_make,
+                                    backgroundColor = Orange500,
+                                    onClick = {},
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                if (isQuizGenerating) {
+                                    QuizGeneratingSparkleOverlay(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .clip(RoundedCornerShape(12.dp))
                                     )
                                 }
-                        ) {
-                            HomeActionButton(
-                                text = quizActionText,
-                                iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_make,
-                                backgroundColor = Orange500,
-                                onClick = onQuizCardClick,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            if (isQuizGenerating) {
-                                QuizGeneratingSparkleOverlay(
-                                    modifier = Modifier
-                                        .matchParentSize()
-                                        .clip(RoundedCornerShape(12.dp))
-                                )
                             }
                         }
                     }
                 }
-            }
 
-            HomeProfileCard(
-                "송미짱짱짱",
-                1200,
-                com.f1.quiket.core.designsystem.R.drawable.ic_qring_profile,
-                {},
-                modifier = Modifier
-                    .padding(top = 10.dp, start = 16.dp, end = 16.dp)
-                    .onGloballyPositioned { coords ->
-                        val pos = coords.positionInRoot()
-                        profileCardRect = Rect(
-                            pos.x,
-                            pos.y,
-                            pos.x + coords.size.width,
-                            pos.y + coords.size.height
-                        )
-                    }
-            )
-
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
-            ) { page ->
-                HomeExamCard(
-                    examName = exams[page].name,
-                    date = exams[page].date,
-                    dDay = exams[page].dDay,
-                    onClick = {}
-                )
-            }
-
-            Row(modifier = Modifier.fillMaxWidth()) {
-                TabItem(
-                    "내 과목",
-                    isSelected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    modifier = Modifier.weight(0.7f)
+                HomeProfileCard(
+                    "송미짱짱짱",
+                    1200,
+                    com.f1.quiket.core.designsystem.R.drawable.ic_qring_profile,
+                    {},
+                    modifier = Modifier
+                        .padding(top = 10.dp, start = 16.dp, end = 16.dp)
                         .onGloballyPositioned { coords ->
                             val pos = coords.positionInRoot()
-                            subjectTabRect = Rect(
+                            profileCardRect = Rect(
                                 pos.x, pos.y,
                                 pos.x + coords.size.width,
                                 pos.y + coords.size.height
                             )
                         }
-
                 )
-                TabItem(
-                    "최근 활동",
-                    isSelected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
+
+                HorizontalPager(
+                    state = pagerState,
                     modifier = Modifier
-                        .weight(0.7f)
-                        .onGloballyPositioned { coords ->
-                            val pos = coords.positionInRoot()
-                            activityTabRect = Rect(
-                                pos.x,
-                                pos.y,
-                                pos.x + coords.size.width,
-                                pos.y + coords.size.height
-                            )
-                        }
-                )
-                Spacer(modifier = Modifier.weight(1.6f))
-            }
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                ) { page ->
+                    HomeExamCard(
+                        examName = exams[page].name,
+                        date = exams[page].date,
+                        dDay = exams[page].dDay,
+                        onClick = {}
+                    )
+                }
 
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = White,
-                shape = RoundedCornerShape(topEnd = 24.dp)
-            ) {
-                Box {
-                    if (selectedTab == 0) {
-                        ActiveSubjectContent(
-                            onSubjectAreaPositioned = { subjectAreaRect = it }
-                        )
-                    } else {
-                        ActiveActivityContent()
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    TabItem(
+                        "내 과목",
+                        isSelected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
+                        modifier = Modifier
+                            .weight(0.7f)
+                            .onGloballyPositioned { coords ->
+                                val pos = coords.positionInRoot()
+                                subjectTabRect = Rect(
+                                    pos.x, pos.y,
+                                    pos.x + coords.size.width,
+                                    pos.y + coords.size.height
+                                )
+                            }
+                    )
+                    TabItem(
+                        "최근 활동",
+                        isSelected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        modifier = Modifier
+                            .weight(0.7f)
+                            .onGloballyPositioned { coords ->
+                                val pos = coords.positionInRoot()
+                                activityTabRect = Rect(
+                                    pos.x, pos.y,
+                                    pos.x + coords.size.width,
+                                    pos.y + coords.size.height
+                                )
+                            }
+                    )
+                    Spacer(modifier = Modifier.weight(1.6f))
+                }
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = White,
+                    shape = RoundedCornerShape(topEnd = 24.dp)
+                ) {
+                    Box {
+                        if (selectedTab == 0) {
+                            ActiveSubjectContent(
+                                subjects = subjects,
+                                onSubjectsChange = { subjects = it },
+                                onSubjectAreaPositioned = {},
+                                onSubjectClick = { subject ->
+                                    selectedSubject = subject
+                                    depth = 1
+                                },
+                            )
+                        } else {
+                            ActiveActivityContent()
+                        }
                     }
                 }
             }
@@ -281,100 +417,13 @@ fun HomeScreen(
         // 튜토리얼 오버레이
         if (showTutorial) {
             val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-
-            val firstPageSteps = listOf(
-                TutorialStep(
-                    1,
-                    "공부하고 싶은 과목을 추가해\n",
-                    "챕터, 파트",
-                    " 별로 분류해 보관할\n수 있어요",
-                    TooltipAlignment.Step1,
-                    subjectTabRect,
-                    arrowStartOffset = Offset(-30f, -1f),
-                    arrowEndOffset = Offset(0f, -10f),
-                    arrowCurvature = 0.3f
-                ),
-                TutorialStep(
-                    2,
-                    "나의 강의 자료를 ",
-                    "pdf, 이미지,\n텍스트",
-                    "로 업로드할 수 있어요",
-                    TooltipAlignment.Step2,
-                    uploadButtonRect,
-                    arrowStartOffset = Offset(-150f, -60f),
-                    arrowEndOffset = Offset(40f, -30f),
-                    arrowCurvature = -0.3f
-                ),
-                TutorialStep(
-                    3,
-                    "업로드한 강의를 기반으로",
-                    "\nAI가 퀴즈를 만들어줘요",
-                    "",
-                    TooltipAlignment.Step3,
-                    quizButtonRect,
-                    arrowStartOffset = Offset(30f, 0f),
-                    arrowEndOffset = Offset(40f, -50f),
-                    arrowCurvature = 0.3f
-                )
-            )
-            val secondPageSteps = listOf(
-                TutorialStep(
-                    4,
-                    "누르면 마이페이지로 이동해요.퀴즈로\n모은 ",
-                    "도토리",
-                    "를 쓸 수 있어요!",
-                    TooltipAlignment.Step4,
-                    profileCardRect,
-                    arrowStartOffset = Offset(-160f, 5f),
-                    arrowEndOffset = Offset(-30f, -55f),
-                    arrowCurvature = -0.3f
-                ),
-                TutorialStep(
-                    5,
-                    "최근에 생성하고 풀어본 퀴즈",
-                    " 항목",
-                    "을 볼 수 있어요",
-                    TooltipAlignment.Step5,
-                    activityTabRect,
-                    arrowStartOffset = Offset(-30f, -1f),
-                    arrowEndOffset = Offset(0f, -15f),
-                    arrowCurvature = 0.3f
-                ),
-                TutorialStep(
-                    6,
-                    "플로팅 버튼으로도 ",
-                    "과목 추가,\n강의 업로드, 퀴즈 만들기",
-                    " 등을 \n모두 할 수 있어요!",
-                    TooltipAlignment.Step6,
-                    fabRect,
-                    arrowStartOffset = Offset(0f, 0f),
-                    arrowEndOffset = Offset(-40f, -30f),
-                    arrowCurvature = 0.3f
-                )
-            )
-            val thirdPageSteps = listOf(
-                TutorialStep(
-                    7,
-                    "퀴켓의 마스코트 다람쥐,\n",
-                    "",
-                    "'큐링이'에요.",
-                    TooltipAlignment.Step7,
-                    profileCardRect,
-                    arrowStartOffset = Offset(-160f, 5f),
-                    arrowEndOffset = Offset(-30f, -55f),
-                    arrowCurvature = -0.3f
-                ),
-                TutorialStep(
-                    8,
-                    "획득한 도토리를 통해 '도토리\n",
-                    "",
-                    "상점'에서 큐링이를 위한 아이\n템을 구매할 수 있게 돼요!",
-                    TooltipAlignment.Step8,
-                    profileCardRect,
-                    arrowStartOffset = Offset(100f, 0f),
-                    arrowEndOffset = Offset(170f, 50f),
-                    arrowCurvature = 0.3f
-                )
+            val (firstPageSteps, secondPageSteps, thirdPageSteps) = buildTutorialPages(
+                subjectTabRect = subjectTabRect,
+                uploadButtonRect = uploadButtonRect,
+                quizButtonRect = quizButtonRect,
+                profileCardRect = profileCardRect,
+                activityTabRect = activityTabRect,
+                fabRect = fabRect,
             )
             HomeTutorialOverlay(
                 currentPage = tutorialPage,
@@ -408,9 +457,13 @@ fun HomeScreen(
         ExpandableFab(
             isExpanded = isExpanded,
             onFabClick = { isExpanded = !isExpanded },
-            onItemClick = {
+            onItemClick = { action ->
                 isExpanded = false
-                onFabItemClick(it)
+                if (action == FabAction.Upload && !uiState.hasSubjects) {
+                    showNoSubjectPopup = true
+                } else {
+                    onFabItemClick(action)
+                }
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -421,6 +474,16 @@ fun HomeScreen(
                         Rect(pos.x, pos.y, pos.x + coords.size.width, pos.y + coords.size.height)
                 }
         )
+
+        if (showNoSubjectPopup) {
+            NoSubjectPopup(
+                onAddSubject = {
+                    showNoSubjectPopup = false
+                    onFabItemClick(FabAction.AddSubject)
+                },
+                onDismiss = { showNoSubjectPopup = false },
+            )
+        }
     }
 }
 

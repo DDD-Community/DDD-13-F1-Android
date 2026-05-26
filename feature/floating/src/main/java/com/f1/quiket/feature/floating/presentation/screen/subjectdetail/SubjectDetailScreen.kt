@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -112,7 +115,12 @@ fun SubjectDetailScreen(
     subjectName: String,
     studyPurposeLabel: String,
     examTypeLabel: String,
+    detailLabel: String = "",
     onBackClick: () -> Unit = {},
+    onChapterAddClick: () -> Unit = {},
+    onUploadClick: () -> Unit = {},
+    onEditSubjectType: () -> Unit = {},
+    onSubjectNameChanged: (String) -> Unit = {},
 ) {
     var selectedChapter by remember { mutableStateOf<Chapter?>(null) }
 
@@ -126,35 +134,49 @@ fun SubjectDetailScreen(
     }
 
     // Persistent state across recompositions
+    var displaySubjectName by rememberSaveable { mutableStateOf(subjectName) }
+    var chapters by remember { mutableStateOf(sampleChapters) }
     var isStarred by rememberSaveable { mutableStateOf(false) }
     var showDropdownMenu by remember { mutableStateOf(false) }
     var showScheduleDialog by remember { mutableStateOf(false) }
     var confirmedExamName by rememberSaveable { mutableStateOf("") }
     var confirmedSchedule by rememberSaveable { mutableStateOf("") }
+    var showEditSubjectNameDialog by remember { mutableStateOf(false) }
+    var isChapterEditMode by remember { mutableStateOf(false) }
+    var editingChapter by remember { mutableStateOf<Chapter?>(null) }
 
     Scaffold(containerColor = Brown50) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(bottom = innerPadding.calculateBottomPadding())
                 .verticalScroll(rememberScrollState()),
         ) {
 
             Column(modifier = Modifier.background(Green800)) {
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .windowInsetsTopHeight(WindowInsets.statusBars),
+                )
                 SubjectDetailTopBar(
-                    title = subjectName,
+                    title = displaySubjectName,
                     isStarred = isStarred,
                     showMenu = showDropdownMenu,
                     onBackClick = onBackClick,
                     onStarClick = { isStarred = !isStarred },
                     onMenuClick = { showDropdownMenu = true },
                     onMenuDismiss = { showDropdownMenu = false },
+                    onEditSubjectName = { showEditSubjectNameDialog = true },
+                    onEditSubjectType = onEditSubjectType,
+                    onEditChapterName = { isChapterEditMode = true },
                 )
                 SubjectHeaderSection(
                     modifier = Modifier.padding(horizontal = 8.dp),
-                    subjectName = subjectName,
+                    subjectName = displaySubjectName,
                     studyPurposeLabel = studyPurposeLabel,
                     examTypeLabel = examTypeLabel,
+                    detailLabel = detailLabel,
                 )
             }
 
@@ -172,7 +194,7 @@ fun SubjectDetailScreen(
                     text = "자료 업로드",
                     iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_upload,
                     backgroundColor = Gray100,
-                    onClick = {},
+                    onClick = onUploadClick,
                     modifier = Modifier
                         .height(103.dp)
                         .weight(1f)
@@ -207,20 +229,47 @@ fun SubjectDetailScreen(
 
             // My Subject Section
             MySubjectSection(
-                chapters = sampleChapters,
+                chapters = chapters,
+                isEditMode = isChapterEditMode,
                 onChapterClick = { selectedChapter = it },
+                onChapterEditClick = { chapter -> editingChapter = chapter },
+                onChapterAddClick = onChapterAddClick,
             )
         }
     }
 
     if (showScheduleDialog) {
         AddTestCalendarDialog(
-            subjectName = subjectName,
+            subjectName = displaySubjectName,
             onDismiss = { showScheduleDialog = false },
             onApply = { name, date ->
                 confirmedExamName = name
                 confirmedSchedule = date
                 showScheduleDialog = false
+            },
+        )
+    }
+
+    if (showEditSubjectNameDialog) {
+        EditSubjectNameDialog(
+            currentName = displaySubjectName,
+            onDismiss = { showEditSubjectNameDialog = false },
+            onApply = { newName ->
+                displaySubjectName = newName
+                onSubjectNameChanged(newName)
+                showEditSubjectNameDialog = false
+            },
+        )
+    }
+
+    editingChapter?.let { chapter ->
+        EditChapterNameDialog(
+            currentName = chapter.name,
+            onDismiss = { editingChapter = null; isChapterEditMode = false },
+            onApply = { newName ->
+                chapters = chapters.map { if (it.number == chapter.number) it.copy(name = newName) else it }
+                editingChapter = null
+                isChapterEditMode = false
             },
         )
     }
@@ -232,6 +281,7 @@ private fun SubjectHeaderSection(
     subjectName: String,
     studyPurposeLabel: String,
     examTypeLabel: String,
+    detailLabel: String = "",
 ) {
     Box(
         modifier = modifier
@@ -242,14 +292,20 @@ private fun SubjectHeaderSection(
         Row {
             Column {
                 Text(
-                    text = studyPurposeLabel,
+                    text = studyPurposeLabel.ifBlank { "학습 목적을 입력해주세요." },
                     style = MaterialTheme.typography.labelSmall.copy(color = Gray400),
                 )
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = examTypeLabel,
+                    text = examTypeLabel.ifBlank { "분류를 입력해주세요." },
                     style = MaterialTheme.typography.labelSmall.copy(color = Gray400),
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = detailLabel.ifBlank { "상세 정보를 입력해주세요." },
+                    style = MaterialTheme.typography.labelSmall.copy(color = Gray400),
+                )
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = subjectName,
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -274,7 +330,10 @@ private fun SubjectHeaderSection(
 @Composable
 private fun MySubjectSection(
     chapters: List<Chapter>,
+    isEditMode: Boolean = false,
     onChapterClick: (Chapter) -> Unit,
+    onChapterEditClick: (Chapter) -> Unit = {},
+    onChapterAddClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -289,24 +348,26 @@ private fun MySubjectSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "내 과목",
+                text = if (isEditMode) "수정할 챕터를 선택해주세요" else "내 과목",
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = Gray950
                 ),
             )
             Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = "퀴즈 전체 보기",
-                style = MaterialTheme.typography.labelMedium.copy(color = Gray500),
-                modifier = Modifier.clickable { },
-            )
-            Icon(
-                painter = painterResource(R.drawable.ic_detail_quiz_all),
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = Color.Unspecified
-            )
+            if (!isEditMode) {
+                Text(
+                    text = "퀴즈 전체 보기",
+                    style = MaterialTheme.typography.labelMedium.copy(color = Gray500),
+                    modifier = Modifier.clickable { },
+                )
+                Icon(
+                    painter = painterResource(R.drawable.ic_detail_quiz_all),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = Color.Unspecified
+                )
+            }
         }
 
         Card(
@@ -322,7 +383,8 @@ private fun MySubjectSection(
                     title = chapter.name,
                     chapter = "챕터 ${chapter.number}",
                     part = "파트 ${chapter.partCount}개",
-                    onClick = { onChapterClick(chapter) },
+                    onClick = { if (isEditMode) onChapterEditClick(chapter) else onChapterClick(chapter) },
+                    trailingIconRes = if (isEditMode) R.drawable.ic_detail_edit else com.f1.quiket.core.designsystem.R.drawable.ic_subject_card_next,
                 )
 
                 if (index < chapters.lastIndex) {
@@ -340,14 +402,14 @@ private fun MySubjectSection(
                 .padding(horizontal = 16.dp)
                 .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
                 .background(White)
-                .clickable { }
+                .clickable { onChapterAddClick() }
                 .padding(vertical = 14.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AddSubjectCard(
                 title = "챕터 추가",
-                onClick = {},
+                onClick = onChapterAddClick,
             )
         }
 
@@ -412,7 +474,7 @@ private fun AddTestCalendarDialog(
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
-                    DialogFieldLabel(text = "시험 날짜")
+                    DialogFieldLabel(text = "시험 날짜 *")
                     Spacer(modifier = Modifier.height(6.dp))
                     Box(modifier = Modifier.fillMaxWidth()) {
                         BaseTextField(
@@ -566,6 +628,136 @@ private fun DialogFieldLabel(text: String) {
             color = Gray700,
         )
     )
+}
+
+@Composable
+private fun EditSubjectNameDialog(
+    currentName: String,
+    onDismiss: () -> Unit,
+    onApply: (String) -> Unit,
+) {
+    var name by remember { mutableStateOf(currentName) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = White),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "과목명 수정",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Gray950,
+                    ),
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                DialogFieldLabel(text = "과목명 *")
+                Spacer(modifier = Modifier.height(6.dp))
+                BaseTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    hint = "과목명을 입력해주세요",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray700),
+                        border = BorderStroke(1.dp, Gray300),
+                    ) {
+                        Text("취소", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Button(
+                        onClick = { onApply(name) },
+                        enabled = name.isNotBlank(),
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Brown950,
+                            contentColor = White,
+                            disabledContainerColor = Gray300,
+                            disabledContentColor = White,
+                        ),
+                    ) {
+                        Text("적용", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditChapterNameDialog(
+    currentName: String,
+    onDismiss: () -> Unit,
+    onApply: (String) -> Unit,
+) {
+    var name by remember { mutableStateOf(currentName) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = White),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "챕터명 수정",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Gray950,
+                    ),
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                DialogFieldLabel(text = "챕터명 *")
+                Spacer(modifier = Modifier.height(6.dp))
+                BaseTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    hint = "챕터명을 입력해주세요",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray700),
+                        border = BorderStroke(1.dp, Gray300),
+                    ) {
+                        Text("취소", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Button(
+                        onClick = { onApply(name) },
+                        enabled = name.isNotBlank(),
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Brown950,
+                            contentColor = White,
+                            disabledContainerColor = Gray300,
+                            disabledContentColor = White,
+                        ),
+                    ) {
+                        Text("적용", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

@@ -43,6 +43,9 @@ fun SubjectDetailTopBar(
     onStarClick: () -> Unit,
     onMenuClick: () -> Unit,
     onMenuDismiss: () -> Unit,
+    onEditSubjectType: () -> Unit = {},
+    onEditSubjectName: () -> Unit = {},
+    onEditChapterName: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -113,7 +116,7 @@ fun SubjectDetailTopBar(
                             color = Gray950
                         )
                     },
-                    onClick = onMenuDismiss,
+                    onClick = { onMenuDismiss(); onEditSubjectType() },
                 )
                 DropdownMenuItem(
                     leadingIcon = {
@@ -130,7 +133,7 @@ fun SubjectDetailTopBar(
                             color = Gray950
                         )
                     },
-                    onClick = onMenuDismiss,
+                    onClick = { onMenuDismiss(); onEditSubjectName() },
                 )
                 DropdownMenuItem(
                     leadingIcon = {
@@ -147,7 +150,7 @@ fun SubjectDetailTopBar(
                             color = Gray950
                         )
                     },
-                    onClick = onMenuDismiss,
+                    onClick = { onMenuDismiss(); onEditChapterName() },
                 )
                 DropdownMenuItem(
                     leadingIcon = {

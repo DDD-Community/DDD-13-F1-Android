@@ -2,7 +2,8 @@ package com.f1.quiket.feature.home.presentation
 
 data class HomeState(
     val isLoading: Boolean = true,
-    val showOnboarding: Boolean = false
+    val showOnboarding: Boolean = false,
+    val hasSubjects: Boolean = false,
 )
 
 sealed interface HomeIntent {

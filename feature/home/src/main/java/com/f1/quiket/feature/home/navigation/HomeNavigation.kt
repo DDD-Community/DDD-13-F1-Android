@@ -58,7 +58,10 @@ fun NavGraphBuilder.homeGraph(
         )
     }
     composable(UploadDestination.route) {
-        UploadScreen()
+        UploadScreen(
+            onBackClick = { navController.popBackStack() },
+            onNextClick = { navController.popBackStack() },
+        )
     }
     composable(AddSubjectDestination.route) {
         AddSubjectScreen(

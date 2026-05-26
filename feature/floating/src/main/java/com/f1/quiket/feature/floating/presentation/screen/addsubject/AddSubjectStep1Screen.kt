@@ -18,11 +18,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.f1.quiket.core.designsystem.component.BaseTextField
+import com.f1.quiket.feature.floating.presentation.component.RequiredSubjectNameDialog
 import com.f1.quiket.core.designsystem.theme.Gray500
 import com.f1.quiket.core.designsystem.theme.Negative
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
@@ -36,13 +38,15 @@ import com.f1.quiket.feature.floating.presentation.component.SkipBottomSheet
 
 @Composable
 fun AddSubjectStep1Screen(
+    initialSubjectName: String = "",
     onBackClick: () -> Unit = {},
-    onSkipClick: () -> Unit = {},
+    onSkipClick: (subjectName: String) -> Unit = {},
     onNextClick: (subjectName: String, purpose: StudyPurpose) -> Unit = { _, _ -> },
 ) {
-    var subjectName by remember { mutableStateOf("") }
+    var subjectName by remember { mutableStateOf(initialSubjectName) }
     var selectedPurpose by remember { mutableStateOf<StudyPurpose?>(null) }
     var showSkipSheet by remember { mutableStateOf(false) }
+    var showRequiredNameDialog by remember { mutableStateOf(false) }
 
     val isNextEnabled = subjectName.isNotBlank() && selectedPurpose != null
 
@@ -54,7 +58,6 @@ fun AddSubjectStep1Screen(
         ) {
             // ── TopBar ──────────────────────────────────────
             AddSubjectTopBar(
-                title = "과목 추가",
                 onBackClick = onBackClick,
             )
 
@@ -146,9 +149,17 @@ fun AddSubjectStep1Screen(
             onContinue = { showSkipSheet = false },
             onSkip = {
                 showSkipSheet = false
-                onSkipClick()
+                if (subjectName.isBlank()) {
+                    showRequiredNameDialog = true
+                } else {
+                    onSkipClick(subjectName)
+                }
             },
         )
+    }
+
+    if (showRequiredNameDialog) {
+        RequiredSubjectNameDialog(onDismiss = { showRequiredNameDialog = false })
     }
 }
 

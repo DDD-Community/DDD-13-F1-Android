@@ -10,6 +10,7 @@ import com.f1.quiket.feature.floating.domain.model.ExamType
 import com.f1.quiket.feature.floating.domain.model.StudyField
 import com.f1.quiket.feature.floating.domain.model.StudyPurpose
 import com.f1.quiket.feature.floating.domain.model.UsagePurpose
+import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
 import com.f1.quiket.feature.floating.presentation.screen.subjectdetail.SubjectDetailScreen
 
 @Composable
@@ -19,11 +20,17 @@ fun AddSubjectScreen(
 ) {
     var state by remember { mutableStateOf(AddSubjectState()) }
     var depth by remember { mutableStateOf(1) }
+    var skippedFromStep by remember { mutableStateOf(0) }
 
     when (depth) {
         1 -> AddSubjectStep1Screen(
+            initialSubjectName = state.subjectName,
             onBackClick = onDismiss,
-            onSkipClick = onFinish,
+            onSkipClick = { name ->
+                state = state.copy(subjectName = name)
+                skippedFromStep = 1
+                depth = 4
+            },
             onNextClick = { name, purpose ->
                 state = state.copy(subjectName = name, studyPurpose = purpose)
                 depth = 2
@@ -33,7 +40,10 @@ fun AddSubjectScreen(
         2 -> AddSubjectStep2Screen(
             studyPurpose = state.studyPurpose ?: StudyPurpose.EXAM,
             onBackClick = { depth = 1 },
-            onSkipClick = onFinish,
+            onSkipClick = {
+                skippedFromStep = 2
+                depth = 4
+            },
             onNextClick = { selection ->
                 when (selection) {
                     is ExamType -> state = state.copy(examType = selection)
@@ -50,15 +60,34 @@ fun AddSubjectScreen(
             studyField = state.studyField,
             usagePurpose = state.usagePurpose,
             onBackClick = { depth = 2 },
-            onSkipClick = onFinish,
-            onCreateClick = { depth = 4 },
+            onSkipClick = {
+                skippedFromStep = 3
+                depth = 4
+            },
+            onCreateClick = { label ->
+                state = state.copy(step3Label = label)
+                depth = 4
+            },
         )
 
         4 -> SubjectDetailScreen(
             subjectName = state.subjectName.ifBlank { "새 과목" },
             studyPurposeLabel = state.studyPurpose?.title ?: "",
             examTypeLabel = state.examType?.label ?: state.studyField?.label ?: state.usagePurpose?.title ?: "",
+            detailLabel = state.step3Label,
             onBackClick = onFinish,
+            onChapterAddClick = { depth = 5 },
+            onUploadClick = { depth = 5 },
+            onEditSubjectType = { depth = if (skippedFromStep > 0) skippedFromStep else 3 },
+            onSubjectNameChanged = { newName -> state = state.copy(subjectName = newName) },
+        )
+
+        5 -> UploadScreen(
+            lectureTitle = state.subjectName.ifBlank { "새 과목" },
+            lecturePurpose = state.studyPurpose?.title,
+            chapterCount = 0,
+            onBackClick = { depth = 4 },
+            onNextClick = { depth = 4 },
         )
     }
 }
