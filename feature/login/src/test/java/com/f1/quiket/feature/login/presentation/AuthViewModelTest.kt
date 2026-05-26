@@ -102,6 +102,7 @@ class AuthViewModelTest {
 
         assertThat(viewModel.state.value.showPasswordResetRequiredDialog).isTrue()
         assertThat(passwordResetDraftStore.get().email).isEqualTo("locked@example.com")
+        assertThat(passwordResetDraftStore.get().resetCodeSent).isTrue()
 
         val effect = async { viewModel.effect.first() }
         viewModel.onIntent(LoginEmailIntent.PasswordResetRequiredClick)
@@ -120,6 +121,12 @@ class AuthViewModelTest {
                 message = "Email verification required.",
                 email = "verify@example.com",
             )
+            resendEmailVerificationResult = AuthResult.Success(
+                EmailVerificationSent(
+                    email = "verify@example.com",
+                    expiresInSeconds = 600,
+                ),
+            )
         }
         val viewModel = LoginEmailViewModel(
             repository = repository,
@@ -136,6 +143,37 @@ class AuthViewModelTest {
 
         assertThat(effect.await()).isEqualTo(LoginEmailEffect.NavigateToEmailVerification("verify@example.com"))
         assertThat(signupDraftStore.get().email).isEqualTo("verify@example.com")
+        assertThat(repository.lastResendEmail).isEqualTo("verify@example.com")
+    }
+
+    @Test
+    fun passwordResetEmailVerification_prefilledWithoutSentCode_requiresRequestCode() = runTest {
+        val passwordResetDraftStore = PasswordResetDraftStore().apply {
+            update { copy(email = "locked@example.com", resetCodeSent = false) }
+        }
+        val viewModel = PasswordResetEmailVerificationViewModel(
+            repository = FakeAuthRepository(),
+            passwordResetDraftStore = passwordResetDraftStore,
+        )
+
+        assertThat(viewModel.state.value.email).isEqualTo("locked@example.com")
+        assertThat(viewModel.state.value.isVerificationRequested).isFalse()
+        assertThat(viewModel.state.value.showVerificationSentMessage).isFalse()
+    }
+
+    @Test
+    fun passwordResetEmailVerification_prefilledWithSentCode_entersCodeStep() = runTest {
+        val passwordResetDraftStore = PasswordResetDraftStore().apply {
+            update { copy(email = "locked@example.com", resetCodeSent = true) }
+        }
+        val viewModel = PasswordResetEmailVerificationViewModel(
+            repository = FakeAuthRepository(),
+            passwordResetDraftStore = passwordResetDraftStore,
+        )
+
+        assertThat(viewModel.state.value.email).isEqualTo("locked@example.com")
+        assertThat(viewModel.state.value.isVerificationRequested).isTrue()
+        assertThat(viewModel.state.value.showVerificationSentMessage).isTrue()
     }
 
     @Test
@@ -205,10 +243,12 @@ private class FakeAuthRepository : AuthRepository {
     var loginResult: AuthResult<AuthTokenData> = AuthResult.Failure("UNHANDLED", "Unhandled")
     var confirmEmailVerificationResult: AuthResult<AuthTokenData> = AuthResult.Failure("UNHANDLED", "Unhandled")
     var confirmPasswordResetResult: AuthResult<Unit> = AuthResult.Failure("UNHANDLED", "Unhandled")
+    var resendEmailVerificationResult: AuthResult<EmailVerificationSent> = AuthResult.Failure("UNHANDLED", "Unhandled")
 
     var lastLoginEmail: String? = null
     var lastLoginDeviceId: String? = null
     var lastLoginDeviceName: String? = null
+    var lastResendEmail: String? = null
     var lastConfirmEmail: String? = null
     var lastConfirmCode: String? = null
     var lastConfirmDeviceId: String? = null
@@ -263,7 +303,10 @@ private class FakeAuthRepository : AuthRepository {
 
     override suspend fun checkEmailAvailability(email: String): AuthResult<EmailAvailability> = unhandled()
 
-    override suspend fun resendEmailVerification(email: String): AuthResult<EmailVerificationSent> = unhandled()
+    override suspend fun resendEmailVerification(email: String): AuthResult<EmailVerificationSent> {
+        lastResendEmail = email
+        return resendEmailVerificationResult
+    }
 
     override suspend fun refreshToken(
         refreshToken: String,

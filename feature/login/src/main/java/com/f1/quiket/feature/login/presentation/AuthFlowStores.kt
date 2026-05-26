@@ -49,6 +49,7 @@ class PasswordResetDraftStore @Inject constructor() {
 data class PasswordResetDraft(
     val email: String = "",
     val verificationCode: String = "",
+    val resetCodeSent: Boolean = false,
 )
 
 @Singleton

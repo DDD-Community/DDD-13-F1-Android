@@ -3,6 +3,7 @@ package com.f1.quiket.feature.login.presentation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
@@ -16,6 +17,7 @@ fun LoginEmailRoute(
     viewModel: LoginEmailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.effect.collectLatest { effect ->
@@ -23,7 +25,7 @@ fun LoginEmailRoute(
                 LoginEmailEffect.NavigateToMain -> onLoginSuccess()
                 is LoginEmailEffect.NavigateToPasswordReset -> onForgotPasswordClick()
                 is LoginEmailEffect.NavigateToEmailVerification -> onEmailVerificationRequired()
-                is LoginEmailEffect.ShowMessage -> Unit
+                is LoginEmailEffect.ShowMessage -> context.showAuthToast(effect.message)
             }
         }
     }

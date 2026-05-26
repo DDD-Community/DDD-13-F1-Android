@@ -97,6 +97,7 @@ class LoginEmailViewModel @Inject constructor(
                     copy(
                         email = failure.email ?: email,
                         verificationCode = "",
+                        resetCodeSent = failure.resetCodeSent == true,
                     )
                 }
                 updateState {
@@ -108,8 +109,18 @@ class LoginEmailViewModel @Inject constructor(
             }
 
             "AUTH_EMAIL_NOT_VERIFIED" -> {
-                signupDraftStore.update { copy(email = failure.email ?: email) }
-                sendEffect(LoginEmailEffect.NavigateToEmailVerification(failure.email ?: email))
+                val verificationEmail = failure.email ?: email
+                signupDraftStore.update { copy(email = verificationEmail) }
+                when (val resendResult = repository.resendEmailVerification(verificationEmail)) {
+                    is AuthResult.Success -> {
+                        sendEffect(LoginEmailEffect.NavigateToEmailVerification(verificationEmail))
+                    }
+
+                    is AuthResult.Failure -> {
+                        sendEffect(LoginEmailEffect.ShowMessage(resendResult.message))
+                        sendEffect(LoginEmailEffect.NavigateToEmailVerification(verificationEmail))
+                    }
+                }
             }
 
             else -> sendEffect(LoginEmailEffect.ShowMessage(failure.message))

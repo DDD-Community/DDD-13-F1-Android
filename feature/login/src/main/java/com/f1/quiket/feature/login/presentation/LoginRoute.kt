@@ -24,7 +24,7 @@ fun LoginRoute(
                 LoginEffect.NavigateToMain -> onLoginSuccess()
                 LoginEffect.NavigateToKakaoNickname -> onKakaoNicknameRequired()
                 LoginEffect.NavigateToKakaoAccountLink -> onKakaoAccountLinkRequired()
-                is LoginEffect.ShowMessage -> Unit
+                is LoginEffect.ShowMessage -> context.showAuthToast(effect.message)
             }
         }
     }

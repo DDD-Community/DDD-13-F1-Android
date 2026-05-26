@@ -18,8 +18,8 @@ class PasswordResetEmailVerificationViewModel @Inject constructor(
     initialState = passwordResetDraftStore.get().let { draft ->
         PasswordResetEmailVerificationState(
             email = draft.email,
-            isVerificationRequested = draft.email.isNotBlank(),
-            showVerificationSentMessage = draft.email.isNotBlank(),
+            isVerificationRequested = draft.resetCodeSent,
+            showVerificationSentMessage = draft.resetCodeSent,
         )
     },
 ) {
@@ -80,7 +80,13 @@ class PasswordResetEmailVerificationViewModel @Inject constructor(
 
             when (val result = repository.requestPasswordReset(email)) {
                 is AuthResult.Success -> {
-                    passwordResetDraftStore.update { copy(email = email, verificationCode = "") }
+                    passwordResetDraftStore.update {
+                        copy(
+                            email = email,
+                            verificationCode = "",
+                            resetCodeSent = true,
+                        )
+                    }
                     updateState {
                         copy(
                             email = result.data.email,
@@ -118,6 +124,7 @@ class PasswordResetEmailVerificationViewModel @Inject constructor(
             copy(
                 email = currentState.email.trim(),
                 verificationCode = currentState.verificationCode,
+                resetCodeSent = true,
             )
         }
         launch { sendEffect(PasswordResetEmailVerificationEffect.NavigateNext) }

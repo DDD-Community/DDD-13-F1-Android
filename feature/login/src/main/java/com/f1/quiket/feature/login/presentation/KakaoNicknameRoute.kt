@@ -3,6 +3,7 @@ package com.f1.quiket.feature.login.presentation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
@@ -14,12 +15,13 @@ fun KakaoNicknameRoute(
     viewModel: KakaoNicknameViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.effect.collectLatest { effect ->
             when (effect) {
                 KakaoNicknameEffect.NavigateToMain -> onComplete()
-                is KakaoNicknameEffect.ShowMessage -> Unit
+                is KakaoNicknameEffect.ShowMessage -> context.showAuthToast(effect.message)
             }
         }
     }

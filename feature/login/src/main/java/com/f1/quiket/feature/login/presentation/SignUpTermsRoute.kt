@@ -3,6 +3,7 @@ package com.f1.quiket.feature.login.presentation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
@@ -14,12 +15,13 @@ fun SignUpTermsRoute(
     viewModel: SignupTermsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.effect.collectLatest { effect ->
             when (effect) {
                 SignupTermsEffect.NavigateToEmailVerification -> onSignupSubmitted()
-                is SignupTermsEffect.ShowMessage -> Unit
+                is SignupTermsEffect.ShowMessage -> context.showAuthToast(effect.message)
             }
         }
     }

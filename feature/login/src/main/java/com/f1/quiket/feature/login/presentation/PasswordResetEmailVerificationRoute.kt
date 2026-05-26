@@ -3,6 +3,7 @@ package com.f1.quiket.feature.login.presentation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
@@ -15,12 +16,13 @@ fun PasswordResetEmailVerificationRoute(
     viewModel: PasswordResetEmailVerificationViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.effect.collectLatest { effect ->
             when (effect) {
                 PasswordResetEmailVerificationEffect.NavigateNext -> onVerificationComplete()
-                is PasswordResetEmailVerificationEffect.ShowMessage -> Unit
+                is PasswordResetEmailVerificationEffect.ShowMessage -> context.showAuthToast(effect.message)
             }
         }
     }
