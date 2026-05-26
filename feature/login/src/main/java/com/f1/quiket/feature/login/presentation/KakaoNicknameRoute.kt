@@ -3,22 +3,25 @@ package com.f1.quiket.feature.login.presentation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
-fun SignUpNicknameRoute(
+fun KakaoNicknameRoute(
     onBackClick: () -> Unit,
-    onNextClick: () -> Unit,
-    viewModel: SignupNicknameViewModel = hiltViewModel(),
+    onComplete: () -> Unit,
+    viewModel: KakaoNicknameViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.effect.collectLatest { effect ->
             when (effect) {
-                SignupNicknameEffect.NavigateNext -> onNextClick()
+                KakaoNicknameEffect.NavigateToMain -> onComplete()
+                is KakaoNicknameEffect.ShowMessage -> context.showAuthToast(effect.message)
             }
         }
     }
@@ -27,8 +30,8 @@ fun SignUpNicknameRoute(
         nickname = state.nickname,
         nicknameErrorMessage = state.nicknameErrorMessage,
         isNextEnabled = state.isNextEnabled,
-        onNicknameChange = { viewModel.onIntent(SignupNicknameIntent.NicknameChanged(it)) },
+        onNicknameChange = { viewModel.onIntent(KakaoNicknameIntent.NicknameChanged(it)) },
         onBackClick = onBackClick,
-        onNextClick = { viewModel.onIntent(SignupNicknameIntent.Next) },
+        onNextClick = { viewModel.onIntent(KakaoNicknameIntent.Submit) },
     )
 }

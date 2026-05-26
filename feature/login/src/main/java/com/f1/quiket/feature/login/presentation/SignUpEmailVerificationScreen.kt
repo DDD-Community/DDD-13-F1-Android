@@ -95,6 +95,10 @@ fun SignUpEmailVerificationScreen(
     onBackClick: () -> Unit,
     onNextClick: () -> Unit,
     modifier: Modifier = Modifier,
+    emailActionButtonText: String = if (isEmailVerified) "인증 완료" else "이메일 인증",
+    isEmailReadOnly: Boolean = false,
+    showVerificationFields: Boolean = isEmailVerificationRequested,
+    showPasswordFields: Boolean = isEmailVerified,
 ) {
     val scrollState = rememberScrollState()
     val density = LocalDensity.current
@@ -169,10 +173,11 @@ fun SignUpEmailVerificationScreen(
                 value = email,
                 onValueChange = onEmailChange,
                 hint = "이메일을 입력해주세요",
-                buttonText = if (isEmailVerified) "인증 완료" else "이메일 인증",
+                buttonText = emailActionButtonText,
                 buttonEnabled = isEmailVerificationButtonEnabled,
                 onButtonClick = onEmailVerificationRequestClick,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                readOnly = isEmailReadOnly,
                 isError = !emailErrorMessage.isNullOrBlank(),
                 errorMessage = emailErrorMessage,
                 trailingIcon = if (isEmailVerified) {
@@ -181,7 +186,7 @@ fun SignUpEmailVerificationScreen(
                     null
                 },
             )
-            if (isEmailVerificationRequested) {
+            if (showVerificationFields) {
                 val hasVerificationCodeError = !verificationCodeErrorMessage.isNullOrBlank()
                 SignUpInputWithAction(
                     title = "인증번호",
@@ -213,7 +218,7 @@ fun SignUpEmailVerificationScreen(
                     },
                 )
             }
-            if (isEmailVerified) {
+            if (showPasswordFields) {
                 SignUpPasswordFields(
                     password = password,
                     passwordConfirm = passwordConfirm,

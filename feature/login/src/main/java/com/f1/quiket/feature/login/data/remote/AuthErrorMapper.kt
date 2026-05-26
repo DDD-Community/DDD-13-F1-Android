@@ -31,6 +31,12 @@ class AuthErrorMapper @Inject constructor(
             fieldErrors = errorResponse?.data?.fieldErrors
                 ?.mapNotNull { fieldError -> fieldError.toDomain() }
                 ?: emptyList(),
+            email = errorResponse?.data?.email,
+            failedLoginCount = errorResponse?.data?.failedLoginCount,
+            remainingAttempts = errorResponse?.data?.remainingAttempts,
+            passwordResetRequired = errorResponse?.data?.passwordResetRequired,
+            nextAction = errorResponse?.data?.nextAction,
+            resetCodeSent = errorResponse?.data?.resetCodeSent,
         )
     }
 

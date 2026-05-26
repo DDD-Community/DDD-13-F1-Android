@@ -3,61 +3,52 @@ package com.f1.quiket.feature.login.presentation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
-
-private const val EmailVerifiedMessageDurationMillis = 2_500L
-private const val PasswordConfirmMismatchMessage = "비밀번호가 일치하지 않아요"
-private val ResetPasswordRegex = Regex(
-    pattern = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,64}$",
-)
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun PasswordResetNewPasswordRoute(
     onCloseClick: () -> Unit,
     onCompleteClick: () -> Unit,
+    viewModel: PasswordResetNewPasswordViewModel = hiltViewModel(),
 ) {
-    var password by rememberSaveable { mutableStateOf("") }
-    var passwordConfirm by rememberSaveable { mutableStateOf("") }
-    var isPasswordVisible by rememberSaveable { mutableStateOf(false) }
-    var isPasswordConfirmVisible by rememberSaveable { mutableStateOf(false) }
-    var showEmailVerifiedMessage by rememberSaveable { mutableStateOf(true) }
-
-    val passwordConfirmErrorMessage = if (
-        passwordConfirm.isNotBlank() &&
-        passwordConfirm != password
-    ) {
-        PasswordConfirmMismatchMessage
-    } else {
-        null
-    }
-    val isCompleteEnabled = isValidResetPassword(password) &&
-        passwordConfirm.isNotBlank() &&
-        passwordConfirmErrorMessage == null
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
-        delay(EmailVerifiedMessageDurationMillis)
-        showEmailVerifiedMessage = false
+        viewModel.effect.collectLatest { effect ->
+            when (effect) {
+                PasswordResetNewPasswordEffect.NavigateToLogin -> onCompleteClick()
+                is PasswordResetNewPasswordEffect.ShowMessage -> context.showAuthToast(effect.message)
+            }
+        }
+    }
+
+    LaunchedEffect(state.showEmailVerifiedMessage) {
+        if (!state.showEmailVerifiedMessage) return@LaunchedEffect
+
+        delay(2_500L)
+        viewModel.onIntent(PasswordResetNewPasswordIntent.HideEmailVerifiedMessage)
     }
 
     PasswordResetNewPasswordScreen(
-        password = password,
-        passwordConfirm = passwordConfirm,
-        isPasswordVisible = isPasswordVisible,
-        isPasswordConfirmVisible = isPasswordConfirmVisible,
-        passwordConfirmErrorMessage = passwordConfirmErrorMessage,
-        isCompleteEnabled = isCompleteEnabled,
-        showEmailVerifiedMessage = showEmailVerifiedMessage,
-        onPasswordChange = { password = it },
-        onPasswordConfirmChange = { passwordConfirm = it },
-        onPasswordVisibilityClick = { isPasswordVisible = !isPasswordVisible },
-        onPasswordConfirmVisibilityClick = { isPasswordConfirmVisible = !isPasswordConfirmVisible },
+        password = state.password,
+        passwordConfirm = state.passwordConfirm,
+        isPasswordVisible = state.isPasswordVisible,
+        isPasswordConfirmVisible = state.isPasswordConfirmVisible,
+        passwordConfirmErrorMessage = state.passwordConfirmErrorMessage ?: state.passwordErrorMessage,
+        isCompleteEnabled = state.isCompleteEnabled,
+        showEmailVerifiedMessage = state.showEmailVerifiedMessage,
+        onPasswordChange = { viewModel.onIntent(PasswordResetNewPasswordIntent.PasswordChanged(it)) },
+        onPasswordConfirmChange = { viewModel.onIntent(PasswordResetNewPasswordIntent.PasswordConfirmChanged(it)) },
+        onPasswordVisibilityClick = { viewModel.onIntent(PasswordResetNewPasswordIntent.TogglePasswordVisibility) },
+        onPasswordConfirmVisibilityClick = {
+            viewModel.onIntent(PasswordResetNewPasswordIntent.TogglePasswordConfirmVisibility)
+        },
         onCloseClick = onCloseClick,
-        onCompleteClick = onCompleteClick,
+        onCompleteClick = { viewModel.onIntent(PasswordResetNewPasswordIntent.Submit) },
     )
 }
-
-private fun isValidResetPassword(password: String): Boolean =
-    password.matches(ResetPasswordRegex)

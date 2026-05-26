@@ -4,7 +4,6 @@ import com.f1.quiket.core.network.auth.TokenPair
 import com.f1.quiket.feature.login.data.remote.AuthTokenDataResponse
 import com.f1.quiket.feature.login.data.remote.AuthUserResponse
 import com.f1.quiket.feature.login.data.remote.EmailAvailabilityDataResponse
-import com.f1.quiket.feature.login.data.remote.EmailVerificationConfirmDataResponse
 import com.f1.quiket.feature.login.data.remote.EmailVerificationSentDataResponse
 import com.f1.quiket.feature.login.data.remote.FieldErrorResponse
 import com.f1.quiket.feature.login.data.remote.KakaoAccountLinkRequiredDataResponse
@@ -15,7 +14,6 @@ import com.f1.quiket.feature.login.domain.model.AuthProvider
 import com.f1.quiket.feature.login.domain.model.AuthTokenData
 import com.f1.quiket.feature.login.domain.model.AuthUser
 import com.f1.quiket.feature.login.domain.model.EmailAvailability
-import com.f1.quiket.feature.login.domain.model.EmailVerificationConfirm
 import com.f1.quiket.feature.login.domain.model.EmailVerificationSent
 import com.f1.quiket.feature.login.domain.model.FieldError
 import com.f1.quiket.feature.login.domain.model.KakaoAccountLinkRequired
@@ -63,11 +61,6 @@ internal fun EmailAvailabilityDataResponse.toDomain(): EmailAvailability = Email
 internal fun EmailVerificationSentDataResponse.toDomain(): EmailVerificationSent = EmailVerificationSent(
     email = email,
     expiresInSeconds = expiresInSeconds,
-)
-
-internal fun EmailVerificationConfirmDataResponse.toDomain(): EmailVerificationConfirm = EmailVerificationConfirm(
-    email = email,
-    verified = verified,
 )
 
 internal fun PasswordResetRequestedDataResponse.toDomain(): PasswordResetRequested = PasswordResetRequested(

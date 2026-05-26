@@ -11,7 +11,6 @@ import com.f1.quiket.feature.login.data.remote.AuthErrorMapper
 import com.f1.quiket.feature.login.data.remote.AuthTokenDataResponse
 import com.f1.quiket.feature.login.data.remote.AuthUserResponse
 import com.f1.quiket.feature.login.data.remote.EmailAvailabilityDataResponse
-import com.f1.quiket.feature.login.data.remote.EmailVerificationConfirmDataResponse
 import com.f1.quiket.feature.login.data.remote.EmailVerificationConfirmRequest
 import com.f1.quiket.feature.login.data.remote.EmailVerificationRequest
 import com.f1.quiket.feature.login.data.remote.EmailVerificationSentDataResponse
@@ -32,7 +31,6 @@ import com.f1.quiket.feature.login.domain.model.AuthResult
 import com.f1.quiket.feature.login.domain.model.AuthTokenData
 import com.f1.quiket.feature.login.domain.model.AuthUser
 import com.f1.quiket.feature.login.domain.model.EmailAvailability
-import com.f1.quiket.feature.login.domain.model.EmailVerificationConfirm
 import com.f1.quiket.feature.login.domain.model.EmailVerificationSent
 import com.f1.quiket.feature.login.domain.model.KakaoLoginResult
 import com.f1.quiket.feature.login.domain.model.PasswordResetRequested
@@ -91,9 +89,13 @@ class AuthRepositoryImpl @Inject constructor(
         email: String,
         verificationCode: String?,
         verificationToken: String?,
-    ): AuthResult<EmailVerificationConfirm> = execute(
+        deviceId: String?,
+        deviceName: String?,
+    ): AuthResult<AuthTokenData> = executeTokenRequest(
         call = {
             api.confirmEmailVerification(
+                deviceId = deviceId,
+                deviceName = deviceName,
                 EmailVerificationConfirmRequest(
                     email = email,
                     verificationCode = verificationCode,
@@ -101,7 +103,6 @@ class AuthRepositoryImpl @Inject constructor(
                 ),
             )
         },
-        mapper = EmailVerificationConfirmDataResponse::toDomain,
     )
 
     override suspend fun login(

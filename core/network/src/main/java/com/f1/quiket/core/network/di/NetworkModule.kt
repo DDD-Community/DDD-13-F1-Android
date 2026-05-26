@@ -1,5 +1,6 @@
 package com.f1.quiket.core.network.di
 
+import android.util.Log
 import com.f1.quiket.core.network.BuildConfig
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
@@ -42,11 +43,7 @@ object NetworkModule {
 
         interceptors.forEach(builder::addInterceptor)
 
-        builder.addInterceptor(
-            HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BASIC
-            },
-        )
+        builder.addInterceptor(provideLoggingInterceptor())
 
         return builder.build()
     }
@@ -64,4 +61,40 @@ object NetworkModule {
 
     private fun String.ensureTrailingSlash(): String =
         if (endsWith("/")) this else "$this/"
+
+    private fun provideLoggingInterceptor(): HttpLoggingInterceptor =
+        HttpLoggingInterceptor(RedactingHttpLogger()).apply {
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
+            redactHeader("Authorization")
+            redactHeader("Cookie")
+            redactHeader("Set-Cookie")
+            redactHeader("X-Device-Id")
+            redactHeader("X-Device-Name")
+        }
+
+    private class RedactingHttpLogger : HttpLoggingInterceptor.Logger {
+        override fun log(message: String) {
+            Log.d("QuiketNetwork", message.redactSensitiveValues())
+        }
+
+        private fun String.redactSensitiveValues(): String =
+            replace(SensitiveJsonValueRegex) { result ->
+                "${result.groupValues[1]}\"██\""
+            }.replace(SensitiveFormValueRegex) { result ->
+                "${result.groupValues[1]}██"
+            }
+
+        private companion object {
+            private val SensitiveJsonValueRegex = Regex(
+                pattern = """("(?i:password|passwordConfirm|newPassword|currentPassword|verificationCode|accessToken|refreshToken|idToken|oauthAccessToken|kakaoAccessToken|token)"\s*:\s*)"[^"]*"""",
+            )
+            private val SensitiveFormValueRegex = Regex(
+                pattern = """((?i:password|passwordConfirm|newPassword|currentPassword|verificationCode|accessToken|refreshToken|idToken|oauthAccessToken|kakaoAccessToken|token)=)[^&\s]+""",
+            )
+        }
+    }
 }

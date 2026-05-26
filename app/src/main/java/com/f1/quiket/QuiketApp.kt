@@ -2,7 +2,9 @@ package com.f1.quiket
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -12,8 +14,11 @@ import com.f1.quiket.feature.login.navigation.LoginDestination
 import com.f1.quiket.feature.login.navigation.loginGraph
 import com.f1.quiket.feature.login.navigation.navigateToLoginEmail
 import com.f1.quiket.feature.login.navigation.navigateToLoginEmailAfterPasswordReset
+import com.f1.quiket.feature.login.navigation.navigateToKakaoAccountLink
+import com.f1.quiket.feature.login.navigation.navigateToKakaoNickname
 import com.f1.quiket.feature.login.navigation.navigateToPasswordResetEmailVerification
 import com.f1.quiket.feature.login.navigation.navigateToPasswordResetNewPassword
+import com.f1.quiket.feature.login.navigation.navigateToSignUpCodeVerification
 import com.f1.quiket.feature.login.navigation.navigateToSignUpEmailVerification
 import com.f1.quiket.feature.login.navigation.navigateToSignUpNickname
 import com.f1.quiket.feature.login.navigation.navigateToSignUpTerms
@@ -23,12 +28,15 @@ import com.f1.quiket.feature.onboarding.navigation.OnboardingDestination
 import com.f1.quiket.feature.onboarding.navigation.onboardingGraph
 import com.f1.quiket.feature.splash.navigation.SplashDestination
 import com.f1.quiket.feature.splash.navigation.splashGraph
+import kotlinx.coroutines.launch
 
 @Composable
 fun QuiketApp() {
     QuiketTheme {
         val context = LocalContext.current.applicationContext
         val navController = rememberNavController()
+        val coroutineScope = rememberCoroutineScope()
+        val appSessionViewModel: AppSessionViewModel = hiltViewModel()
 
         NavHost(
             navController = navController,
@@ -36,14 +44,14 @@ fun QuiketApp() {
         ) {
             splashGraph(
                 onDecideNext = {
-                    // TODO: Restore onboarding completion check after onboarding QA.
-//                        val nextRoute = if (context.isOnboardingCompleted()) {
-//                            LoginDestination.route
-//                        } else {
-//                            OnboardingDestination.route
-//                        }
-                    val nextRoute = OnboardingDestination.route
-                    navigateToRoot(navController, nextRoute, SplashDestination.route)
+                    coroutineScope.launch {
+                        val nextRoute = when {
+                            !context.isOnboardingCompleted() -> OnboardingDestination.route
+                            appSessionViewModel.hasSavedToken() -> MainDestination.route
+                            else -> LoginDestination.route
+                        }
+                        navigateToRoot(navController, nextRoute, SplashDestination.route)
+                    }
                 },
             )
 
@@ -70,6 +78,15 @@ fun QuiketApp() {
                 onSignUpNicknameComplete = {
                     navController.navigateToSignUpTerms()
                 },
+                onSignUpSubmitted = {
+                    navController.navigateToSignUpCodeVerification()
+                },
+                onKakaoNicknameRequired = {
+                    navController.navigateToKakaoNickname()
+                },
+                onKakaoAccountLinkRequired = {
+                    navController.navigateToKakaoAccountLink()
+                },
                 onForgotPasswordClick = {
                     navController.navigateToPasswordResetEmailVerification()
                 },
@@ -87,7 +104,10 @@ fun QuiketApp() {
             composable(route = MainDestination.route) {
                 MainRoute(
                     onLogout = {
-                        navigateToRoot(navController, LoginDestination.route, MainDestination.route)
+                        coroutineScope.launch {
+                            appSessionViewModel.logout()
+                            navigateToRoot(navController, LoginDestination.route, MainDestination.route)
+                        }
                     },
                 )
             }

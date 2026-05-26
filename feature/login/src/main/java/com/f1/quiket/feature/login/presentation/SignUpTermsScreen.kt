@@ -43,6 +43,11 @@ import com.f1.quiket.core.designsystem.theme.White
 fun SignUpTermsScreen(
     termsState: SignUpTermsState,
     onBackClick: () -> Unit,
+    onAllTermsClick: () -> Unit,
+    onServiceTermsClick: () -> Unit,
+    onPrivacyTermsClick: () -> Unit,
+    onMarketingTermsClick: () -> Unit,
+    onSubmitClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -73,13 +78,19 @@ fun SignUpTermsScreen(
                 PasswordResetPageIndicator(currentPage = 2, pageCount = 3)
             }
             SignUpTermsTitleSection()
-            SignUpTermsList(termsState = termsState)
+            SignUpTermsList(
+                termsState = termsState,
+                onAllTermsClick = onAllTermsClick,
+                onServiceTermsClick = onServiceTermsClick,
+                onPrivacyTermsClick = onPrivacyTermsClick,
+                onMarketingTermsClick = onMarketingTermsClick,
+            )
         }
 
         QuiketPrimaryButton(
             text = "회원가입",
             enabled = termsState.requiredAgreed,
-            onClick = {},
+            onClick = onSubmitClick,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = 16.dp, vertical = 28.dp),
@@ -182,27 +193,37 @@ private fun SignUpTermsTitleSection(
 @Composable
 private fun SignUpTermsList(
     termsState: SignUpTermsState,
+    onAllTermsClick: () -> Unit,
+    onServiceTermsClick: () -> Unit,
+    onPrivacyTermsClick: () -> Unit,
+    onMarketingTermsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        SignUpAllTermsItem(checked = termsState.allAgreed)
+        SignUpAllTermsItem(
+            checked = termsState.allAgreed,
+            onClick = onAllTermsClick,
+        )
         SignUpTermsItem(
             text = "서비스 이용 약관 (필수)",
             checked = termsState.serviceTermsAgreed,
             showArrow = true,
+            onClick = onServiceTermsClick,
         )
         SignUpTermsItem(
             text = "필수 개인 정보 수집 및 이용 (필수)",
             checked = termsState.privacyTermsAgreed,
             showArrow = true,
+            onClick = onPrivacyTermsClick,
         )
         SignUpTermsItem(
             text = "마케팅 프로모션 알림 수신 동의 (선택)",
             checked = termsState.marketingTermsAgreed,
             showArrow = false,
+            onClick = onMarketingTermsClick,
         )
     }
 }
@@ -210,6 +231,7 @@ private fun SignUpTermsList(
 @Composable
 private fun SignUpAllTermsItem(
     checked: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(16.dp)
@@ -219,6 +241,10 @@ private fun SignUpAllTermsItem(
             .fillMaxWidth()
             .height(56.dp)
             .clip(shape)
+            .clickable(
+                role = Role.Checkbox,
+                onClick = onClick,
+            )
             .background(if (checked) White else Gray50)
             .border(
                 width = if (checked) 2.dp else 0.dp,
@@ -245,12 +271,18 @@ private fun SignUpTermsItem(
     text: String,
     checked: Boolean,
     showArrow: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(34.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(
+                role = Role.Checkbox,
+                onClick = onClick,
+            )
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -344,6 +376,11 @@ private fun SignUpTermsEmptyPreview() {
         SignUpTermsScreen(
             termsState = SignUpTermsState(),
             onBackClick = {},
+            onAllTermsClick = {},
+            onServiceTermsClick = {},
+            onPrivacyTermsClick = {},
+            onMarketingTermsClick = {},
+            onSubmitClick = {},
         )
     }
 }
@@ -359,6 +396,11 @@ private fun SignUpTermsAllAgreedPreview() {
                 marketingTermsAgreed = true,
             ),
             onBackClick = {},
+            onAllTermsClick = {},
+            onServiceTermsClick = {},
+            onPrivacyTermsClick = {},
+            onMarketingTermsClick = {},
+            onSubmitClick = {},
         )
     }
 }
@@ -374,6 +416,11 @@ private fun SignUpTermsRequiredAgreedPreview() {
                 marketingTermsAgreed = false,
             ),
             onBackClick = {},
+            onAllTermsClick = {},
+            onServiceTermsClick = {},
+            onPrivacyTermsClick = {},
+            onMarketingTermsClick = {},
+            onSubmitClick = {},
         )
     }
 }
