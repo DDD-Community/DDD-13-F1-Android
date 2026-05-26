@@ -8,17 +8,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
-fun SignUpNicknameRoute(
+fun KakaoNicknameRoute(
     onBackClick: () -> Unit,
-    onNextClick: () -> Unit,
-    viewModel: SignupNicknameViewModel = hiltViewModel(),
+    onComplete: () -> Unit,
+    viewModel: KakaoNicknameViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.effect.collectLatest { effect ->
             when (effect) {
-                SignupNicknameEffect.NavigateNext -> onNextClick()
+                KakaoNicknameEffect.NavigateToMain -> onComplete()
+                is KakaoNicknameEffect.ShowMessage -> Unit
             }
         }
     }
@@ -27,8 +28,8 @@ fun SignUpNicknameRoute(
         nickname = state.nickname,
         nicknameErrorMessage = state.nicknameErrorMessage,
         isNextEnabled = state.isNextEnabled,
-        onNicknameChange = { viewModel.onIntent(SignupNicknameIntent.NicknameChanged(it)) },
+        onNicknameChange = { viewModel.onIntent(KakaoNicknameIntent.NicknameChanged(it)) },
         onBackClick = onBackClick,
-        onNextClick = { viewModel.onIntent(SignupNicknameIntent.Next) },
+        onNextClick = { viewModel.onIntent(KakaoNicknameIntent.Submit) },
     )
 }

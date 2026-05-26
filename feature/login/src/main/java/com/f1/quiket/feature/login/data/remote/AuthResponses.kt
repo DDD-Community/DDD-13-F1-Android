@@ -45,12 +45,6 @@ data class EmailVerificationSentDataResponse(
 )
 
 @Serializable
-data class EmailVerificationConfirmDataResponse(
-    val email: String,
-    val verified: Boolean,
-)
-
-@Serializable
 data class PasswordResetRequestedDataResponse(
     val email: String,
     val expiresInSeconds: Long,
@@ -80,4 +74,10 @@ data class FieldErrorResponse(
 @Serializable
 data class ErrorDataResponse(
     val fieldErrors: List<FieldErrorResponse> = emptyList(),
+    val email: String? = null,
+    val failedLoginCount: Int? = null,
+    val remainingAttempts: Int? = null,
+    val passwordResetRequired: Boolean? = null,
+    val nextAction: String? = null,
+    val resetCodeSent: Boolean? = null,
 )

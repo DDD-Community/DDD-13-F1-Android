@@ -22,10 +22,22 @@ internal data object SignUpTermsDestination : QuiketDestination {
     override val route: String = "login/signup/terms"
 }
 
+internal data object SignUpCodeVerificationDestination : QuiketDestination {
+    override val route: String = "login/signup/code-verification"
+}
+
 internal data object PasswordResetEmailVerificationDestination : QuiketDestination {
     override val route: String = "login/password-reset/email-verification"
 }
 
 internal data object PasswordResetNewPasswordDestination : QuiketDestination {
     override val route: String = "login/password-reset/new-password"
+}
+
+internal data object KakaoNicknameDestination : QuiketDestination {
+    override val route: String = "login/kakao/nickname"
+}
+
+internal data object KakaoAccountLinkDestination : QuiketDestination {
+    override val route: String = "login/kakao/account-link"
 }

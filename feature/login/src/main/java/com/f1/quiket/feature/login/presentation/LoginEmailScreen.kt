@@ -69,6 +69,8 @@ fun LoginEmailScreen(
     emailErrorMessage: String? = null,
     passwordErrorMessage: String? = null,
     showPasswordResetRequiredDialog: Boolean = false,
+    title: String = "로그인",
+    buttonText: String = "로그인",
     onPasswordResetRequiredClick: () -> Unit = {},
     onPasswordResetRequiredDismiss: () -> Unit = {},
 ) {
@@ -78,6 +80,7 @@ fun LoginEmailScreen(
             .background(White),
     ) {
         LoginEmailTopBar(
+            title = title,
             onBackClick = onBackClick,
             modifier = Modifier.align(Alignment.TopCenter),
         )
@@ -109,7 +112,7 @@ fun LoginEmailScreen(
         }
 
         QuiketPrimaryButton(
-            text = "로그인",
+            text = buttonText,
             enabled = isLoginEnabled,
             onClick = onLoginClick,
             modifier = Modifier
@@ -128,6 +131,7 @@ fun LoginEmailScreen(
 
 @Composable
 private fun LoginEmailTopBar(
+    title: String,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -143,7 +147,7 @@ private fun LoginEmailTopBar(
                 .padding(start = 4.dp, top = 26.dp),
         )
         Text(
-            text = "로그인",
+            text = title,
             color = Gray950,
             style = MaterialTheme.typography.titleSmall.copy(
                 fontWeight = FontWeight.Medium,

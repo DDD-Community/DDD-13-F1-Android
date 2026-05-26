@@ -9,7 +9,6 @@ import com.f1.quiket.feature.login.data.remote.AuthErrorMapper
 import com.f1.quiket.feature.login.data.remote.AuthTokenDataResponse
 import com.f1.quiket.feature.login.data.remote.AuthUserResponse
 import com.f1.quiket.feature.login.data.remote.EmailAvailabilityDataResponse
-import com.f1.quiket.feature.login.data.remote.EmailVerificationConfirmDataResponse
 import com.f1.quiket.feature.login.data.remote.EmailVerificationConfirmRequest
 import com.f1.quiket.feature.login.data.remote.EmailVerificationRequest
 import com.f1.quiket.feature.login.data.remote.EmailVerificationSentDataResponse
@@ -131,6 +130,50 @@ class AuthRepositoryImplTest {
     }
 
     @Test
+    fun confirmEmailVerification_success_savesTokenPair() = runTest {
+        val api = FakeAuthApi()
+        val tokenStore = FakeAuthTokenStore()
+        val repository: AuthRepository = repository(api, tokenStore)
+
+        api.confirmEmailVerificationHandler = { deviceId, deviceName, request ->
+            assertThat(deviceId).isEqualTo("device-id")
+            assertThat(deviceName).isEqualTo("Pixel")
+            assertThat(request).isEqualTo(
+                EmailVerificationConfirmRequest(
+                    email = "user@example.com",
+                    verificationCode = "123456",
+                ),
+            )
+            Response.success(
+                ApiResponse(
+                    success = true,
+                    code = "AUTH_EMAIL_VERIFICATION_CONFIRMED",
+                    message = "Email verified.",
+                    data = authTokenDataResponse(
+                        accessToken = "verified-access",
+                        refreshToken = "verified-refresh",
+                    ),
+                ),
+            )
+        }
+
+        val result = repository.confirmEmailVerification(
+            email = "user@example.com",
+            verificationCode = "123456",
+            deviceId = "device-id",
+            deviceName = "Pixel",
+        )
+
+        assertThat(result).isInstanceOf(AuthResult.Success::class.java)
+        assertThat(tokenStore.getTokenPair()).isEqualTo(
+            tokenPair(
+                accessToken = "verified-access",
+                refreshToken = "verified-refresh",
+            ),
+        )
+    }
+
+    @Test
     fun logout_success_clearsTokenPair() = runTest {
         val api = FakeAuthApi()
         val tokenStore = FakeAuthTokenStore()
@@ -207,6 +250,92 @@ class AuthRepositoryImplTest {
         assertThat(failure.httpCode).isEqualTo(401)
         assertThat(failure.code).isEqualTo("AUTH_LOGIN_FAILED")
         assertThat(failure.message).isEqualTo("Login failed.")
+    }
+
+    @Test
+    fun loginFailure_preservesFailureMetadata() = runTest {
+        val api = FakeAuthApi()
+        val repository: AuthRepository = repository(api)
+
+        api.loginHandler = { _, _, _ ->
+            errorResponse(
+                code = 401,
+                body = loginFailureMetadataJson,
+            )
+        }
+
+        val result = repository.login(
+            email = "user@example.com",
+            password = "wrong-password",
+        )
+
+        val failure = result as AuthResult.Failure
+        assertThat(failure.code).isEqualTo("AUTH_ACCOUNT_LOCKED")
+        assertThat(failure.email).isEqualTo("user@example.com")
+        assertThat(failure.failedLoginCount).isEqualTo(5)
+        assertThat(failure.remainingAttempts).isEqualTo(0)
+        assertThat(failure.passwordResetRequired).isTrue()
+        assertThat(failure.nextAction).isEqualTo("password_reset")
+        assertThat(failure.resetCodeSent).isTrue()
+    }
+
+    @Test
+    fun passwordResetRequest_mapsRequestBody() = runTest {
+        val api = FakeAuthApi()
+        val repository: AuthRepository = repository(api)
+
+        api.passwordResetRequestHandler = { request ->
+            assertThat(request).isEqualTo(PasswordResetRequest(email = "user@example.com"))
+            Response.success(
+                ApiResponse(
+                    success = true,
+                    code = "AUTH_PASSWORD_RESET_REQUESTED",
+                    message = "Password reset requested.",
+                    data = PasswordResetRequestedDataResponse(
+                        email = "user@example.com",
+                        expiresInSeconds = 600,
+                    ),
+                ),
+            )
+        }
+
+        val result = repository.requestPasswordReset(email = "user@example.com")
+
+        assertThat(result).isInstanceOf(AuthResult.Success::class.java)
+    }
+
+    @Test
+    fun passwordResetConfirm_mapsRequestBody() = runTest {
+        val api = FakeAuthApi()
+        val repository: AuthRepository = repository(api)
+
+        api.passwordResetConfirmHandler = { request ->
+            assertThat(request).isEqualTo(
+                PasswordResetConfirmRequest(
+                    email = "user@example.com",
+                    verificationCode = "123456",
+                    newPassword = "Password123!",
+                    newPasswordConfirm = "Password123!",
+                ),
+            )
+            Response.success(
+                ApiResponse(
+                    success = true,
+                    code = "AUTH_PASSWORD_RESET_CONFIRMED",
+                    message = "Password reset confirmed.",
+                    data = Unit,
+                ),
+            )
+        }
+
+        val result = repository.confirmPasswordReset(
+            email = "user@example.com",
+            verificationCode = "123456",
+            newPassword = "Password123!",
+            newPasswordConfirm = "Password123!",
+        )
+
+        assertThat(result).isInstanceOf(AuthResult.Success::class.java)
     }
 
     @Test
@@ -408,8 +537,21 @@ class AuthRepositoryImplTest {
             { _, _, _ -> unhandled("login") }
         var refreshTokenHandler: suspend (String?, String?, RefreshTokenRequest) -> Response<ApiResponse<AuthTokenDataResponse>> =
             { _, _, _ -> unhandled("refreshToken") }
+        var confirmEmailVerificationHandler: suspend (
+            String?,
+            String?,
+            EmailVerificationConfirmRequest,
+        ) -> Response<ApiResponse<AuthTokenDataResponse>> = { _, _, _ ->
+            unhandled("confirmEmailVerification")
+        }
         var logoutHandler: suspend (String?, LogoutRequest) -> Response<ApiResponse<Unit>> = { _, _ ->
             unhandled("logout")
+        }
+        var passwordResetRequestHandler: suspend (PasswordResetRequest) -> Response<ApiResponse<PasswordResetRequestedDataResponse>> = {
+            unhandled("requestPasswordReset")
+        }
+        var passwordResetConfirmHandler: suspend (PasswordResetConfirmRequest) -> Response<ApiResponse<Unit>> = {
+            unhandled("confirmPasswordReset")
         }
         var kakaoLoginHandler: suspend (String?, String?, KakaoLoginRequest) -> Response<ApiResponse<JsonElement>> =
             { _, _, _ -> unhandled("kakaoLogin") }
@@ -423,8 +565,15 @@ class AuthRepositoryImplTest {
         override suspend fun resendEmailVerification(request: EmailVerificationRequest): Response<ApiResponse<EmailVerificationSentDataResponse>> =
             unhandled("resendEmailVerification")
 
-        override suspend fun confirmEmailVerification(request: EmailVerificationConfirmRequest): Response<ApiResponse<EmailVerificationConfirmDataResponse>> =
-            unhandled("confirmEmailVerification")
+        override suspend fun confirmEmailVerification(
+            deviceId: String?,
+            deviceName: String?,
+            request: EmailVerificationConfirmRequest,
+        ): Response<ApiResponse<AuthTokenDataResponse>> = confirmEmailVerificationHandler(
+            deviceId,
+            deviceName,
+            request,
+        )
 
         override suspend fun login(
             deviceId: String?,
@@ -455,10 +604,10 @@ class AuthRepositoryImplTest {
         )
 
         override suspend fun requestPasswordReset(request: PasswordResetRequest): Response<ApiResponse<PasswordResetRequestedDataResponse>> =
-            unhandled("requestPasswordReset")
+            passwordResetRequestHandler(request)
 
         override suspend fun confirmPasswordReset(request: PasswordResetConfirmRequest): Response<ApiResponse<Unit>> =
-            unhandled("confirmPasswordReset")
+            passwordResetConfirmHandler(request)
 
         override suspend fun kakaoLogin(
             deviceId: String?,
@@ -521,6 +670,22 @@ class AuthRepositoryImplTest {
               "code": "AUTH_LOGIN_FAILED",
               "message": "Login failed.",
               "data": null
+            }
+        """.trimIndent()
+
+        val loginFailureMetadataJson = """
+            {
+              "success": false,
+              "code": "AUTH_ACCOUNT_LOCKED",
+              "message": "Account locked.",
+              "data": {
+                "email": "user@example.com",
+                "failedLoginCount": 5,
+                "remainingAttempts": 0,
+                "passwordResetRequired": true,
+                "nextAction": "password_reset",
+                "resetCodeSent": true
+              }
             }
         """.trimIndent()
 

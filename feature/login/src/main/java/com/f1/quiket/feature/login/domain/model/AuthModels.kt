@@ -35,11 +35,6 @@ data class EmailVerificationSent(
     val expiresInSeconds: Long,
 )
 
-data class EmailVerificationConfirm(
-    val email: String,
-    val verified: Boolean,
-)
-
 data class PasswordResetRequested(
     val email: String,
     val expiresInSeconds: Long,

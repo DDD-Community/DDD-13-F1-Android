@@ -4,7 +4,6 @@ import com.f1.quiket.feature.login.domain.model.AuthResult
 import com.f1.quiket.feature.login.domain.model.AuthTokenData
 import com.f1.quiket.feature.login.domain.model.AuthUser
 import com.f1.quiket.feature.login.domain.model.EmailAvailability
-import com.f1.quiket.feature.login.domain.model.EmailVerificationConfirm
 import com.f1.quiket.feature.login.domain.model.EmailVerificationSent
 import com.f1.quiket.feature.login.domain.model.KakaoLoginResult
 import com.f1.quiket.feature.login.domain.model.PasswordResetRequested
@@ -26,7 +25,9 @@ interface AuthRepository {
         email: String,
         verificationCode: String? = null,
         verificationToken: String? = null,
-    ): AuthResult<EmailVerificationConfirm>
+        deviceId: String? = null,
+        deviceName: String? = null,
+    ): AuthResult<AuthTokenData>
 
     suspend fun login(
         email: String,

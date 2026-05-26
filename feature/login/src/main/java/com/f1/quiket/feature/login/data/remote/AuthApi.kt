@@ -27,8 +27,10 @@ interface AuthApi {
 
     @POST("auth/email-verifications/confirm")
     suspend fun confirmEmailVerification(
+        @Header("X-Device-Id") deviceId: String?,
+        @Header("X-Device-Name") deviceName: String?,
         @Body request: EmailVerificationConfirmRequest,
-    ): Response<ApiResponse<EmailVerificationConfirmDataResponse>>
+    ): Response<ApiResponse<AuthTokenDataResponse>>
 
     @POST("auth/login")
     suspend fun login(
