@@ -40,7 +40,7 @@ import com.f1.quiket.feature.floating.presentation.component.upload.UploadTopBar
 
 @Composable
 fun UploadScreen(
-    lectureTitle: String? = null,
+    chapterTitle: String? = null,
     lecturePurpose: String? = null,
     chapterCount: Int? = null,
     onBackClick: () -> Unit = {},
@@ -50,6 +50,12 @@ fun UploadScreen(
     var classifyMethod by remember { mutableStateOf(PartClassifyMethod.AI) }
     var selectedTab by remember { mutableStateOf(UploadTab.FILE) }
     var isContentReady by remember { mutableStateOf(false) }
+    var manualSections by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    val isNextEnabled = chapterName.isNotBlank() && when (classifyMethod) {
+        PartClassifyMethod.AI -> isContentReady
+        PartClassifyMethod.MANUAL -> manualSections.isNotEmpty()
+    }
 
     Column(
         modifier = Modifier
@@ -84,14 +90,14 @@ fun UploadScreen(
                         .fillMaxWidth()
                         .padding(start = 20.dp, end = 20.dp, bottom = 24.dp),
                 ) {
-                    if (lectureTitle != null && chapterCount != null && lecturePurpose != null) {
+                    if (chapterTitle != null && chapterCount != null && chapterCount > 0 && lecturePurpose != null) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Box(
                             modifier = Modifier.fillMaxWidth(),
                             contentAlignment = Alignment.Center,
                         ) {
                             LectureShortCard(
-                                title = lectureTitle,
+                                title = chapterTitle,
                                 chapterCount = chapterCount,
                                 purpose = lecturePurpose,
                                 onClick = {},
@@ -114,6 +120,7 @@ fun UploadScreen(
                     PartClassifySection(
                         selected = classifyMethod,
                         onSelect = { classifyMethod = it },
+                        onManualApply = { manualSections = it },
                     )
                 }
             }
@@ -130,7 +137,7 @@ fun UploadScreen(
         // ── 다음 버튼 (고정) ─────────────────────────────────────────
         Surface(color = White) {
             UploadNextButton(
-                enabled = chapterName.isNotBlank() && isContentReady,
+                enabled = isNextEnabled,
                 onClick = onNextClick,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -145,7 +152,7 @@ fun UploadScreen(
 private fun UploadScreenWithLecturePreview() {
     QuiketTheme {
         UploadScreen(
-            lectureTitle = "SQLD",
+            chapterTitle = "SQLD",
             lecturePurpose = "시험·자격증 대비",
             chapterCount = 3,
         )

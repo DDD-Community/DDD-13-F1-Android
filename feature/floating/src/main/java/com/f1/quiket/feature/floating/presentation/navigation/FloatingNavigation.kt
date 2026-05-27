@@ -187,7 +187,7 @@ fun NavGraphBuilder.lectureUploadFileGraph(
     ) { backStack ->
         val args = backStack.arguments
         UploadScreen(
-            lectureTitle = args?.getString(LectureUploadFileDestination.ARG_LECTURE_TITLE),
+            chapterTitle = args?.getString(LectureUploadFileDestination.ARG_LECTURE_TITLE),
             chapterCount = args?.getInt(LectureUploadFileDestination.ARG_CHAPTER_COUNT),
             onBackClick = { navController.popBackStack() },
             onNextClick = onFinish,

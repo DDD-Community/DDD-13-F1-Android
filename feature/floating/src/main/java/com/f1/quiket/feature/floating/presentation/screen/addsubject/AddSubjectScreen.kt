@@ -21,6 +21,7 @@ fun AddSubjectScreen(
     var state by remember { mutableStateOf(AddSubjectState()) }
     var depth by remember { mutableStateOf(1) }
     var skippedFromStep by remember { mutableStateOf(0) }
+    var nextChapterNumber by remember { mutableStateOf(1) }
 
     when (depth) {
         1 -> AddSubjectStep1Screen(
@@ -76,16 +77,16 @@ fun AddSubjectScreen(
             examTypeLabel = state.examType?.label ?: state.studyField?.label ?: state.usagePurpose?.title ?: "",
             detailLabel = state.step3Label,
             onBackClick = onFinish,
-            onChapterAddClick = { depth = 5 },
-            onUploadClick = { depth = 5 },
+            onChapterAddClick = { n -> nextChapterNumber = n; depth = 5 },
+            onUploadClick = { n -> nextChapterNumber = n; depth = 5 },
             onEditSubjectType = { depth = if (skippedFromStep > 0) skippedFromStep else 3 },
             onSubjectNameChanged = { newName -> state = state.copy(subjectName = newName) },
         )
 
         5 -> UploadScreen(
-            lectureTitle = state.subjectName.ifBlank { "새 과목" },
+            chapterTitle = state.subjectName.ifBlank { "새 과목" },
             lecturePurpose = state.studyPurpose?.title,
-            chapterCount = 0,
+            chapterCount = nextChapterNumber,
             onBackClick = { depth = 4 },
             onNextClick = { depth = 4 },
         )

@@ -77,12 +77,16 @@ data class UploadImage(
     val id: Int,
     val uri: Uri,
     val sizeLabel: String,
+    val cropScale: Float = 1f,
+    val cropOffsetX: Float = 0f,
+    val cropOffsetY: Float = 0f,
 )
 
 @Composable
 fun ImageUploadZone(
     images: SnapshotStateList<UploadImage>,
     onRemove: (index: Int) -> Unit,
+    onImageClick: (index: Int) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -185,6 +189,7 @@ fun ImageUploadZone(
             DraggableImageGrid(
                 images = images,
                 onRemove = onRemove,
+                onImageClick = onImageClick,
                 onAddMore = null,
                 modifier = Modifier
                     .weight(1f)
@@ -266,6 +271,7 @@ private fun EmptyImageZone(onAdd: () -> Unit) {
 private fun DraggableImageGrid(
     images: SnapshotStateList<UploadImage>,
     onRemove: (index: Int) -> Unit,
+    onImageClick: (index: Int) -> Unit = {},
     onAddMore: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
@@ -349,6 +355,7 @@ private fun DraggableImageGrid(
                                     image = images[index],
                                     order = index + 1,
                                     onRemove = { onRemove(index) },
+                                    onImageClick = { onImageClick(index) },
                                 )
                             }
                         }
@@ -387,17 +394,27 @@ private fun ImageTile(
     image: UploadImage,
     order: Int,
     onRemove: () -> Unit,
+    onImageClick: () -> Unit = {},
 ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(8.dp)),
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onImageClick() },
     ) {
         AsyncImage(
             model = image.uri,
             contentDescription = "이미지 $order",
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer(
+                    scaleX = image.cropScale,
+                    scaleY = image.cropScale,
+                    translationX = image.cropOffsetX,
+                    translationY = image.cropOffsetY,
+                    clip = true,
+                ),
         )
 
         // 순서 번호 (좌상단)

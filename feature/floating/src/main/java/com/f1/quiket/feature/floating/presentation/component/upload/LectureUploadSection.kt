@@ -35,6 +35,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.f1.quiket.feature.floating.presentation.screen.ImagePreviewScreen
 import com.f1.quiket.core.designsystem.theme.Brown50
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.Brown950
@@ -60,6 +63,7 @@ fun LectureUploadSection(
     val files = remember { mutableStateListOf<UploadFile>().also { it.addAll(initialFiles) } }
     val images = remember { mutableStateListOf<UploadImage>() }
     var lectureText by remember { mutableStateOf("") }
+    var previewIndex by remember { mutableStateOf<Int?>(null) }
 
     // 탭별 readiness 계산
     val isReady = when (selectedTab) {
@@ -118,6 +122,7 @@ fun LectureUploadSection(
                     UploadTab.IMAGE -> ImageUploadZone(
                         images = images,
                         onRemove = { index -> if (index in images.indices) images.removeAt(index) },
+                        onImageClick = { index -> previewIndex = index },
                         modifier = Modifier.matchParentSize(),
                     )
 
@@ -128,6 +133,44 @@ fun LectureUploadSection(
                         modifier = Modifier.matchParentSize(),
                     )
                 }
+            }
+        }
+    }
+
+    // ── 이미지 미리보기 전체화면 Dialog ──────────────────────────────────
+    previewIndex?.let { idx ->
+        if (images.isNotEmpty()) {
+            Dialog(
+                onDismissRequest = { previewIndex = null },
+                properties = DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    decorFitsSystemWindows = false,
+                ),
+            ) {
+                ImagePreviewScreen(
+                    images = images.toList(),
+                    initialIndex = idx.coerceIn(0, images.size - 1),
+                    onBack = { previewIndex = null },
+                    onDelete = { deleteIdx ->
+                        if (deleteIdx in images.indices) {
+                            images.removeAt(deleteIdx)
+                            previewIndex = if (images.isEmpty()) {
+                                null
+                            } else {
+                                deleteIdx.coerceIn(0, images.size - 1)
+                            }
+                        }
+                    },
+                    onSaveCrop = { index, scale, offsetX, offsetY ->
+                        if (index in images.indices) {
+                            images[index] = images[index].copy(
+                                cropScale = scale,
+                                cropOffsetX = offsetX,
+                                cropOffsetY = offsetY,
+                            )
+                        }
+                    },
+                )
             }
         }
     }

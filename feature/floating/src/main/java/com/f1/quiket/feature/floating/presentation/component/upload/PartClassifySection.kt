@@ -19,6 +19,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,7 +46,21 @@ enum class PartClassifyMethod { AI, MANUAL }
 fun PartClassifySection(
     selected: PartClassifyMethod,
     onSelect: (PartClassifyMethod) -> Unit,
+    onManualApply: (List<String>) -> Unit = {},
 ) {
+    var showManualSheet by remember { mutableStateOf(false) }
+
+    if (showManualSheet) {
+        ManualPartBottomSheet(
+            onDismiss = { showManualSheet = false },
+            onApply = { sections ->
+                onSelect(PartClassifyMethod.MANUAL)
+                onManualApply(sections)
+                showManualSheet = false
+            },
+        )
+    }
+
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -75,7 +93,7 @@ fun PartClassifySection(
                 iconRes = com.f1.quiket.feature.floating.R.drawable.ic_upload_self,
                 label = "직접 분류하기",
                 isSelected = selected == PartClassifyMethod.MANUAL,
-                onClick = { onSelect(PartClassifyMethod.MANUAL) },
+                onClick = { showManualSheet = true },
                 modifier = Modifier.weight(1f),
             )
         }

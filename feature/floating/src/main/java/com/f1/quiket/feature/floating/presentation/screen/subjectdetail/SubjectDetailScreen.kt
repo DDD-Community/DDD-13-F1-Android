@@ -38,6 +38,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -117,8 +118,8 @@ fun SubjectDetailScreen(
     examTypeLabel: String,
     detailLabel: String = "",
     onBackClick: () -> Unit = {},
-    onChapterAddClick: () -> Unit = {},
-    onUploadClick: () -> Unit = {},
+    onChapterAddClick: (newChapterNumber: Int) -> Unit = {},
+    onUploadClick: (newChapterNumber: Int) -> Unit = {},
     onEditSubjectType: () -> Unit = {},
     onSubjectNameChanged: (String) -> Unit = {},
 ) {
@@ -126,6 +127,7 @@ fun SubjectDetailScreen(
 
     // LectureView로 이동
     selectedChapter?.let { chapter ->
+        BackHandler { selectedChapter = null }
         LectureViewScreen(
             chapter = chapter,
             onBackClick = { selectedChapter = null },
@@ -194,7 +196,10 @@ fun SubjectDetailScreen(
                     text = "자료 업로드",
                     iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_upload,
                     backgroundColor = Gray100,
-                    onClick = onUploadClick,
+                    onClick = {
+                        val next = if (chapters.isEmpty()) 1 else chapters.maxOf { it.number } + 1
+                        onUploadClick(next)
+                    },
                     modifier = Modifier
                         .height(103.dp)
                         .weight(1f)
@@ -233,7 +238,10 @@ fun SubjectDetailScreen(
                 isEditMode = isChapterEditMode,
                 onChapterClick = { selectedChapter = it },
                 onChapterEditClick = { chapter -> editingChapter = chapter },
-                onChapterAddClick = onChapterAddClick,
+                onChapterAddClick = {
+                    val next = if (chapters.isEmpty()) 1 else chapters.maxOf { it.number } + 1
+                    onChapterAddClick(next)
+                },
             )
         }
     }

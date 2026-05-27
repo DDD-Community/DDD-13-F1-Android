@@ -30,6 +30,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -111,6 +112,18 @@ fun HomeScreen(
     // 강의 선택 후 UploadScreen에 넘길 정보
     var selectedLectureTitle by remember { mutableStateOf("") }
     var selectedLectureChapterCount by remember { mutableStateOf(0) }
+    // SubjectDetail에서 챕터 추가/업로드 시 넘길 챕터 번호
+    var nextChapterNumber by remember { mutableStateOf(1) }
+
+    BackHandler(enabled = depth > 0) {
+        when (depth) {
+            1 -> depth = 0
+            2 -> depth = 1
+            3 -> depth = 1
+            4 -> depth = 2
+            else -> {}
+        }
+    }
 
     // depth 1 ~ 3: SubjectDetail / LectureSelect / Upload
     when (depth) {
@@ -121,8 +134,8 @@ fun HomeScreen(
                 examTypeLabel = "",
                 detailLabel = "",
                 onBackClick = { depth = 0 },
-                onUploadClick = { depth = 2 },
-                onChapterAddClick = { depth = 3 },
+                onUploadClick = { n -> nextChapterNumber = n; depth = 3 },
+                onChapterAddClick = { n -> nextChapterNumber = n; depth = 3 },
                 onSubjectNameChanged = { newName ->
                     subjects = subjects.map { s ->
                         if (s.title == selectedSubject?.title) s.copy(title = newName) else s
@@ -147,9 +160,9 @@ fun HomeScreen(
 
         3 -> {
             UploadScreen(
-                lectureTitle = selectedSubject?.title,
+                chapterTitle = selectedSubject?.title,
                 lecturePurpose = selectedSubject?.chapter,
-                chapterCount = 0,
+                chapterCount = nextChapterNumber - 1,
                 onBackClick = { depth = 1 },
                 onNextClick = { depth = 1 },
             )
@@ -158,7 +171,7 @@ fun HomeScreen(
 
         4 -> {
             UploadScreen(
-                lectureTitle = selectedLectureTitle,
+                chapterTitle = selectedLectureTitle,
                 lecturePurpose = null,
                 chapterCount = selectedLectureChapterCount,
                 onBackClick = { depth = 2 },
