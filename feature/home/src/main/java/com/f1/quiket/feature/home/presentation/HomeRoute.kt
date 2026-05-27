@@ -10,7 +10,9 @@ import com.f1.quiket.feature.home.model.FabAction
 fun HomeRoute(
     viewModel: HomeViewModel = hiltViewModel(),
     isQuizGenerating: Boolean,
+    activeQuizSessionId: String?,
     navigateToQuizStart: () -> Unit,
+    navigateToQuizResult: (String) -> Unit,
     navigateToScheduleExam: () -> Unit,
     navigateToCreateQuiz: () -> Unit,
     navigateToUpload: () -> Unit,
@@ -21,12 +23,21 @@ fun HomeRoute(
     HomeScreen(
         uiState = uiState,
         isQuizGenerating = isQuizGenerating,
+        hasActiveQuizSession = activeQuizSessionId != null,
         onBoardingDone = {
             viewModel.dispatch(
                 HomeIntent.OnboardingDoneClick
             )
         },
         onQuizCardClick = navigateToQuizStart,
+        onQuizActionClick = {
+            if (isQuizGenerating || activeQuizSessionId != null) {
+                navigateToQuizStart()
+            } else {
+                navigateToCreateQuiz()
+            }
+        },
+        onQuizResultClick = navigateToQuizResult,
         onFabItemClick = { action ->
             when (action) {
                 FabAction.ScheduleExam -> navigateToScheduleExam()

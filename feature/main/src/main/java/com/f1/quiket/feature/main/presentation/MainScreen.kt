@@ -30,6 +30,8 @@ import com.f1.quiket.feature.floating.presentation.navigation.lectureSelectGraph
 import com.f1.quiket.feature.floating.presentation.navigation.lectureUploadFileGraph
 import com.f1.quiket.feature.history.navigation.historyGraph
 import com.f1.quiket.feature.home.navigation.HomeDestination
+import com.f1.quiket.feature.home.navigation.QuizPlayAllDestination
+import com.f1.quiket.feature.home.navigation.QuizResultDestination
 import com.f1.quiket.feature.home.navigation.QuizStartDestination
 import com.f1.quiket.feature.home.navigation.homeGraph
 import com.f1.quiket.feature.mypage.navigation.myPageGraph
@@ -39,6 +41,7 @@ import com.f1.quiket.feature.review.navigation.reviewGraph
 fun MainScreen(onLogout: () -> Unit) {
     val navController = rememberNavController()
     var isQuizGenerating by rememberSaveable { mutableStateOf(false) }
+    var activeQuizSessionId by rememberSaveable { mutableStateOf<String?>(null) }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route ?: MainTab.Home.destination.route
 
@@ -47,6 +50,8 @@ fun MainScreen(onLogout: () -> Unit) {
         ScheduleExamDestination.route,
         CreateQuizDestination.route,
         QuizStartDestination.route,
+        QuizPlayAllDestination.route,
+        QuizResultDestination.route,
         UploadDestination.route,
     )
     val showBottomBar = currentRoute !in floatingRoutes
@@ -106,11 +111,24 @@ fun MainScreen(onLogout: () -> Unit) {
             homeGraph(
                 navController = navController,
                 isQuizGenerating = isQuizGenerating,
+                activeQuizSessionId = activeQuizSessionId,
                 onQuizGenerationStarted = {
                     isQuizGenerating = true
                 },
+                onQuizGenerationFinished = {
+                    isQuizGenerating = false
+                },
+                onQuizCreated = { quizSessionId ->
+                    isQuizGenerating = false
+                    activeQuizSessionId = quizSessionId
+                    navController.navigate(QuizStartDestination.createRoute(quizSessionId)) {
+                        popUpTo(CreateQuizDestination.route) {
+                            inclusive = true
+                        }
+                    }
+                },
                 navigateToQuizStart = {
-                    navController.navigate(QuizStartDestination.route)
+                    navController.navigate(QuizStartDestination.createRoute(activeQuizSessionId))
                 },
                 navigateToScheduleExam = {
                     navController.navigate(ScheduleExamDestination.route)

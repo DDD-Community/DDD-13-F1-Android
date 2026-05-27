@@ -1,21 +1,33 @@
 package com.f1.quiket.feature.home.presentation
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.f1.quiket.feature.home.domain.model.QuizCreate
+import com.f1.quiket.feature.home.domain.model.QuizDifficulty
+import com.f1.quiket.feature.home.domain.model.QuizPlayMode
+import com.f1.quiket.feature.home.domain.model.ServerQuizType
 
 @Composable
 fun CreateQuizRoute(
     onBackClick: () -> Unit,
     onAddSubjectClick: () -> Unit,
-    onCreateQuizClick: () -> Unit = {},
+    onQuizGenerationStarted: () -> Unit = {},
+    onQuizGenerationFinished: () -> Unit = {},
+    onQuizCreated: (String) -> Unit = {},
+    viewModel: CreateQuizViewModel = hiltViewModel(),
 ) {
-    val subjects = remember { createQuizSubjectSamples() }
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val subjects = state.subjects
     var selectedSubjectId by rememberSaveable { mutableStateOf<String?>(null) }
     var currentStep by rememberSaveable { mutableStateOf(CreateQuizStep.Subject) }
     var expandedChapterId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -27,7 +39,7 @@ fun CreateQuizRoute(
     var customQuestionCountDialogVisible by rememberSaveable { mutableStateOf(false) }
     var customQuestionCountText by rememberSaveable { mutableStateOf("") }
     var selectedDifficulty by rememberSaveable { mutableStateOf<QuizDifficultyOption?>(null) }
-    var quizCreationRequested by rememberSaveable { mutableStateOf(false) }
+    var shouldAutoSelectParts by rememberSaveable { mutableStateOf(false) }
 
     val selectedSubject = subjects.firstOrNull { subject ->
         subject.id == selectedSubjectId
@@ -46,7 +58,61 @@ fun CreateQuizRoute(
         customQuestionCountDialogVisible = false
         customQuestionCountText = ""
         selectedDifficulty = null
-        quizCreationRequested = false
+    }
+
+    fun showMessage(message: String) {
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
+
+    fun buildCreateRequest(): QuizCreate? {
+        val subject = selectedSubject ?: return null
+        val quizType = selectedQuizType?.toServerQuizTypeOrNull()
+        if (quizType == null) {
+            showMessage("아직 지원하지 않는 퀴즈 유형이에요.")
+            return null
+        }
+        val questionCount = selectedQuestionCountOption.toQuestionCount(customQuestionCount)
+        if (questionCount == null) {
+            showMessage("문제수를 선택해주세요.")
+            return null
+        }
+        val difficulty = selectedDifficulty?.toDomain()
+        if (difficulty == null) {
+            showMessage("난이도를 선택해주세요.")
+            return null
+        }
+        if (selectedPartIds.isEmpty()) {
+            showMessage("출제 범위를 선택해주세요.")
+            return null
+        }
+
+        return QuizCreate(
+            subjectId = subject.id,
+            partIds = selectedPartIds,
+            quizType = quizType,
+            choiceCount = if (quizType == ServerQuizType.MultipleChoice) {
+                selectedChoiceCount ?: 4
+            } else {
+                null
+            },
+            questionCount = questionCount.coerceIn(1, 100),
+            playMode = QuizPlayMode.AllAtOnce,
+            timerEnabled = false,
+            difficulty = difficulty,
+        )
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is CreateQuizEffect.ShowMessage -> showMessage(effect.message)
+                CreateQuizEffect.QuizGenerationFinished -> onQuizGenerationFinished()
+                is CreateQuizEffect.QuizCreated -> {
+                    onQuizGenerationFinished()
+                    onQuizCreated(effect.quizSessionId)
+                }
+            }
+        }
     }
 
     BackHandler(
@@ -72,6 +138,17 @@ fun CreateQuizRoute(
         }
     }
 
+    LaunchedEffect(selectedSubject?.id, selectedSubject?.chapters) {
+        val subject = selectedSubject ?: return@LaunchedEffect
+        if (shouldAutoSelectParts && selectedPartIds.isEmpty()) {
+            val allPartIds = subject.allPartIds()
+            if (allPartIds.isNotEmpty()) {
+                selectedPartIds = allPartIds
+                shouldAutoSelectParts = false
+            }
+        }
+    }
+
     when (currentStep) {
         CreateQuizStep.Subject -> {
             CreateQuizSubjectScreen(
@@ -83,6 +160,7 @@ fun CreateQuizRoute(
                     if (isDifferentSubject) {
                         selectedPartIds = selectedSubject.allPartIds()
                         expandedChapterId = null
+                        shouldAutoSelectParts = selectedPartIds.isEmpty()
                         resetQuizOptions()
                     }
                 },
@@ -90,8 +168,10 @@ fun CreateQuizRoute(
                 onBackClick = onBackClick,
                 onNextClick = {
                     selectedSubject?.let { subject ->
+                        viewModel.onIntent(CreateQuizIntent.LoadQuizScope(subject.id))
                         if (selectedPartIds.isEmpty()) {
                             selectedPartIds = subject.allPartIds()
+                            shouldAutoSelectParts = selectedPartIds.isEmpty()
                         }
                         currentStep = CreateQuizStep.Scope
                     }
@@ -145,25 +225,22 @@ fun CreateQuizRoute(
                     selectedQuestionCountOption = selectedQuestionCountOption,
                     customQuestionCount = customQuestionCount,
                     selectedDifficulty = selectedDifficulty,
-                    quizCreationRequested = quizCreationRequested,
+                    quizCreationRequested = state.isCreatingQuiz,
                     customQuestionCountDialogVisible = customQuestionCountDialogVisible,
                     customQuestionCountText = customQuestionCountText,
                     onBackClick = {
                         currentStep = CreateQuizStep.Scope
                     },
                     onQuizTypeClick = { quizType ->
-                        quizCreationRequested = false
                         selectedQuizType = quizType
                         if (!quizType.requiresChoiceCount) {
                             selectedChoiceCount = null
                         }
                     },
                     onChoiceCountClick = { count ->
-                        quizCreationRequested = false
                         selectedChoiceCount = count
                     },
                     onQuestionCountClick = { option ->
-                        quizCreationRequested = false
                         selectedQuestionCountOption = option
                     },
                     onCustomQuestionCountClick = {
@@ -179,20 +256,20 @@ fun CreateQuizRoute(
                     onCustomQuestionCountApply = {
                         val count = customQuestionCountText.toIntOrNull()
                         if (count != null && count > 0) {
-                            quizCreationRequested = false
-                            customQuestionCount = count
+                            customQuestionCount = count.coerceIn(1, 100)
                             selectedQuestionCountOption = QuizQuestionCountOption.Custom
                             customQuestionCountDialogVisible = false
                         }
                     },
                     onDifficultyClick = { difficulty ->
-                        quizCreationRequested = false
                         selectedDifficulty = difficulty
                     },
                     onCreateQuizClick = {
-                        quizCreationRequested = true
-                        currentStep = CreateQuizStep.Loading
-                        onCreateQuizClick()
+                        buildCreateRequest()?.let { request ->
+                            currentStep = CreateQuizStep.Loading
+                            onQuizGenerationStarted()
+                            viewModel.createQuiz(request)
+                        }
                     },
                 )
             }
@@ -200,8 +277,8 @@ fun CreateQuizRoute(
 
         CreateQuizStep.Loading -> {
             CreateQuizLoadingScreen(
-                progress = 0.4f,
-                rewardCount = 10,
+                progress = state.generationProgress.coerceIn(0f, 1f),
+                rewardCount = state.rewardCount,
                 onBrowseClick = onBackClick,
             )
         }
@@ -212,12 +289,14 @@ data class QuizSubjectUiModel(
     val id: String,
     val name: String,
     val chapters: List<QuizScopeChapterUiModel>,
+    val chapterCountOverride: Int? = null,
+    val partCountOverride: Int? = null,
 ) {
     val chapterCount: Int
-        get() = chapters.size
+        get() = chapterCountOverride ?: chapters.size
 
     val partCount: Int
-        get() = chapters.sumOf { chapter -> chapter.parts.size }
+        get() = partCountOverride ?: chapters.sumOf { chapter -> chapter.parts.size }
 }
 
 data class QuizScopeChapterUiModel(
@@ -337,3 +416,25 @@ private fun List<String>.toggle(id: String): List<String> =
     } else {
         this + id
     }
+
+private fun QuizTypeOption.toServerQuizTypeOrNull(): ServerQuizType? = when (this) {
+    QuizTypeOption.MultipleChoice -> ServerQuizType.MultipleChoice
+    QuizTypeOption.Ox -> ServerQuizType.Ox
+    QuizTypeOption.Flashcard,
+    QuizTypeOption.ShortAnswer,
+    -> null
+}
+
+private fun QuizQuestionCountOption?.toQuestionCount(customQuestionCount: Int?): Int? = when (this) {
+    QuizQuestionCountOption.Five -> 5
+    QuizQuestionCountOption.Ten -> 10
+    QuizQuestionCountOption.Twenty -> 20
+    QuizQuestionCountOption.Custom -> customQuestionCount
+    null -> null
+}
+
+private fun QuizDifficultyOption.toDomain(): QuizDifficulty = when (this) {
+    QuizDifficultyOption.Easy -> QuizDifficulty.Easy
+    QuizDifficultyOption.Normal -> QuizDifficulty.Medium
+    QuizDifficultyOption.Hard -> QuizDifficulty.Hard
+}

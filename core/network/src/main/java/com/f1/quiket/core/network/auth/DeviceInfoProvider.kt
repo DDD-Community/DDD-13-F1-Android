@@ -1,4 +1,4 @@
-package com.f1.quiket.feature.login.data.device
+package com.f1.quiket.core.network.auth
 
 interface DeviceInfoProvider {
     val deviceId: String

@@ -3,9 +3,23 @@ package com.f1.quiket.feature.home.presentation
 import com.f1.quiket.core.common.mvi.UiEffect
 import com.f1.quiket.core.common.mvi.UiIntent
 import com.f1.quiket.core.common.mvi.UiState
+import com.f1.quiket.feature.home.domain.model.QuizPlayMode
+import com.f1.quiket.feature.home.domain.model.QuizTimerScope
+import com.f1.quiket.feature.home.domain.model.ServerQuizType
 
 data class QuizPlayAllState(
     val questions: List<QuizPlayAllQuestion> = emptyList(),
+    val quizSessionId: String? = null,
+    val clientSessionId: String? = null,
+    val playSessionId: String? = null,
+    val playMode: QuizPlayMode = QuizPlayMode.AllAtOnce,
+    val timerEnabled: Boolean = false,
+    val timerScope: QuizTimerScope? = null,
+    val timerSeconds: Int? = null,
+    val hasStartConfig: Boolean = false,
+    val isLoading: Boolean = false,
+    val isSubmitting: Boolean = false,
+    val errorMessage: String? = null,
     val currentQuestionIndex: Int = 0,
     val selectedOptionIds: Map<String, String> = emptyMap(),
     val bookmarkedQuestionIds: Set<String> = emptySet(),
@@ -66,15 +80,25 @@ data class QuizPlayAllQuestion(
     val body: String,
     val timerText: String,
     val options: List<QuizPlayAllOption>,
+    val questionType: ServerQuizType = ServerQuizType.MultipleChoice,
+    val answerValue: String? = null,
 )
 
 data class QuizPlayAllOption(
     val id: String,
     val number: Int,
     val text: String,
+    val value: String? = null,
 )
 
 sealed interface QuizPlayAllIntent : UiIntent {
+    data class ConfigurePlay(
+        val playMode: QuizPlayMode,
+        val timerEnabled: Boolean,
+        val timerScope: QuizTimerScope?,
+        val timerSeconds: Int?,
+    ) : QuizPlayAllIntent
+    data class LoadQuizSession(val quizSessionId: String) : QuizPlayAllIntent
     data class SelectOption(val optionId: String) : QuizPlayAllIntent
     data object MovePrevious : QuizPlayAllIntent
     data object MoveNext : QuizPlayAllIntent
@@ -88,4 +112,6 @@ sealed interface QuizPlayAllIntent : UiIntent {
     data object DismissTutorial : QuizPlayAllIntent
 }
 
-sealed interface QuizPlayAllEffect : UiEffect
+sealed interface QuizPlayAllEffect : UiEffect {
+    data class NavigateToResult(val playSessionId: String) : QuizPlayAllEffect
+}

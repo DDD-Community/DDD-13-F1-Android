@@ -2,7 +2,7 @@ package com.f1.quiket.feature.login.presentation
 
 import com.f1.quiket.core.network.auth.TokenPair
 import com.f1.quiket.core.testing.MainDispatcherRule
-import com.f1.quiket.feature.login.data.device.DeviceInfoProvider
+import com.f1.quiket.core.network.auth.DeviceInfoProvider
 import com.f1.quiket.feature.login.domain.model.AuthProvider
 import com.f1.quiket.feature.login.domain.model.AuthResult
 import com.f1.quiket.feature.login.domain.model.AuthTokenData

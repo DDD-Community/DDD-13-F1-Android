@@ -138,13 +138,10 @@ fun EmptyActivityContent() {
 }
 
 @Composable
-fun ActiveActivityContent() {
-    val activities = listOf(
-        Activity("서양철학사", 30, ActivityType.MULTIPLE_CHOICE, "잘하고 있어요!", 56, true),
-        Activity("기획자의 피그마 실무 워크...", 10, ActivityType.SHORT_ANSWER, "아직 퀴즈 문제를 풀지 않았어요!", null, false),
-        Activity("SQLD", 10, ActivityType.OX_QUIZ, "나머지 퀴즈로 이어서 풀어볼까요?", 70, false)
-    )
-
+fun ActiveActivityContent(
+    activities: List<Activity>,
+    onActivityClick: (Activity) -> Unit = {},
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -176,7 +173,7 @@ fun ActiveActivityContent() {
                     description = activity.description,
                     progressPercent = activity.progressPercent,
                     isQuizCreated = activity.isQuizCreated,
-                    onClick = {}
+                    onClick = { onActivityClick(activity) }
                 )
             }
         }

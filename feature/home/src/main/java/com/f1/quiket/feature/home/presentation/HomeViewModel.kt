@@ -3,7 +3,10 @@ package com.f1.quiket.feature.home.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.f1.quiket.core.database.datastore.OnboardingUseCase
+import com.f1.quiket.core.network.model.NetworkResult
+import com.f1.quiket.feature.home.domain.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,11 +15,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val onboardingUseCase: OnboardingUseCase
+    private val onboardingUseCase: OnboardingUseCase,
+    private val homeRepository: HomeRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeState())
@@ -28,6 +31,7 @@ class HomeViewModel @Inject constructor(
 
     init {
         observeOnboarding()
+        loadHomeData()
     }
 
     private fun observeOnboarding() {
@@ -44,9 +48,40 @@ class HomeViewModel @Inject constructor(
 
     fun dispatch(intent: HomeIntent) {
         when (intent) {
-            is HomeIntent.LoadHomeData -> { /* 데이터 로딩 로직 */ }
+            is HomeIntent.LoadHomeData -> loadHomeData()
             is HomeIntent.OnboardingDoneClick -> {
                 completeOnboarding()
+            }
+        }
+    }
+
+    private fun loadHomeData() {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    errorMessage = null,
+                )
+            }
+            when (val result = homeRepository.getHome()) {
+                is NetworkResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            hasSubjects = result.data.subjects.isNotEmpty(),
+                            homeData = result.data,
+                        )
+                    }
+                }
+
+                is NetworkResult.Failure -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = result.message,
+                        )
+                    }
+                }
             }
         }
     }

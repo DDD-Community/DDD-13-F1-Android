@@ -31,8 +31,6 @@ class AuthHeaderInterceptor @Inject constructor(
         return chain.proceed(authenticatedRequest)
     }
 
-    private fun TokenPair.toAuthorizationHeader(): String = "$tokenType $accessToken"
-
     private companion object {
         const val AUTHORIZATION_HEADER = "Authorization"
     }

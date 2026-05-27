@@ -67,12 +67,21 @@ import com.f1.quiket.core.designsystem.theme.White
 import com.f1.quiket.core.designsystem.theme.Yellow100
 import com.f1.quiket.core.designsystem.theme.Yellow50
 import com.f1.quiket.core.designsystem.theme.Yellow500
+import com.f1.quiket.feature.home.domain.model.QuizPlayMode
+import com.f1.quiket.feature.home.domain.model.QuizTimerScope
 import com.f1.quiket.feature.home.R
+
+data class QuizStartConfig(
+    val playMode: QuizPlayMode,
+    val timerEnabled: Boolean,
+    val timerScope: QuizTimerScope?,
+    val timerSeconds: Int?,
+)
 
 @Composable
 fun QuizStartRoute(
     onBackClick: () -> Unit,
-    onStartClick: () -> Unit,
+    onStartClick: (QuizStartConfig) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     QuizStartScreen(
@@ -85,7 +94,7 @@ fun QuizStartRoute(
 @Composable
 fun QuizStartScreen(
     onBackClick: () -> Unit,
-    onStartClick: () -> Unit,
+    onStartClick: (QuizStartConfig) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selectedPlayMode by rememberSaveable { mutableStateOf(QuizStartPlayMode.OneByOne) }
@@ -97,6 +106,9 @@ fun QuizStartScreen(
     var timerDialogUnit by rememberSaveable { mutableStateOf(QuiketTimerInputUnit.Seconds) }
     var timerDialogSource by rememberSaveable { mutableStateOf(QuizStartTimerDialogSource.TimerOption) }
     var timerOptionBeforeDialog by rememberSaveable { mutableStateOf(QuizStartTimerOption.None) }
+    var playModeTimerSeconds by rememberSaveable { mutableStateOf<Int?>(null) }
+    var timerOptionSeconds by rememberSaveable { mutableStateOf<Int?>(null) }
+    var timerOptionScopeValue by rememberSaveable { mutableStateOf<String?>(null) }
     var playModeSectionOffset by remember { mutableStateOf(Offset.Zero) }
     val density = LocalDensity.current
 
@@ -167,7 +179,11 @@ fun QuizStartScreen(
                     selectedTimerOption = selectedTimerOption,
                     onTimerOptionClick = { timerOption ->
                         when (timerOption) {
-                            QuizStartTimerOption.None -> selectedTimerOption = QuizStartTimerOption.None
+                            QuizStartTimerOption.None -> {
+                                selectedTimerOption = QuizStartTimerOption.None
+                                timerOptionSeconds = null
+                                timerOptionScopeValue = null
+                            }
                             QuizStartTimerOption.Custom -> {
                                 timerOptionBeforeDialog = selectedTimerOption
                                 selectedTimerOption = QuizStartTimerOption.Custom
@@ -191,7 +207,28 @@ fun QuizStartScreen(
         QuiketPrimaryButton(
             text = "퀴즈 시작하기",
             enabled = true,
-            onClick = onStartClick,
+            onClick = {
+                val timerScope = timerOptionScopeValue.toQuizTimerScope()
+                val playModeTimerScope = QuizTimerScope.PerQuestion
+                val effectiveTimerSeconds = when {
+                    selectedTimerOption == QuizStartTimerOption.Custom -> timerOptionSeconds
+                    selectedPlayMode == QuizStartPlayMode.AllAtOnce -> playModeTimerSeconds
+                    else -> null
+                }
+                onStartClick(
+                    QuizStartConfig(
+                        playMode = selectedPlayMode.toDomain(),
+                        timerEnabled = effectiveTimerSeconds != null,
+                        timerScope = when {
+                            selectedTimerOption == QuizStartTimerOption.Custom -> timerScope
+                            selectedPlayMode == QuizStartPlayMode.AllAtOnce &&
+                                playModeTimerSeconds != null -> playModeTimerScope
+                            else -> null
+                        },
+                        timerSeconds = effectiveTimerSeconds,
+                    ),
+                )
+            },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(start = 16.dp, end = 16.dp, bottom = 28.dp),
@@ -221,8 +258,13 @@ fun QuizStartScreen(
                 onUnitClick = { timerDialogUnit = it },
                 onDismiss = ::dismissTimerDialog,
                 onApply = {
+                    val appliedSeconds = timerDialogValue.toTimerSeconds(timerDialogUnit)
                     if (timerDialogSource == QuizStartTimerDialogSource.TimerOption) {
                         selectedTimerOption = QuizStartTimerOption.Custom
+                        timerOptionSeconds = appliedSeconds
+                        timerOptionScopeValue = timerDialogMode.timerScope.wireValue
+                    } else {
+                        playModeTimerSeconds = appliedSeconds
                     }
                     timerDialogVisible = false
                 },
@@ -625,17 +667,37 @@ private enum class QuizStartTimerDialogMode(
     val title: String,
     val defaultValue: String,
     val defaultUnit: QuiketTimerInputUnit,
+    val timerScope: QuizTimerScope,
 ) {
     PerQuestion(
         title = "문제당 타이머 설정",
         defaultValue = "30",
         defaultUnit = QuiketTimerInputUnit.Seconds,
+        timerScope = QuizTimerScope.PerQuestion,
     ),
     Total(
         title = "전체 타이머 설정",
         defaultValue = "25",
         defaultUnit = QuiketTimerInputUnit.Minutes,
+        timerScope = QuizTimerScope.Total,
     ),
+}
+
+private fun QuizStartPlayMode.toDomain(): QuizPlayMode =
+    when (this) {
+        QuizStartPlayMode.OneByOne -> QuizPlayMode.OneByOne
+        QuizStartPlayMode.AllAtOnce -> QuizPlayMode.AllAtOnce
+    }
+
+private fun String?.toQuizTimerScope(): QuizTimerScope? =
+    QuizTimerScope.entries.firstOrNull { scope -> scope.wireValue == this }
+
+private fun String.toTimerSeconds(unit: QuiketTimerInputUnit): Int? {
+    val value = toIntOrNull()?.takeIf { it > 0 } ?: return null
+    return when (unit) {
+        QuiketTimerInputUnit.Seconds -> value
+        QuiketTimerInputUnit.Minutes -> value * 60
+    }
 }
 
 @Preview(showBackground = true, showSystemUi = true, widthDp = 360, heightDp = 800)

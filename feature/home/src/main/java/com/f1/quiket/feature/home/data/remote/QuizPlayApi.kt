@@ -22,4 +22,16 @@ interface QuizPlayApi {
         @Path("quizSessionId") quizSessionId: String,
         @Body request: QuizPlayStartRequest,
     ): Response<ApiResponse<QuizPlaySessionDataResponse>>
+
+    @Headers(AuthenticatedRequest.HEADER)
+    @POST("quiz-results")
+    suspend fun submitQuizResult(
+        @Body request: QuizResultSubmitRequest,
+    ): Response<ApiResponse<QuizResultDataResponse>>
+
+    @Headers(AuthenticatedRequest.HEADER)
+    @GET("quiz-results/{playSessionId}")
+    suspend fun getQuizResult(
+        @Path("playSessionId") playSessionId: String,
+    ): Response<ApiResponse<QuizResultDataResponse>>
 }
