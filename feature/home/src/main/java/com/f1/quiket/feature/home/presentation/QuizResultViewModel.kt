@@ -41,6 +41,8 @@ class QuizResultViewModel @Inject constructor(
                     }
                 }
 
+
+
                 is NetworkResult.Failure -> {
                     updateState {
                         copy(

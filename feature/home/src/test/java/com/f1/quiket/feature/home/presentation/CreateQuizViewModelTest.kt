@@ -20,8 +20,6 @@ import com.f1.quiket.feature.home.domain.repository.HomeRepository
 import com.f1.quiket.feature.home.domain.repository.QuizGenerationRepository
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -79,6 +77,7 @@ class CreateQuizViewModelTest {
     @Test
     fun createQuiz_passesRequestAndEmitsCreated_whenAcceptedAlreadyCompleted() = runTest {
         val quizGenerationRepository = FakeQuizGenerationRepository()
+        quizGenerationRepository.quizScopeResult = NetworkResult.Success(quizScope())
         quizGenerationRepository.createResult = NetworkResult.Success(
             QuizGenerationAccepted(
                 quizSessionId = "session-1",
@@ -89,21 +88,32 @@ class CreateQuizViewModelTest {
         )
         val viewModel = viewModel(quizGenerationRepository = quizGenerationRepository)
         advanceUntilIdle()
-        val effect = async { viewModel.effect.first() }
         val request = quizCreateRequest()
+        viewModel.selectSubjectAndScope()
+        advanceUntilIdle()
+        viewModel.selectDefaultOptions()
+        val effects = mutableListOf<CreateQuizEffect>()
+        val collectJob = launch { viewModel.effect.take(2).toList(effects) }
 
-        viewModel.createQuiz(request)
+        viewModel.onIntent(CreateQuizIntent.CreateQuiz)
         advanceUntilIdle()
 
         assertThat(quizGenerationRepository.createdRequest).isEqualTo(request)
         assertThat(viewModel.state.value.isCreatingQuiz).isFalse()
         assertThat(viewModel.state.value.generationProgress).isEqualTo(1f)
-        assertThat(effect.await()).isEqualTo(CreateQuizEffect.QuizCreated("session-1"))
+        assertThat(effects)
+            .containsExactly(
+                CreateQuizEffect.QuizGenerationStarted,
+                CreateQuizEffect.QuizCreated("session-1"),
+            )
+            .inOrder()
+        collectJob.cancel()
     }
 
     @Test
     fun createQuiz_pollsGenerationStatusAndEmitsCreated_whenPendingThenCompleted() = runTest {
         val quizGenerationRepository = FakeQuizGenerationRepository()
+        quizGenerationRepository.quizScopeResult = NetworkResult.Success(quizScope())
         quizGenerationRepository.createResult = NetworkResult.Success(
             QuizGenerationAccepted(
                 quizSessionId = "session-1",
@@ -125,20 +135,31 @@ class CreateQuizViewModelTest {
         )
         val viewModel = viewModel(quizGenerationRepository = quizGenerationRepository)
         advanceUntilIdle()
-        val effect = async { viewModel.effect.first() }
+        viewModel.selectSubjectAndScope()
+        advanceUntilIdle()
+        viewModel.selectDefaultOptions()
+        val effects = mutableListOf<CreateQuizEffect>()
+        val collectJob = launch { viewModel.effect.take(2).toList(effects) }
 
-        viewModel.createQuiz(quizCreateRequest())
+        viewModel.onIntent(CreateQuizIntent.CreateQuiz)
         advanceUntilIdle()
 
         assertThat(quizGenerationRepository.loadedStatusSessionIds).containsExactly("session-1")
         assertThat(viewModel.state.value.isCreatingQuiz).isFalse()
         assertThat(viewModel.state.value.generationProgress).isEqualTo(1f)
-        assertThat(effect.await()).isEqualTo(CreateQuizEffect.QuizCreated("session-1"))
+        assertThat(effects)
+            .containsExactly(
+                CreateQuizEffect.QuizGenerationStarted,
+                CreateQuizEffect.QuizCreated("session-1"),
+            )
+            .inOrder()
+        collectJob.cancel()
     }
 
     @Test
     fun createQuiz_failure_resetsProgressAndEmitsFinishedAndMessage() = runTest {
         val quizGenerationRepository = FakeQuizGenerationRepository()
+        quizGenerationRepository.quizScopeResult = NetworkResult.Success(quizScope())
         quizGenerationRepository.createResult = NetworkResult.Failure(
             code = "QUIZ_CONFLICT",
             message = "이미 생성 중인 퀴즈가 있어요.",
@@ -146,16 +167,21 @@ class CreateQuizViewModelTest {
         )
         val viewModel = viewModel(quizGenerationRepository = quizGenerationRepository)
         advanceUntilIdle()
+        viewModel.selectSubjectAndScope()
+        advanceUntilIdle()
+        viewModel.selectDefaultOptions()
         val effects = mutableListOf<CreateQuizEffect>()
-        val collectJob = launch { viewModel.effect.take(2).toList(effects) }
+        val collectJob = launch { viewModel.effect.take(3).toList(effects) }
 
-        viewModel.createQuiz(quizCreateRequest())
+        viewModel.onIntent(CreateQuizIntent.CreateQuiz)
         advanceUntilIdle()
 
         assertThat(viewModel.state.value.isCreatingQuiz).isFalse()
         assertThat(viewModel.state.value.generationProgress).isEqualTo(0f)
+        assertThat(viewModel.state.value.currentStep).isEqualTo(CreateQuizStep.Options)
         assertThat(effects)
             .containsExactly(
+                CreateQuizEffect.QuizGenerationStarted,
                 CreateQuizEffect.QuizGenerationFinished,
                 CreateQuizEffect.ShowMessage("이미 생성 중인 퀴즈가 있어요."),
             )
@@ -166,6 +192,7 @@ class CreateQuizViewModelTest {
     @Test
     fun createQuiz_statusFailure_resetsCreatingAndEmitsFinishedAndMessage() = runTest {
         val quizGenerationRepository = FakeQuizGenerationRepository()
+        quizGenerationRepository.quizScopeResult = NetworkResult.Success(quizScope())
         quizGenerationRepository.createResult = NetworkResult.Success(
             QuizGenerationAccepted(
                 quizSessionId = "session-1",
@@ -180,15 +207,19 @@ class CreateQuizViewModelTest {
         )
         val viewModel = viewModel(quizGenerationRepository = quizGenerationRepository)
         advanceUntilIdle()
+        viewModel.selectSubjectAndScope()
+        advanceUntilIdle()
+        viewModel.selectDefaultOptions()
         val effects = mutableListOf<CreateQuizEffect>()
-        val collectJob = launch { viewModel.effect.take(2).toList(effects) }
+        val collectJob = launch { viewModel.effect.take(3).toList(effects) }
 
-        viewModel.createQuiz(quizCreateRequest())
+        viewModel.onIntent(CreateQuizIntent.CreateQuiz)
         advanceUntilIdle()
 
         assertThat(viewModel.state.value.isCreatingQuiz).isFalse()
         assertThat(effects)
             .containsExactly(
+                CreateQuizEffect.QuizGenerationStarted,
                 CreateQuizEffect.QuizGenerationFinished,
                 CreateQuizEffect.ShowMessage("상태 조회에 실패했어요."),
             )
@@ -260,6 +291,18 @@ class CreateQuizViewModelTest {
                 ?: NetworkResult.Failure(code = "TEST", message = "status not configured")
         }
     }
+}
+
+private fun CreateQuizViewModel.selectSubjectAndScope() {
+    onIntent(CreateQuizIntent.SelectSubject("subject-1"))
+    onIntent(CreateQuizIntent.SubjectNextClick)
+}
+
+private fun CreateQuizViewModel.selectDefaultOptions() {
+    onIntent(CreateQuizIntent.SelectQuizType(QuizTypeOption.MultipleChoice))
+    onIntent(CreateQuizIntent.SelectChoiceCount(4))
+    onIntent(CreateQuizIntent.SelectQuestionCount(QuizQuestionCountOption.Five))
+    onIntent(CreateQuizIntent.SelectDifficulty(QuizDifficultyOption.Normal))
 }
 
 private fun homeData(): HomeData = HomeData(
@@ -341,7 +384,7 @@ private fun quizScope(): QuizScope = QuizScope(
 
 private fun quizCreateRequest(): QuizCreate = QuizCreate(
     subjectId = "subject-1",
-    partIds = listOf("part-1", "part-2"),
+    partIds = listOf("part-1", "part-2", "part-3"),
     quizType = ServerQuizType.MultipleChoice,
     choiceCount = 4,
     questionCount = 5,

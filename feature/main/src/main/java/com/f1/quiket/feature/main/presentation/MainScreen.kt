@@ -127,8 +127,12 @@ fun MainScreen(onLogout: () -> Unit) {
                         }
                     }
                 },
-                navigateToQuizStart = {
-                    navController.navigate(QuizStartDestination.createRoute(activeQuizSessionId))
+                onQuizPlayCompleted = {
+                    isQuizGenerating = false
+                    activeQuizSessionId = null
+                },
+                navigateToQuizStart = { quizSessionId ->
+                    navController.navigate(QuizStartDestination.createRoute(quizSessionId ?: activeQuizSessionId))
                 },
                 navigateToScheduleExam = {
                     navController.navigate(ScheduleExamDestination.route)

@@ -12,13 +12,13 @@ import com.f1.quiket.feature.floating.presentation.navigation.UploadDestination
 import com.f1.quiket.feature.floating.presentation.screen.ScheduleExamScreen
 import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
 import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectScreen
+import com.f1.quiket.feature.home.domain.model.QuizPlayMode
+import com.f1.quiket.feature.home.domain.model.QuizTimerScope
 import com.f1.quiket.feature.home.presentation.CreateQuizRoute
 import com.f1.quiket.feature.home.presentation.HomeRoute
 import com.f1.quiket.feature.home.presentation.QuizPlayAllRoute
 import com.f1.quiket.feature.home.presentation.QuizResultRoute
 import com.f1.quiket.feature.home.presentation.QuizStartRoute
-import com.f1.quiket.feature.home.domain.model.QuizPlayMode
-import com.f1.quiket.feature.home.domain.model.QuizTimerScope
 
 fun NavGraphBuilder.homeGraph(
     navController: NavController,
@@ -27,11 +27,12 @@ fun NavGraphBuilder.homeGraph(
     onQuizGenerationStarted: () -> Unit,
     onQuizGenerationFinished: () -> Unit,
     onQuizCreated: (String) -> Unit,
-    navigateToQuizStart: () -> Unit,
+    onQuizPlayCompleted: () -> Unit,
+    navigateToQuizStart: (String?) -> Unit,
     navigateToScheduleExam: () -> Unit,
     navigateToCreateQuiz: () -> Unit,
     navigateToUpload: () -> Unit,
-    navigateToAddSubject: () -> Unit
+    navigateToAddSubject: () -> Unit,
 ) {
     composable(route = HomeDestination.route) {
         HomeRoute(
@@ -135,6 +136,7 @@ fun NavGraphBuilder.homeGraph(
             timerSeconds = timerSeconds,
             onCloseClick = { navController.popBackStack() },
             onResultReady = { playSessionId ->
+                onQuizPlayCompleted()
                 navController.navigate(QuizResultDestination.createRoute(playSessionId)) {
                     popUpTo(QuizPlayAllDestination.route) {
                         inclusive = true
