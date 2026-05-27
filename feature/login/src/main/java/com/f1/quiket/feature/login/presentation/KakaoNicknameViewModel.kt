@@ -1,7 +1,7 @@
 package com.f1.quiket.feature.login.presentation
 
 import com.f1.quiket.core.common.mvi.MviViewModel
-import com.f1.quiket.feature.login.data.device.DeviceInfoProvider
+import com.f1.quiket.core.network.auth.DeviceInfoProvider
 import com.f1.quiket.feature.login.domain.model.AuthResult
 import com.f1.quiket.feature.login.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel

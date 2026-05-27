@@ -11,11 +11,17 @@ import com.f1.quiket.feature.home.data.remote.QuestionResponse
 import com.f1.quiket.feature.home.data.remote.QuizPlayApi
 import com.f1.quiket.feature.home.data.remote.QuizPlaySessionDataResponse
 import com.f1.quiket.feature.home.data.remote.QuizPlayStartRequest
+import com.f1.quiket.feature.home.data.remote.QuizAnswerSubmitItemRequest
+import com.f1.quiket.feature.home.data.remote.QuizResultDataResponse
+import com.f1.quiket.feature.home.data.remote.QuizResultSubmitRequest
 import com.f1.quiket.feature.home.data.remote.QuizSessionDataResponse
+import com.f1.quiket.feature.home.data.remote.RewardSummaryResponse
+import com.f1.quiket.feature.home.domain.model.QuizAnswerSubmitItem
 import com.f1.quiket.feature.home.domain.model.QuizPlayMode
 import com.f1.quiket.feature.home.domain.model.QuizPlaySessionStatus
 import com.f1.quiket.feature.home.domain.model.QuizPlayStart
 import com.f1.quiket.feature.home.domain.model.QuizPlayType
+import com.f1.quiket.feature.home.domain.model.QuizResultSubmit
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestDispatcher
@@ -93,6 +99,78 @@ class QuizPlayRepositoryImplTest {
         assertThat(playSession.status).isEqualTo(QuizPlaySessionStatus.InProgress)
     }
 
+    @Test
+    fun submitQuizResult_success_mapsRequestBody() = runTest {
+        val api = FakeQuizPlayApi()
+        val repository = repository(api)
+
+        api.submitQuizResultHandler = { request ->
+            assertThat(request).isEqualTo(
+                QuizResultSubmitRequest(
+                    clientSessionId = "client-1",
+                    quizSessionId = "session-1",
+                    playType = "first",
+                    elapsedMs = 0,
+                    optionShuffled = false,
+                    answers = listOf(
+                        QuizAnswerSubmitItemRequest(
+                            questionId = "question-1",
+                            selectedOptionId = "option-1",
+                            correctClient = true,
+                            skipped = false,
+                        ),
+                    ),
+                ),
+            )
+            successResponse(
+                code = "QUIZ_RESULT_SUBMITTED",
+                data = quizResultResponse(),
+            )
+        }
+
+        val result = repository.submitQuizResult(
+            QuizResultSubmit(
+                clientSessionId = "client-1",
+                quizSessionId = "session-1",
+                playType = QuizPlayType.First,
+                elapsedMs = 0,
+                optionShuffled = false,
+                answers = listOf(
+                    QuizAnswerSubmitItem(
+                        questionId = "question-1",
+                        selectedOptionId = "option-1",
+                        correctClient = true,
+                        skipped = false,
+                    ),
+                ),
+            ),
+        )
+
+        val quizResult = (result as NetworkResult.Success).data
+        assertThat(quizResult.playSessionId).isEqualTo("play-1")
+        assertThat(quizResult.rewards.dotoriEarned).isEqualTo(10)
+    }
+
+    @Test
+    fun getQuizResult_success_mapsResult() = runTest {
+        val api = FakeQuizPlayApi()
+        val repository = repository(api)
+
+        api.getQuizResultHandler = { playSessionId ->
+            assertThat(playSessionId).isEqualTo("play-1")
+            successResponse(
+                code = "QUIZ_RESULT_SUCCESS",
+                data = quizResultResponse(),
+            )
+        }
+
+        val result = repository.getQuizResult("play-1")
+
+        val quizResult = (result as NetworkResult.Success).data
+        assertThat(quizResult.correctCount).isEqualTo(1)
+        assertThat(quizResult.accuracyPct).isEqualTo(100)
+    }
+
     private fun repository(api: QuizPlayApi): QuizPlayRepositoryImpl =
         QuizPlayRepositoryImpl(
             api = api,
@@ -111,6 +189,12 @@ class QuizPlayRepositoryImplTest {
         var startQuizPlaySessionHandler:
             suspend (String, QuizPlayStartRequest) -> Response<ApiResponse<QuizPlaySessionDataResponse>> =
             { _, _ -> unhandled("startQuizPlaySession") }
+        var submitQuizResultHandler:
+            suspend (QuizResultSubmitRequest) -> Response<ApiResponse<QuizResultDataResponse>> =
+            { unhandled("submitQuizResult") }
+        var getQuizResultHandler:
+            suspend (String) -> Response<ApiResponse<QuizResultDataResponse>> =
+            { unhandled("getQuizResult") }
 
         override suspend fun getQuizSession(
             quizSessionId: String,
@@ -121,6 +205,14 @@ class QuizPlayRepositoryImplTest {
             request: QuizPlayStartRequest,
         ): Response<ApiResponse<QuizPlaySessionDataResponse>> =
             startQuizPlaySessionHandler(quizSessionId, request)
+
+        override suspend fun submitQuizResult(
+            request: QuizResultSubmitRequest,
+        ): Response<ApiResponse<QuizResultDataResponse>> = submitQuizResultHandler(request)
+
+        override suspend fun getQuizResult(
+            playSessionId: String,
+        ): Response<ApiResponse<QuizResultDataResponse>> = getQuizResultHandler(playSessionId)
 
         private fun <T> unhandled(method: String): T {
             error("Unhandled QuizPlayApi call: $method")
@@ -174,6 +266,24 @@ class QuizPlayRepositoryImplTest {
                 code = code,
                 message = "success",
                 data = data,
+            ),
+        )
+
+        fun quizResultResponse(): QuizResultDataResponse = QuizResultDataResponse(
+            playSessionId = "play-1",
+            quizSessionId = "session-1",
+            subjectId = "subject-1",
+            subjectName = "SQLD",
+            totalCount = 1,
+            correctCount = 1,
+            wrongCount = 0,
+            skipCount = 0,
+            accuracyPct = 100,
+            elapsedMs = 0,
+            rewards = RewardSummaryResponse(
+                dotoriEarned = 10,
+                xpEarned = 5,
+                leveledUp = false,
             ),
         )
     }

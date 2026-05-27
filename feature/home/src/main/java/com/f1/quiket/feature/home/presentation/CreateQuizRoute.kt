@@ -1,198 +1,141 @@
 package com.f1.quiket.feature.home.presentation
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun CreateQuizRoute(
     onBackClick: () -> Unit,
     onAddSubjectClick: () -> Unit,
-    onCreateQuizClick: () -> Unit = {},
+    onQuizGenerationStarted: () -> Unit = {},
+    onQuizGenerationFinished: () -> Unit = {},
+    onQuizCreated: (String) -> Unit = {},
+    viewModel: CreateQuizViewModel = hiltViewModel(),
 ) {
-    val subjects = remember { createQuizSubjectSamples() }
-    var selectedSubjectId by rememberSaveable { mutableStateOf<String?>(null) }
-    var currentStep by rememberSaveable { mutableStateOf(CreateQuizStep.Subject) }
-    var expandedChapterId by rememberSaveable { mutableStateOf<String?>(null) }
-    var selectedPartIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
-    var selectedQuizType by rememberSaveable { mutableStateOf<QuizTypeOption?>(null) }
-    var selectedChoiceCount by rememberSaveable { mutableStateOf<Int?>(null) }
-    var selectedQuestionCountOption by rememberSaveable { mutableStateOf<QuizQuestionCountOption?>(null) }
-    var customQuestionCount by rememberSaveable { mutableStateOf<Int?>(null) }
-    var customQuestionCountDialogVisible by rememberSaveable { mutableStateOf(false) }
-    var customQuestionCountText by rememberSaveable { mutableStateOf("") }
-    var selectedDifficulty by rememberSaveable { mutableStateOf<QuizDifficultyOption?>(null) }
-    var quizCreationRequested by rememberSaveable { mutableStateOf(false) }
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
-    val selectedSubject = subjects.firstOrNull { subject ->
-        subject.id == selectedSubjectId
-    }
-    val selectedPartIdSet = selectedPartIds.toSet()
-    val selectedChapterCount = selectedSubject?.chapters?.count { chapter ->
-        chapter.parts.any { part -> part.id in selectedPartIdSet }
-    } ?: 0
-    val selectedPartCount = selectedPartIds.size
-
-    fun resetQuizOptions() {
-        selectedQuizType = null
-        selectedChoiceCount = null
-        selectedQuestionCountOption = null
-        customQuestionCount = null
-        customQuestionCountDialogVisible = false
-        customQuestionCountText = ""
-        selectedDifficulty = null
-        quizCreationRequested = false
+    fun showMessage(message: String) {
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
 
-    BackHandler(
-        enabled = currentStep != CreateQuizStep.Subject && !customQuestionCountDialogVisible,
-    ) {
-        if (currentStep == CreateQuizStep.Loading) {
-            onBackClick()
-        } else {
-            currentStep = when (currentStep) {
-                CreateQuizStep.Subject -> CreateQuizStep.Subject
-                CreateQuizStep.Scope -> CreateQuizStep.Subject
-                CreateQuizStep.Options -> CreateQuizStep.Scope
-                CreateQuizStep.Loading -> CreateQuizStep.Options
+    LaunchedEffect(viewModel) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is CreateQuizEffect.ShowMessage -> showMessage(effect.message)
+                CreateQuizEffect.QuizGenerationStarted -> onQuizGenerationStarted()
+                CreateQuizEffect.QuizGenerationFinished -> onQuizGenerationFinished()
+                is CreateQuizEffect.QuizCreated -> {
+                    onQuizGenerationFinished()
+                    onQuizCreated(effect.quizSessionId)
+                }
             }
         }
     }
 
-    LaunchedEffect(currentStep, selectedSubject?.id, selectedPartCount) {
-        if (currentStep != CreateQuizStep.Subject && selectedSubject == null) {
-            currentStep = CreateQuizStep.Subject
-        } else if (currentStep == CreateQuizStep.Options && selectedPartCount == 0) {
-            currentStep = CreateQuizStep.Scope
+    BackHandler(
+        enabled = state.currentStep != CreateQuizStep.Subject && !state.customQuestionCountDialogVisible,
+    ) {
+        if (state.currentStep == CreateQuizStep.Loading) {
+            onBackClick()
+        } else {
+            viewModel.onIntent(CreateQuizIntent.BackClick)
         }
     }
 
-    when (currentStep) {
+    when (state.currentStep) {
         CreateQuizStep.Subject -> {
             CreateQuizSubjectScreen(
-                subjects = subjects,
-                selectedSubjectId = selectedSubjectId,
+                subjects = state.subjects,
+                selectedSubjectId = state.selectedSubjectId,
                 onSubjectClick = { selectedSubject ->
-                    val isDifferentSubject = selectedSubjectId != selectedSubject.id
-                    selectedSubjectId = selectedSubject.id
-                    if (isDifferentSubject) {
-                        selectedPartIds = selectedSubject.allPartIds()
-                        expandedChapterId = null
-                        resetQuizOptions()
-                    }
+                    viewModel.onIntent(CreateQuizIntent.SelectSubject(selectedSubject.id))
                 },
                 onAddSubjectClick = onAddSubjectClick,
                 onBackClick = onBackClick,
                 onNextClick = {
-                    selectedSubject?.let { subject ->
-                        if (selectedPartIds.isEmpty()) {
-                            selectedPartIds = subject.allPartIds()
-                        }
-                        currentStep = CreateQuizStep.Scope
-                    }
+                    viewModel.onIntent(CreateQuizIntent.SubjectNextClick)
                 },
             )
         }
 
         CreateQuizStep.Scope -> {
-            selectedSubject?.let { subject ->
+            state.selectedSubject?.let { subject ->
                 CreateQuizScopeScreen(
                     subject = subject,
-                    selectedPartIds = selectedPartIds.toSet(),
-                    expandedChapterId = expandedChapterId,
+                    selectedPartIds = state.selectedPartIds.toSet(),
+                    expandedChapterId = state.expandedChapterId,
                     onBackClick = {
-                        currentStep = CreateQuizStep.Subject
+                        viewModel.onIntent(CreateQuizIntent.ScopeBackClick)
                     },
                     onChapterExpandClick = { chapterId ->
-                        expandedChapterId = if (expandedChapterId == chapterId) null else chapterId
+                        viewModel.onIntent(CreateQuizIntent.ToggleChapterExpansion(chapterId))
                     },
                     onChapterSelectionClick = { chapter ->
-                        val currentSelectedPartIds = selectedPartIds.toSet()
-                        val chapterPartIds = chapter.parts.map { part -> part.id }.toSet()
-                        val nextSelectedPartIds = if (chapterPartIds.all { it in currentSelectedPartIds }) {
-                            currentSelectedPartIds - chapterPartIds
-                        } else {
-                            currentSelectedPartIds + chapterPartIds
-                        }
-                        selectedPartIds = nextSelectedPartIds.toList()
+                        viewModel.onIntent(CreateQuizIntent.ToggleChapterSelection(chapter.id))
                     },
                     onPartClick = { part ->
-                        selectedPartIds = selectedPartIds.toggle(part.id)
+                        viewModel.onIntent(CreateQuizIntent.TogglePartSelection(part.id))
                     },
                     onClearAllClick = {
-                        selectedPartIds = emptyList()
+                        viewModel.onIntent(CreateQuizIntent.ClearAllParts)
                     },
                     onNextClick = {
-                        currentStep = CreateQuizStep.Options
+                        viewModel.onIntent(CreateQuizIntent.ScopeNextClick)
                     },
                 )
             }
         }
 
         CreateQuizStep.Options -> {
-            selectedSubject?.let { subject ->
+            state.selectedSubject?.let { subject ->
                 CreateQuizOptionsScreen(
                     subject = subject,
-                    selectedChapterCount = selectedChapterCount,
-                    selectedPartCount = selectedPartCount,
-                    selectedQuizType = selectedQuizType,
-                    selectedChoiceCount = selectedChoiceCount,
-                    selectedQuestionCountOption = selectedQuestionCountOption,
-                    customQuestionCount = customQuestionCount,
-                    selectedDifficulty = selectedDifficulty,
-                    quizCreationRequested = quizCreationRequested,
-                    customQuestionCountDialogVisible = customQuestionCountDialogVisible,
-                    customQuestionCountText = customQuestionCountText,
+                    selectedChapterCount = state.selectedChapterCount,
+                    selectedPartCount = state.selectedPartCount,
+                    selectedQuizType = state.selectedQuizType,
+                    selectedChoiceCount = state.selectedChoiceCount,
+                    selectedQuestionCountOption = state.selectedQuestionCountOption,
+                    customQuestionCount = state.customQuestionCount,
+                    selectedDifficulty = state.selectedDifficulty,
+                    quizCreationRequested = state.isCreatingQuiz,
+                    customQuestionCountDialogVisible = state.customQuestionCountDialogVisible,
+                    customQuestionCountText = state.customQuestionCountText,
                     onBackClick = {
-                        currentStep = CreateQuizStep.Scope
+                        viewModel.onIntent(CreateQuizIntent.OptionsBackClick)
                     },
                     onQuizTypeClick = { quizType ->
-                        quizCreationRequested = false
-                        selectedQuizType = quizType
-                        if (!quizType.requiresChoiceCount) {
-                            selectedChoiceCount = null
-                        }
+                        viewModel.onIntent(CreateQuizIntent.SelectQuizType(quizType))
                     },
                     onChoiceCountClick = { count ->
-                        quizCreationRequested = false
-                        selectedChoiceCount = count
+                        viewModel.onIntent(CreateQuizIntent.SelectChoiceCount(count))
                     },
                     onQuestionCountClick = { option ->
-                        quizCreationRequested = false
-                        selectedQuestionCountOption = option
+                        viewModel.onIntent(CreateQuizIntent.SelectQuestionCount(option))
                     },
                     onCustomQuestionCountClick = {
-                        customQuestionCountText = customQuestionCount?.toString().orEmpty()
-                        customQuestionCountDialogVisible = true
+                        viewModel.onIntent(CreateQuizIntent.OpenCustomQuestionCountDialog)
                     },
                     onCustomQuestionCountTextChange = { text ->
-                        customQuestionCountText = text.filter { character -> character.isDigit() }
+                        viewModel.onIntent(CreateQuizIntent.ChangeCustomQuestionCountText(text))
                     },
                     onCustomQuestionCountDismiss = {
-                        customQuestionCountDialogVisible = false
+                        viewModel.onIntent(CreateQuizIntent.DismissCustomQuestionCountDialog)
                     },
                     onCustomQuestionCountApply = {
-                        val count = customQuestionCountText.toIntOrNull()
-                        if (count != null && count > 0) {
-                            quizCreationRequested = false
-                            customQuestionCount = count
-                            selectedQuestionCountOption = QuizQuestionCountOption.Custom
-                            customQuestionCountDialogVisible = false
-                        }
+                        viewModel.onIntent(CreateQuizIntent.ApplyCustomQuestionCount)
                     },
                     onDifficultyClick = { difficulty ->
-                        quizCreationRequested = false
-                        selectedDifficulty = difficulty
+                        viewModel.onIntent(CreateQuizIntent.SelectDifficulty(difficulty))
                     },
                     onCreateQuizClick = {
-                        quizCreationRequested = true
-                        currentStep = CreateQuizStep.Loading
-                        onCreateQuizClick()
+                        viewModel.onIntent(CreateQuizIntent.CreateQuiz)
                     },
                 )
             }
@@ -200,8 +143,8 @@ fun CreateQuizRoute(
 
         CreateQuizStep.Loading -> {
             CreateQuizLoadingScreen(
-                progress = 0.4f,
-                rewardCount = 10,
+                progress = state.generationProgress.coerceIn(0f, 1f),
+                rewardCount = state.rewardCount,
                 onBrowseClick = onBackClick,
             )
         }
@@ -212,12 +155,14 @@ data class QuizSubjectUiModel(
     val id: String,
     val name: String,
     val chapters: List<QuizScopeChapterUiModel>,
+    val chapterCountOverride: Int? = null,
+    val partCountOverride: Int? = null,
 ) {
     val chapterCount: Int
-        get() = chapters.size
+        get() = chapterCountOverride ?: chapters.size
 
     val partCount: Int
-        get() = chapters.sumOf { chapter -> chapter.parts.size }
+        get() = partCountOverride ?: chapters.sumOf { chapter -> chapter.parts.size }
 }
 
 data class QuizScopeChapterUiModel(
@@ -231,13 +176,6 @@ data class QuizScopePartUiModel(
     val id: String,
     val title: String,
 )
-
-private enum class CreateQuizStep {
-    Subject,
-    Scope,
-    Options,
-    Loading,
-}
 
 internal fun createQuizSubjectSamples(): List<QuizSubjectUiModel> = listOf(
     QuizSubjectUiModel(
@@ -327,13 +265,3 @@ internal fun createQuizSubjectSamples(): List<QuizSubjectUiModel> = listOf(
         ),
     ),
 )
-
-private fun QuizSubjectUiModel.allPartIds(): List<String> =
-    chapters.flatMap { chapter -> chapter.parts.map { part -> part.id } }
-
-private fun List<String>.toggle(id: String): List<String> =
-    if (id in this) {
-        this - id
-    } else {
-        this + id
-    }
