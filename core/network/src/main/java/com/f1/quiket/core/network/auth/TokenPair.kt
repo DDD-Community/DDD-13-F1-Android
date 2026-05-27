@@ -7,3 +7,5 @@ data class TokenPair(
     val accessTokenExpiresIn: Long,
     val refreshTokenExpiresIn: Long,
 )
+
+internal fun TokenPair.toAuthorizationHeader(): String = "$tokenType $accessToken"

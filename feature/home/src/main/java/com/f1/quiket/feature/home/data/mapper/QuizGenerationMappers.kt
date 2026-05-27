@@ -44,6 +44,8 @@ fun QuizCreate.toRequest(): QuizCreateRequest = QuizCreateRequest(
     questionCount = questionCount,
     playMode = playMode.wireValue,
     timerEnabled = timerEnabled,
+    timerScope = timerScope?.wireValue,
+    timerSeconds = timerSeconds,
     difficulty = difficulty.wireValue,
 )
 

@@ -6,5 +6,7 @@ data class Activity(
     val activityType: ActivityType,
     val description: String,
     val progressPercent: Int? = null,
-    val isQuizCreated: Boolean = false
+    val isQuizCreated: Boolean = false,
+    val quizSessionId: String? = null,
+    val playSessionId: String? = null,
 )

@@ -78,8 +78,12 @@ import com.f1.quiket.feature.floating.presentation.screen.subjectdetail.SubjectD
 import com.f1.quiket.feature.home.component.ExpandableFab
 import com.f1.quiket.feature.home.component.HomeGuideTooltip
 import com.f1.quiket.feature.home.component.HomeTutorialOverlay
+import com.f1.quiket.feature.home.domain.model.HomeData
+import com.f1.quiket.feature.home.domain.model.RecentActivity
 import com.f1.quiket.feature.home.model.Exam
 import com.f1.quiket.feature.home.model.FabAction
+import com.f1.quiket.feature.home.model.Activity
+import com.f1.quiket.feature.home.model.ActivityType
 import com.f1.quiket.feature.home.model.Subject
 import com.f1.quiket.feature.home.model.TutorialPage
 import com.f1.quiket.feature.home.model.buildTutorialPages
@@ -89,8 +93,11 @@ import kotlinx.coroutines.delay
 fun HomeScreen(
     uiState: HomeState,
     isQuizGenerating: Boolean = false,
+    hasActiveQuizSession: Boolean = false,
     onBoardingDone: () -> Unit,
     onQuizCardClick: () -> Unit,
+    onQuizActionClick: () -> Unit,
+    onQuizResultClick: (String) -> Unit = {},
     onFabItemClick: (FabAction) -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -98,15 +105,14 @@ fun HomeScreen(
     var showNoSubjectPopup by remember { mutableStateOf(false) }
     var selectedSubject by remember { mutableStateOf<Subject?>(null) }
     var depth by remember { mutableStateOf(0) }
-    var subjects by remember {
-        mutableStateOf(
-            listOf(
-                Subject("오픽 2주만에 IH 달성", "챕터 3", false),
-                Subject("Android 앱 개발", "챕터 7", true),
-                Subject("자료구조", "챕터 2", false),
-                Subject("운영체제", "챕터 5", false),
-            )
-        )
+    val homeData = uiState.homeData
+    val serverSubjects = remember(homeData?.subjects) {
+        homeData.toHomeSubjects()
+    }
+    var subjects by remember { mutableStateOf<List<Subject>>(emptyList()) }
+
+    LaunchedEffect(serverSubjects) {
+        subjects = serverSubjects
     }
 
     // 강의 선택 후 UploadScreen에 넘길 정보
@@ -180,7 +186,12 @@ fun HomeScreen(
             return
         }
     }
-    val quizActionText = rememberQuizGeneratingText(isQuizGenerating)
+    val quizGeneratingText = rememberQuizGeneratingText(isQuizGenerating)
+    val quizActionText = when {
+        isQuizGenerating -> quizGeneratingText
+        hasActiveQuizSession -> "퀴즈 풀기"
+        else -> "퀴즈 만들기"
+    }
 
     // 온보딩 툴팁
     var noteIconOffset by remember { mutableStateOf(Offset.Zero) }
@@ -198,11 +209,12 @@ fun HomeScreen(
     var showTutorial by remember { mutableStateOf(false) }
     var tutorialPage by remember { mutableStateOf(TutorialPage.FIRST) }
 
-    val exams = listOf(
-        Exam("정보처리기사", "2026.06.28", "D-60"),
-        Exam("SQLD", "2026.07.10", "D-82"),
-        Exam("오픽", "2026.08.01", "D-104")
-    )
+    val exams = remember(homeData?.dDayCards) {
+        homeData.toHomeExams()
+    }
+    val recentActivities = remember(homeData?.recentActivities) {
+        homeData.toHomeActivities()
+    }
     val pagerState = rememberPagerState(pageCount = { exams.size })
 
     Box(
@@ -307,10 +319,10 @@ fun HomeScreen(
                                     }
                             ) {
                                 HomeActionButton(
-                                    text = "퀴즈 만들기",
+                                    text = quizActionText,
                                     iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_make,
                                     backgroundColor = Orange500,
-                                    onClick = {},
+                                    onClick = onQuizActionClick,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 if (isQuizGenerating) {
@@ -326,8 +338,8 @@ fun HomeScreen(
                 }
 
                 HomeProfileCard(
-                    "송미짱짱짱",
-                    1200,
+                    homeData?.user?.nickname ?: "닉네임",
+                    homeData?.user?.dotoriBalance ?: 0,
                     com.f1.quiket.core.designsystem.R.drawable.ic_qring_profile,
                     {},
                     modifier = Modifier
@@ -342,18 +354,20 @@ fun HomeScreen(
                         }
                 )
 
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
-                ) { page ->
-                    HomeExamCard(
-                        examName = exams[page].name,
-                        date = exams[page].date,
-                        dDay = exams[page].dDay,
-                        onClick = {}
-                    )
+                if (exams.isNotEmpty()) {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                    ) { page ->
+                        HomeExamCard(
+                            examName = exams[page].name,
+                            date = exams[page].date,
+                            dDay = exams[page].dDay,
+                            onClick = {}
+                        )
+                    }
                 }
 
                 Row(modifier = Modifier.fillMaxWidth()) {
@@ -397,17 +411,30 @@ fun HomeScreen(
                 ) {
                     Box {
                         if (selectedTab == 0) {
-                            ActiveSubjectContent(
-                                subjects = subjects,
-                                onSubjectsChange = { subjects = it },
-                                onSubjectAreaPositioned = {},
-                                onSubjectClick = { subject ->
-                                    selectedSubject = subject
-                                    depth = 1
-                                },
-                            )
+                            if (subjects.isEmpty()) {
+                                EmptySubjectContent()
+                            } else {
+                                ActiveSubjectContent(
+                                    subjects = subjects,
+                                    onSubjectsChange = { subjects = it },
+                                    onSubjectAreaPositioned = {},
+                                    onSubjectClick = { subject ->
+                                        selectedSubject = subject
+                                        depth = 1
+                                    },
+                                )
+                            }
                         } else {
-                            ActiveActivityContent()
+                            if (recentActivities.isEmpty()) {
+                                EmptyActivityContent()
+                            } else {
+                                ActiveActivityContent(
+                                    activities = recentActivities,
+                                    onActivityClick = { activity ->
+                                        activity.playSessionId?.let(onQuizResultClick)
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -499,6 +526,63 @@ fun HomeScreen(
         }
     }
 }
+
+private fun HomeData?.toHomeSubjects(): List<Subject> =
+    this?.subjects.orEmpty().map { subject ->
+        Subject(
+            title = subject.name,
+            chapter = "챕터 ${subject.chapterCount}",
+            isStarred = false,
+        )
+    }
+
+private fun HomeData?.toHomeExams(): List<Exam> =
+    this?.dDayCards.orEmpty().map { schedule ->
+        Exam(
+            name = schedule.examName,
+            date = schedule.examDate,
+            dDay = schedule.dDay?.let { dDay ->
+                if (dDay >= 0) "D-$dDay" else "D+${-dDay}"
+            }.orEmpty(),
+        )
+    }
+
+private fun HomeData?.toHomeActivities(): List<Activity> =
+    this?.recentActivities.orEmpty().map { activity ->
+        Activity(
+            title = activity.title,
+            questionCount = activity.scoreText.toQuestionCount(),
+            activityType = activity.toActivityType(),
+            description = activity.toDescription(),
+            progressPercent = activity.progressPct,
+            isQuizCreated = activity.playSessionId != null || activity.status == "submitted",
+            quizSessionId = activity.quizSessionId,
+            playSessionId = activity.playSessionId,
+        )
+    }
+
+private fun RecentActivity.toActivityType(): ActivityType =
+    when {
+        activityType.contains("ox", ignoreCase = true) -> ActivityType.OX_QUIZ
+        activityType.contains("short", ignoreCase = true) -> ActivityType.SHORT_ANSWER
+        else -> ActivityType.MULTIPLE_CHOICE
+    }
+
+private fun RecentActivity.toDescription(): String =
+    when {
+        !scoreText.isNullOrBlank() -> "결과 $scoreText"
+        progressPct != null -> "진행률 ${progressPct}%"
+        status == "completed" -> "퀴즈 생성이 완료됐어요"
+        status == "in_progress" -> "퀴즈 생성 중이에요"
+        else -> subjectName
+    }
+
+private fun String?.toQuestionCount(): Int =
+    this
+        ?.substringAfter("/", missingDelimiterValue = "")
+        ?.filter(Char::isDigit)
+        ?.toIntOrNull()
+        ?: 0
 
 @Composable
 private fun rememberQuizGeneratingText(isGenerating: Boolean): String {
@@ -612,6 +696,7 @@ private fun HomeScreenPreview() {
             uiState = HomeState(isLoading = false, showOnboarding = false),
             onBoardingDone = {},
             onQuizCardClick = {},
+            onQuizActionClick = {},
             onFabItemClick = {},
         )
     }
@@ -625,6 +710,7 @@ private fun HomeScreenOnboardingPreview() {
             uiState = HomeState(isLoading = false, showOnboarding = true),
             onBoardingDone = {},
             onQuizCardClick = {},
+            onQuizActionClick = {},
             onFabItemClick = {},
         )
     }
@@ -639,6 +725,7 @@ private fun HomeScreenQuizGeneratingPreview() {
             isQuizGenerating = true,
             onBoardingDone = {},
             onQuizCardClick = {},
+            onQuizActionClick = {},
             onFabItemClick = {},
         )
     }

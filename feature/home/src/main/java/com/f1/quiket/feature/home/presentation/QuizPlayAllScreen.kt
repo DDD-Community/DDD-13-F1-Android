@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,14 +37,44 @@ import com.f1.quiket.core.designsystem.theme.Gray700
 import com.f1.quiket.core.designsystem.theme.Gray950
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
+import com.f1.quiket.feature.home.domain.model.QuizPlayMode
+import com.f1.quiket.feature.home.domain.model.QuizTimerScope
 
 @Composable
 fun QuizPlayAllRoute(
+    quizSessionId: String? = null,
+    playMode: QuizPlayMode = QuizPlayMode.AllAtOnce,
+    timerEnabled: Boolean = false,
+    timerScope: QuizTimerScope? = null,
+    timerSeconds: Int? = null,
     onCloseClick: () -> Unit,
+    onResultReady: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: QuizPlayAllViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(quizSessionId, playMode, timerEnabled, timerScope, timerSeconds) {
+        viewModel.onIntent(
+            QuizPlayAllIntent.ConfigurePlay(
+                playMode = playMode,
+                timerEnabled = timerEnabled,
+                timerScope = timerScope,
+                timerSeconds = timerSeconds,
+            ),
+        )
+        if (!quizSessionId.isNullOrBlank()) {
+            viewModel.onIntent(QuizPlayAllIntent.LoadQuizSession(quizSessionId))
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is QuizPlayAllEffect.NavigateToResult -> onResultReady(effect.playSessionId)
+            }
+        }
+    }
 
     QuizPlayAllScreen(
         state = state,
@@ -92,6 +123,11 @@ fun QuizPlayAllScreen(
 
             if (currentQuestion == null) {
                 QuizPlayAllEmptyContent(
+                    message = when {
+                        state.isLoading -> "퀴즈를 불러오는 중이에요"
+                        !state.errorMessage.isNullOrBlank() -> state.errorMessage
+                        else -> "문제를 불러올 수 없어요"
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
@@ -110,15 +146,17 @@ fun QuizPlayAllScreen(
             }
         }
 
-        QuizPlayAllBottomBar(
-            canMovePrevious = state.canMovePrevious,
-            canMoveNext = state.canMoveNext,
-            isLastQuestion = state.isLastQuestion,
-            onPreviousClick = { onIntent(QuizPlayAllIntent.MovePrevious) },
-            onNextClick = { onIntent(QuizPlayAllIntent.MoveNext) },
-            onSubmitClick = { onIntent(QuizPlayAllIntent.OpenSubmitConfirm) },
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
+        if (currentQuestion != null) {
+            QuizPlayAllBottomBar(
+                canMovePrevious = state.canMovePrevious,
+                canMoveNext = state.canMoveNext,
+                isLastQuestion = state.isLastQuestion,
+                onPreviousClick = { onIntent(QuizPlayAllIntent.MovePrevious) },
+                onNextClick = { onIntent(QuizPlayAllIntent.MoveNext) },
+                onSubmitClick = { onIntent(QuizPlayAllIntent.OpenSubmitConfirm) },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
 
         if (state.isQuestionListVisible) {
             QuizPlayAllQuestionListSheet(
@@ -137,7 +175,7 @@ fun QuizPlayAllScreen(
             )
         }
 
-        if (state.showTutorial) {
+        if (state.showTutorial && currentQuestion != null) {
             QuizPlayAllTutorialOverlay(
                 onDismiss = { onIntent(QuizPlayAllIntent.DismissTutorial) },
             )
@@ -197,6 +235,7 @@ private fun QuizPlayAllContent(
 
 @Composable
 private fun QuizPlayAllEmptyContent(
+    message: String,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -204,7 +243,7 @@ private fun QuizPlayAllEmptyContent(
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "문제를 불러올 수 없어요",
+            text = message,
             color = Gray700,
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontSize = 16.sp,

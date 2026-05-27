@@ -30,6 +30,8 @@ data class QuizCreate(
     val questionCount: Int,
     val playMode: QuizPlayMode = QuizPlayMode.AllAtOnce,
     val timerEnabled: Boolean = false,
+    val timerScope: QuizTimerScope? = null,
+    val timerSeconds: Int? = null,
     val difficulty: QuizDifficulty,
 )
 
@@ -62,6 +64,13 @@ enum class QuizPlayMode(
 ) {
     AllAtOnce("all_at_once"),
     OneByOne("one_by_one"),
+}
+
+enum class QuizTimerScope(
+    val wireValue: String,
+) {
+    PerQuestion("per_question"),
+    Total("total"),
 }
 
 enum class QuizDifficulty(

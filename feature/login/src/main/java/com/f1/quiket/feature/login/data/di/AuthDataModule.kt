@@ -1,7 +1,5 @@
 package com.f1.quiket.feature.login.data.di
 
-import com.f1.quiket.feature.login.data.device.AndroidDeviceInfoProvider
-import com.f1.quiket.feature.login.data.device.DeviceInfoProvider
 import com.f1.quiket.feature.login.data.kakao.KakaoLoginClient
 import com.f1.quiket.feature.login.data.kakao.KakaoLoginClientImpl
 import com.f1.quiket.feature.login.data.remote.AuthApi
@@ -29,12 +27,6 @@ abstract class AuthRepositoryModule {
     abstract fun bindKakaoLoginClient(
         client: KakaoLoginClientImpl,
     ): KakaoLoginClient
-
-    @Binds
-    @Singleton
-    abstract fun bindDeviceInfoProvider(
-        provider: AndroidDeviceInfoProvider,
-    ): DeviceInfoProvider
 }
 
 @Module
