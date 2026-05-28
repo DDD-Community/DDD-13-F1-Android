@@ -72,17 +72,19 @@ data object LectureUploadFileDestination : QuiketDestination {
     const val ARG_LECTURE_ID = "lectureId"
     const val ARG_LECTURE_TITLE = "lectureTitle"
     const val ARG_CHAPTER_COUNT = "chapterCount"
+    const val ARG_CATEGORY = "category"
 
     // 강의 지정 없이 바로 진입하는 경우
     override val route: String = "lecture_upload_file"
 
     // 과목 선택 후 진입하는 경우
     const val routeWithArgs =
-        "lecture_upload_file/{$ARG_LECTURE_ID}/{$ARG_LECTURE_TITLE}/{$ARG_CHAPTER_COUNT}"
+        "lecture_upload_file/{$ARG_LECTURE_ID}/{$ARG_LECTURE_TITLE}/{$ARG_CHAPTER_COUNT}/{$ARG_CATEGORY}"
 
     fun createRoute(
         lectureId: String,
         lectureTitle: String,
         chapterCount: Int,
-    ) = "lecture_upload_file/$lectureId/$lectureTitle/$chapterCount"
+        category: String,
+    ) = "lecture_upload_file/$lectureId/$lectureTitle/$chapterCount/${category.ifBlank { "-" }}"
 }

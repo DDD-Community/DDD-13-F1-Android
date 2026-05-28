@@ -2,6 +2,19 @@ package com.f1.quiket.feature.floating.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.f1.quiket.core.network.model.NetworkResult
+import com.f1.quiket.feature.floating.domain.model.AddSubjectState
+import com.f1.quiket.feature.floating.domain.model.ChineseTestType
+import com.f1.quiket.feature.floating.domain.model.EnglishTestType
+import com.f1.quiket.feature.floating.domain.model.JapaneseTestType
+import com.f1.quiket.feature.floating.domain.model.LanguageType
+import com.f1.quiket.feature.floating.domain.model.MiddleHighSubjectType
+import com.f1.quiket.feature.floating.domain.model.StudyPurpose
+import com.f1.quiket.feature.floating.domain.model.SubjectCreate
+import com.f1.quiket.feature.floating.domain.model.SubjectExamDetail
+import com.f1.quiket.feature.floating.domain.model.SubjectOtherDetail
+import com.f1.quiket.feature.floating.domain.model.SubjectReviewDetail
+import com.f1.quiket.feature.floating.domain.repository.SubjectRepository
 import com.f1.quiket.feature.floating.presentation.contract.AddSubjectContract
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -14,13 +27,18 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class AddSubjectViewModel @Inject constructor() : ViewModel() {
+class AddSubjectViewModel @Inject constructor(
+    private val subjectRepository: SubjectRepository,
+) : ViewModel() {
 
     private val _state = MutableStateFlow(AddSubjectContract.State())
     val state: StateFlow<AddSubjectContract.State> = _state.asStateFlow()
 
     private val _effect = Channel<AddSubjectContract.Effect>()
     val effect = _effect.receiveAsFlow()
+
+    private val _createdSubjectId = MutableStateFlow<String?>(null)
+    val createdSubjectId: StateFlow<String?> = _createdSubjectId.asStateFlow()
 
     fun handleIntent(intent: AddSubjectContract.Intent) {
         when (intent) {
@@ -52,4 +70,71 @@ class AddSubjectViewModel @Inject constructor() : ViewModel() {
                 viewModelScope.launch { _effect.send(AddSubjectContract.Effect.NavigateToSuccess) }
         }
     }
+
+    fun createSubject(addSubjectState: AddSubjectState) {
+        viewModelScope.launch {
+            val request = addSubjectState.toSubjectCreate()
+            when (val result = subjectRepository.createSubject(request)) {
+                is NetworkResult.Success -> _createdSubjectId.value = result.data.id
+                is NetworkResult.Failure -> {}
+            }
+        }
+    }
+}
+
+private fun AddSubjectState.toSubjectCreate(): SubjectCreate {
+    val purposeKey = when (studyPurpose) {
+        StudyPurpose.EXAM -> "EXAM"
+        StudyPurpose.SELF_STUDY -> "SELF_STUDY"
+        StudyPurpose.OTHER -> "OTHER"
+        null -> "OTHER"
+    }
+
+    val examDetail = if (studyPurpose == StudyPurpose.EXAM) {
+        SubjectExamDetail(
+            examType = examType?.name ?: "OTHER",
+            univMajorField = majorCategory?.name,
+            univMajorName = majorName.ifBlank { null },
+            univCourseType = courseType?.name,
+            mhGrade = curriculum?.name,
+            mhSubjectType = if (subjectType == MiddleHighSubjectType.CUSTOM) {
+                customSubjectType.ifBlank { null }
+            } else {
+                subjectType?.name
+            },
+            certificateName = certificateName.ifBlank { null },
+            langType = languageType?.name,
+            langExamName = when (languageType) {
+                LanguageType.ENGLISH -> if (englishTest == EnglishTestType.CUSTOM) customLanguageTest.ifBlank { null } else englishTest?.name
+                LanguageType.JAPANESE -> if (japaneseTest == JapaneseTestType.CUSTOM) customLanguageTest.ifBlank { null } else japaneseTest?.name
+                LanguageType.CHINESE -> if (chineseTest == ChineseTestType.CUSTOM) customLanguageTest.ifBlank { null } else chineseTest?.name
+                null -> null
+            },
+            civilRank = civilServantGrade?.name,
+            civilSeries = civilServantSeries?.name,
+            otherExamName = otherExamText.ifBlank { null },
+        )
+    } else null
+
+    val reviewDetail = if (studyPurpose == StudyPurpose.SELF_STUDY) {
+        SubjectReviewDetail(
+            field = studyField?.name ?: "",
+            studyLevel = familiarityLevel?.name ?: "",
+        )
+    } else null
+
+    val otherDetail = if (studyPurpose == StudyPurpose.OTHER) {
+        SubjectOtherDetail(
+            usagePurpose = usagePurpose?.name ?: "",
+            description = additionalDescription.ifBlank { null },
+        )
+    } else null
+
+    return SubjectCreate(
+        name = subjectName.ifBlank { "새 과목" },
+        purpose = purposeKey,
+        examDetail = examDetail,
+        reviewDetail = reviewDetail,
+        otherDetail = otherDetail,
+    )
 }

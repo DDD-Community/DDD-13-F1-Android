@@ -13,6 +13,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.geometry.Rect
+import com.f1.quiket.core.designsystem.component.AddSubjectCard
 import com.f1.quiket.core.designsystem.component.SubjectShortCard
 import com.f1.quiket.core.designsystem.theme.*
 import com.f1.quiket.feature.home.R
@@ -45,10 +46,12 @@ fun TabItem(
 }
 
 @Composable
-fun EmptySubjectContent() {
+fun EmptySubjectContent(
+    onAddSubjectClick: () -> Unit = {},
+) {
     Column {
         HomeEmptySubjectButton(
-            {},
+            onAddSubjectClick,
             modifier = Modifier.padding(vertical = 16.dp, horizontal = 20.dp)
         )
     }
@@ -60,6 +63,7 @@ fun ActiveSubjectContent(
     onSubjectsChange: (List<Subject>) -> Unit = {},
     onSubjectAreaPositioned: (Rect) -> Unit = {},
     onSubjectClick: (Subject) -> Unit = {},
+    onAddSubjectClick: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -98,29 +102,37 @@ fun ActiveSubjectContent(
                 .padding(vertical = 12.dp, horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val chunked = subjects.chunked(2)
-            chunked.forEachIndexed { rowIndex, rowItems ->
+            val totalCount = subjects.size + 1  // +1 for AddSubjectCard
+            (0 until totalCount).chunked(2).forEachIndexed { rowIndex, rowIndices ->
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    rowItems.forEachIndexed { index, subject ->
-                        SubjectShortCard(
-                            title = subject.title,
-                            chapter = subject.chapter,
-                            isStarred = subject.isStarred,
-                            modifier = Modifier.weight(1f),
-                            onStarToggle = {
-                                val realIndex = rowIndex * 2 + index
-                                onSubjectsChange(subjects.mapIndexed { i, item ->
-                                    if (i == realIndex) item.copy(isStarred = !item.isStarred)
-                                    else item
-                                })
-                            },
-                            onClick = { onSubjectClick(subject) }
-                        )
+                    rowIndices.forEach { idx ->
+                        if (idx < subjects.size) {
+                            val subject = subjects[idx]
+                            SubjectShortCard(
+                                title = subject.title,
+                                chapter = subject.chapter,
+                                isStarred = subject.isStarred,
+                                modifier = Modifier.weight(1f),
+                                onStarToggle = {
+                                    onSubjectsChange(subjects.mapIndexed { i, item ->
+                                        if (i == idx) item.copy(isStarred = !item.isStarred)
+                                        else item
+                                    })
+                                },
+                                onClick = { onSubjectClick(subject) }
+                            )
+                        } else {
+                            AddSubjectCard(
+                                title = "과목 추가",
+                                onClick = onAddSubjectClick,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
-                    if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
+                    if (rowIndices.size == 1) Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }

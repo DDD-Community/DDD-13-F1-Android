@@ -45,6 +45,7 @@ import com.f1.quiket.core.designsystem.theme.Gray700
 import com.f1.quiket.core.designsystem.theme.Gray950
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
+import com.f1.quiket.feature.floating.domain.model.AddSubjectState
 import com.f1.quiket.feature.floating.domain.model.ChineseTestType
 import com.f1.quiket.feature.floating.domain.model.CivilServantGrade
 import com.f1.quiket.feature.floating.domain.model.CivilServantSeries
@@ -86,7 +87,7 @@ fun AddSubjectStep3Screen(
     usagePurpose: UsagePurpose? = null,
     onBackClick: () -> Unit = {},
     onSkipClick: () -> Unit = {},
-    onCreateClick: (String) -> Unit = {},
+    onCreateClick: (String, (AddSubjectState) -> AddSubjectState) -> Unit = { _, _ -> },
 ) {
     var showSkipSheet by remember { mutableStateOf(false) }
 
@@ -163,7 +164,7 @@ fun AddSubjectStep3Screen(
 @Composable
 private fun UniversitySection(
     onSkipClick: () -> Unit,
-    onCreateClick: (String) -> Unit,
+    onCreateClick: (String, (AddSubjectState) -> AddSubjectState) -> Unit,
 ) {
     var selectedMajor by remember { mutableStateOf<UniversityMajorCategory?>(null) }
     var majorName by remember { mutableStateOf("") }
@@ -213,7 +214,13 @@ private fun UniversitySection(
             isEnabled = isEnabled,
             onSkipClick = onSkipClick,
             onNextClick = {
-                onCreateClick("${selectedMajor?.label} · $majorName · ${selectedCourseType?.label}")
+                val label = "${selectedMajor?.label} · $majorName · ${selectedCourseType?.label}"
+                val major = selectedMajor
+                val course = selectedCourseType
+                val name = majorName
+                onCreateClick(label) { state ->
+                    state.copy(majorCategory = major, majorName = name, courseType = course)
+                }
             },
         )
     }
@@ -225,7 +232,7 @@ private fun UniversitySection(
 @Composable
 private fun MiddleHighSection(
     onSkipClick: () -> Unit,
-    onCreateClick: (String) -> Unit,
+    onCreateClick: (String, (AddSubjectState) -> AddSubjectState) -> Unit,
 ) {
     var selectedCurriculum by remember { mutableStateOf<MiddleHighCurriculum?>(null) }
     var selectedSubjectType by remember { mutableStateOf<MiddleHighSubjectType?>(null) }
@@ -274,7 +281,13 @@ private fun MiddleHighSection(
             onSkipClick = onSkipClick,
             onNextClick = {
                 val subjectTypeLabel = customSubjectType.ifBlank { selectedSubjectType?.label ?: "" }
-                onCreateClick("${selectedCurriculum?.label} · $subjectTypeLabel")
+                val label = "${selectedCurriculum?.label} · $subjectTypeLabel"
+                val curriculum = selectedCurriculum
+                val subjectType = selectedSubjectType
+                val customType = customSubjectType
+                onCreateClick(label) { state ->
+                    state.copy(curriculum = curriculum, subjectType = subjectType, customSubjectType = customType)
+                }
             },
         )
     }
@@ -297,7 +310,7 @@ private fun MiddleHighSection(
 @Composable
 private fun CertificateSection(
     onSkipClick: () -> Unit,
-    onCreateClick: (String) -> Unit,
+    onCreateClick: (String, (AddSubjectState) -> AddSubjectState) -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     var selectedCert by remember { mutableStateOf("") }
@@ -407,7 +420,10 @@ private fun CertificateSection(
             buttonText = "과목 만들기",
             isEnabled = isEnabled,
             onSkipClick = onSkipClick,
-            onNextClick = { onCreateClick(selectedCert) },
+            onNextClick = {
+                val cert = selectedCert
+                onCreateClick(cert) { state -> state.copy(certificateName = cert) }
+            },
         )
     }
 }
@@ -418,7 +434,7 @@ private fun CertificateSection(
 @Composable
 private fun LanguageSection(
     onSkipClick: () -> Unit,
-    onCreateClick: (String) -> Unit,
+    onCreateClick: (String, (AddSubjectState) -> AddSubjectState) -> Unit,
 ) {
     var selectedLanguage by remember { mutableStateOf<LanguageType?>(null) }
     var selectedEnglishTest by remember { mutableStateOf<EnglishTestType?>(null) }
@@ -514,7 +530,20 @@ private fun LanguageSection(
                     LanguageType.CHINESE -> customTestName.ifBlank { selectedChineseTest?.label ?: "" }
                     null -> ""
                 }
-                onCreateClick("${selectedLanguage?.label} · $testLabel")
+                val lang = selectedLanguage
+                val engTest = selectedEnglishTest
+                val jpTest = selectedJapaneseTest
+                val cnTest = selectedChineseTest
+                val customTest = customTestName
+                onCreateClick("${selectedLanguage?.label} · $testLabel") { state ->
+                    state.copy(
+                        languageType = lang,
+                        englishTest = engTest,
+                        japaneseTest = jpTest,
+                        chineseTest = cnTest,
+                        customLanguageTest = customTest,
+                    )
+                }
             },
         )
     }
@@ -545,7 +574,7 @@ private fun LanguageSection(
 @Composable
 private fun CivilServantSection(
     onSkipClick: () -> Unit,
-    onCreateClick: (String) -> Unit,
+    onCreateClick: (String, (AddSubjectState) -> AddSubjectState) -> Unit,
 ) {
     var selectedGrade by remember { mutableStateOf<CivilServantGrade?>(null) }
     var selectedSeries by remember { mutableStateOf<CivilServantSeries?>(null) }
@@ -578,7 +607,13 @@ private fun CivilServantSection(
             buttonText = "과목 만들기",
             isEnabled = isEnabled,
             onSkipClick = onSkipClick,
-            onNextClick = { onCreateClick("${selectedGrade?.label} · ${selectedSeries?.label}") },
+            onNextClick = {
+                val grade = selectedGrade
+                val series = selectedSeries
+                onCreateClick("${grade?.label} · ${series?.label}") { state ->
+                    state.copy(civilServantGrade = grade, civilServantSeries = series)
+                }
+            },
         )
     }
 }
@@ -589,7 +624,7 @@ private fun CivilServantSection(
 @Composable
 private fun ExamOtherSection(
     onSkipClick: () -> Unit,
-    onCreateClick: (String) -> Unit,
+    onCreateClick: (String, (AddSubjectState) -> AddSubjectState) -> Unit,
 ) {
     var text by remember { mutableStateOf("") }
     val isEnabled = text.isNotBlank()
@@ -625,7 +660,10 @@ private fun ExamOtherSection(
             buttonText = "과목 만들기",
             isEnabled = isEnabled,
             onSkipClick = onSkipClick,
-            onNextClick = { onCreateClick(text) },
+            onNextClick = {
+                val t = text
+                onCreateClick(t) { state -> state.copy(otherExamText = t) }
+            },
         )
     }
 }
@@ -636,7 +674,7 @@ private fun ExamOtherSection(
 @Composable
 private fun FamiliaritySection(
     onSkipClick: () -> Unit,
-    onCreateClick: (String) -> Unit,
+    onCreateClick: (String, (AddSubjectState) -> AddSubjectState) -> Unit,
 ) {
     var selected by remember { mutableStateOf<FamiliarityLevel?>(null) }
     val isEnabled = selected != null
@@ -670,7 +708,10 @@ private fun FamiliaritySection(
             buttonText = "과목 만들기",
             isEnabled = isEnabled,
             onSkipClick = onSkipClick,
-            onNextClick = { onCreateClick(selected?.label ?: "") },
+            onNextClick = {
+                val level = selected
+                onCreateClick(level?.label ?: "") { state -> state.copy(familiarityLevel = level) }
+            },
         )
     }
 }
@@ -716,7 +757,7 @@ private fun FamiliarityItem(
 @Composable
 private fun AdditionalDescriptionSection(
     onSkipClick: () -> Unit,
-    onCreateClick: (String) -> Unit,
+    onCreateClick: (String, (AddSubjectState) -> AddSubjectState) -> Unit,
 ) {
     var text by remember { mutableStateOf("") }
     val isEnabled = text.isNotBlank()
@@ -748,7 +789,10 @@ private fun AdditionalDescriptionSection(
             buttonText = "과목 만들기",
             isEnabled = isEnabled,
             onSkipClick = onSkipClick,
-            onNextClick = { onCreateClick(text) },
+            onNextClick = {
+                val desc = text
+                onCreateClick(desc) { state -> state.copy(additionalDescription = desc) }
+            },
         )
     }
 }

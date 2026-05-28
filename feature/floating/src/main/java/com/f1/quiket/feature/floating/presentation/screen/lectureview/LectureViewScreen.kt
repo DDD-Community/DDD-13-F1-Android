@@ -16,85 +16,73 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.f1.quiket.core.designsystem.theme.Brown50
 import com.f1.quiket.core.designsystem.theme.Dimmed
 import com.f1.quiket.core.designsystem.theme.Gray100
-import com.f1.quiket.core.designsystem.theme.Gray700
+import com.f1.quiket.core.designsystem.theme.Gray50
+import com.f1.quiket.core.designsystem.theme.Gray500
 import com.f1.quiket.core.designsystem.theme.Gray950
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
-import com.f1.quiket.core.designsystem.theme.White
-import com.f1.quiket.feature.floating.R
 import com.f1.quiket.feature.floating.domain.model.Chapter
 import com.f1.quiket.feature.floating.domain.model.LectureItem
-import com.f1.quiket.feature.floating.domain.model.TocChapter
-import com.f1.quiket.feature.floating.domain.model.TocPart
-import com.f1.quiket.feature.floating.presentation.component.LectureItemCard
 import com.f1.quiket.feature.floating.presentation.component.LectureViewBottomBar
 import com.f1.quiket.feature.floating.presentation.component.LectureViewTopBar
-import com.f1.quiket.feature.floating.presentation.component.TocChapterHeader
-import com.f1.quiket.feature.floating.presentation.component.TocPartItem
+import com.f1.quiket.feature.floating.presentation.component.TocSidePanel
+import com.f1.quiket.feature.floating.presentation.viewmodel.LectureViewViewModel
 
-// Sample Data
-private val sampleLectureItems = listOf(
-    LectureItem(1, "1.", "데이터베이스의 개념", "여러 사람이 공유하여 사용할 목적으로 체계화해 통합·관리하는 데이터의 집합"),
-    LectureItem(2, "1-1.", "DBMS의 특징", "독립성, 무결성, 보안성, 일관성, 중복 최소화", isClipped = true),
-    LectureItem(3, "1-2.", "데이터 모델의 구성 요소", "구조(Structure), 연산(Operation), 제약(Constraint)"),
-    LectureItem(4, "2.", "관계형 데이터베이스", "릴레이션으로 데이터를 표현하는 데이터베이스 모델"),
-    LectureItem(5, "2-1.", "키(Key)의 종류", "기본키, 외래키, 후보키, 슈퍼키, 대리키", isClipped = true),
-)
-
-private val sampleTocChapters = listOf(
-    TocChapter(
-        id = 1,
-        title = "SQLD 기본",
-        parts = listOf(
-            TocPart(1, "파트 1 — 데이터베이스 개념", isSelected = true),
-            TocPart(2, "파트 2 — 데이터 모델링"),
-            TocPart(3, "파트 3 — 정규화"),
-        ),
-    ),
-    TocChapter(
-        id = 2,
-        title = "데이터 모델",
-        parts = listOf(
-            TocPart(4, "파트 1 — 엔터티"),
-            TocPart(5, "파트 2 — 속성"),
-            TocPart(6, "파트 3 — 관계"),
-            TocPart(7, "파트 4 — 식별자"),
-        ),
-    ),
-)
 
 @Composable
 fun LectureViewScreen(
+    subjectId: String,
     chapter: Chapter,
     onBackClick: () -> Unit,
+    viewModel: LectureViewViewModel = hiltViewModel(),
 ) {
-    val allParts = remember { sampleTocChapters.flatMap { it.parts } }
-    var currentPartIndex by remember { mutableIntStateOf(0) }
+    val tocChapters by viewModel.tocChapters.collectAsStateWithLifecycle()
+    val allPartIds by viewModel.allPartIds.collectAsStateWithLifecycle()
+    val currentPartId by viewModel.currentPartId.collectAsStateWithLifecycle()
+    val currentPartName by viewModel.currentPartName.collectAsStateWithLifecycle()
+    val currentPartContent by viewModel.currentPartContent.collectAsStateWithLifecycle()
+
     var showTocSidebar by remember { mutableStateOf(false) }
+
+    LaunchedEffect(subjectId, chapter.id) {
+        if (subjectId.isNotEmpty() && chapter.id.isNotEmpty()) {
+            viewModel.loadSubject(subjectId, chapter.id)
+        }
+    }
+
+    val currentPartIndex = remember(currentPartId, allPartIds) {
+        allPartIds.indexOfFirst { it == currentPartId }.coerceAtLeast(0)
+    }
+
+    val displayItems = remember(currentPartContent, currentPartName) {
+        val content = currentPartContent
+        val name = currentPartName ?: ""
+        if (content.isNullOrBlank()) emptyList()
+        else listOf(LectureItem(id = 1, number = "", title = name, content = content))
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -112,14 +100,20 @@ fun LectureViewScreen(
             bottomBar = {
                 LectureViewBottomBar(
                     currentIndex = currentPartIndex,
-                    totalCount = allParts.size,
-                    onPrevious = { if (currentPartIndex > 0) currentPartIndex-- },
-                    onNext = { if (currentPartIndex < allParts.size - 1) currentPartIndex++ },
+                    totalCount = allPartIds.size.coerceAtLeast(1),
+                    onPrevious = {
+                        if (currentPartIndex > 0) viewModel.selectPart(allPartIds[currentPartIndex - 1])
+                    },
+                    onNext = {
+                        if (currentPartIndex < allPartIds.size - 1) viewModel.selectPart(allPartIds[currentPartIndex + 1])
+                    },
                 )
             },
         ) { innerPadding ->
             LectureList(
-                items = sampleLectureItems,
+                items = displayItems,
+                chapterNumber = chapter.number,
+                partTitle = currentPartName ?: "",
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
@@ -150,11 +144,10 @@ fun LectureViewScreen(
             exit = slideOutHorizontally(targetOffsetX = { fullWidth -> fullWidth }),
         ) {
             TocSidePanel(
-                chapters = sampleTocChapters,
-                selectedPartId = allParts.getOrNull(currentPartIndex)?.id,
+                chapters = tocChapters,
+                selectedPartId = currentPartId,
                 onPartClick = { partId ->
-                    val idx = allParts.indexOfFirst { it.id == partId }
-                    if (idx >= 0) currentPartIndex = idx
+                    viewModel.selectPart(partId)
                     showTocSidebar = false
                 },
                 onClose = { showTocSidebar = false },
@@ -163,89 +156,94 @@ fun LectureViewScreen(
     }
 }
 
-
 @Composable
 private fun LectureList(
     items: List<LectureItem>,
+    chapterNumber: Int,
+    partTitle: String,
     modifier: Modifier = Modifier,
 ) {
-    LazyColumn(
-        modifier = modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        item { Spacer(modifier = Modifier.height(8.dp)) }
-        items(items, key = { it.id }) { item ->
-            LectureItemCard(item = item)
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Gray50)
+                .padding(horizontal = 18.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = "챕터 $chapterNumber",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = Gray500,
+            )
+            Text(
+                text = ">",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = Gray500,
+            )
+            Text(
+                text = partTitle,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = Gray500,
+            )
         }
-        item { Spacer(modifier = Modifier.height(16.dp)) }
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brown50)
+                .padding(horizontal = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            item { Spacer(modifier = Modifier.height(12.dp)) }
+            items(items, key = { it.id }) { item ->
+                LectureTextItem(item = item)
+            }
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+        }
     }
 }
 
 @Composable
-private fun TocSidePanel(
-    chapters: List<TocChapter>,
-    selectedPartId: Int?,
-    onPartClick: (Int) -> Unit,
-    onClose: () -> Unit,
+private fun LectureTextItem(
+    item: LectureItem,
+    modifier: Modifier = Modifier,
 ) {
-
-    Column(
-        modifier = Modifier
-            .fillMaxHeight()
-            .width(280.dp)
-            .background(White)
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() },
-                onClick = {}
-            )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_addsubject_close),
-                contentDescription = "null",
-                tint = Color.Transparent,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.weight(1f))
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                text = "목차",
-                style = MaterialTheme.typography.titleSmall,
-                color = Gray950
+                text = item.number,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = Gray950,
+                modifier = Modifier.width(30.dp),
             )
-            Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = onClose) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_addsubject_close),
-                    contentDescription = "닫기",
-                    tint = Gray700,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+            Text(
+                text = item.title,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = Gray950,
+            )
         }
-
-        HorizontalDivider(color = Gray100, thickness = 1.dp)
-
-        // 챕터 > 파트 목차 리스트
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            chapters.forEach { chapter ->
-                item(key = "chapter_${chapter.id}") {
-                    TocChapterHeader(chapter = chapter)
-                }
-                items(chapter.parts, key = { "part_${it.id}" }) { part ->
-                    TocPartItem(
-                        part = part.copy(isSelected = part.id == selectedPartId),
-                        onClick = { onPartClick(part.id) },
-                    )
-                    HorizontalDivider(color = Gray100, thickness = 1.dp)
-                }
-            }
-        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = item.content,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontWeight = FontWeight.Medium
+            ),
+            color = Gray950,
+            lineHeight = 20.sp,
+            modifier = Modifier.padding(start = 36.dp),
+        )
     }
 }
 
@@ -254,6 +252,7 @@ private fun TocSidePanel(
 private fun LectureViewScreenPreview() {
     QuiketTheme {
         LectureViewScreen(
+            subjectId = "",
             chapter = Chapter(number = 1, name = "SQLD", partCount = 3),
             onBackClick = {},
         )

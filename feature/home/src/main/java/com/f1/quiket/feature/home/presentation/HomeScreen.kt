@@ -31,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -72,8 +73,10 @@ import com.f1.quiket.core.designsystem.theme.Gray900
 import com.f1.quiket.core.designsystem.theme.Orange500
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
+import com.f1.quiket.feature.floating.domain.model.Chapter
 import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
 import com.f1.quiket.feature.floating.presentation.screen.lectureselect.LectureSelectScreen
+import com.f1.quiket.feature.floating.presentation.screen.lectureview.LectureViewScreen
 import com.f1.quiket.feature.floating.presentation.screen.subjectdetail.SubjectDetailScreen
 import com.f1.quiket.feature.home.component.ExpandableFab
 import com.f1.quiket.feature.home.component.HomeGuideTooltip
@@ -98,7 +101,8 @@ fun HomeScreen(
     onQuizCardClick: () -> Unit,
     onQuizActionClick: () -> Unit,
     onQuizResultClick: (String) -> Unit = {},
-    onFabItemClick: (FabAction) -> Unit
+    onFabItemClick: (FabAction) -> Unit,
+    onHomeRefresh: () -> Unit = {},
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
@@ -116,30 +120,44 @@ fun HomeScreen(
     }
 
     // 강의 선택 후 UploadScreen에 넘길 정보
+    var selectedLectureId by remember { mutableStateOf("") }
     var selectedLectureTitle by remember { mutableStateOf("") }
     var selectedLectureChapterCount by remember { mutableStateOf(0) }
+    var selectedLectureCategory by remember { mutableStateOf("") }
     // SubjectDetail에서 챕터 추가/업로드 시 넘길 챕터 번호
     var nextChapterNumber by remember { mutableStateOf(1) }
+    // 업로드 성공 후 LectureViewScreen에 넘길 챕터 정보
+    var uploadedSubjectId by remember { mutableStateOf("") }
+    var uploadedChapterId by remember { mutableStateOf("") }
+    var uploadedChapterName by remember { mutableStateOf("") }
+    var uploadedChapterNumber by remember { mutableStateOf(1) }
+    var lectureViewBackDepth by remember { mutableStateOf(0) }
 
     BackHandler(enabled = depth > 0) {
         when (depth) {
-            1 -> depth = 0
+            1 -> { depth = 0; onHomeRefresh() }
             2 -> depth = 1
             3 -> depth = 1
             4 -> depth = 2
+            5 -> depth = 0  // 홈 업로드용 LectureSelect → 홈
+            6 -> depth = 5  // 홈 업로드용 UploadScreen → LectureSelect
+            7 -> depth = lectureViewBackDepth
             else -> {}
         }
     }
 
-    // depth 1 ~ 3: SubjectDetail / LectureSelect / Upload
+    // depth 1~6: SubjectDetail / LectureSelect(SubjectDetail) / Upload(SubjectDetail) /
+    //            Upload(SubjectDetail+Lecture) / LectureSelect(홈) / Upload(홈+Lecture)
     when (depth) {
         1 -> {
             SubjectDetailScreen(
+                subjectId = selectedSubject?.id ?: "",
                 subjectName = selectedSubject?.title ?: "",
                 studyPurposeLabel = "",
                 examTypeLabel = "",
                 detailLabel = "",
-                onBackClick = { depth = 0 },
+                onBackClick = { depth = 0; onHomeRefresh() },
+                onExamScheduleSaved = onHomeRefresh,
                 onUploadClick = { n -> nextChapterNumber = n; depth = 3 },
                 onChapterAddClick = { n -> nextChapterNumber = n; depth = 3 },
                 onSubjectNameChanged = { newName ->
@@ -155,9 +173,11 @@ fun HomeScreen(
         2 -> {
             LectureSelectScreen(
                 onBackClick = { depth = 1 },
-                onLectureSelected = { _, title, count ->
+                onLectureSelected = { lectureId, title, count, category ->
+                    selectedLectureId = lectureId
                     selectedLectureTitle = title
                     selectedLectureChapterCount = count
+                    selectedLectureCategory = category
                     depth = 4
                 },
             )
@@ -166,22 +186,88 @@ fun HomeScreen(
 
         3 -> {
             UploadScreen(
+                subjectId = selectedSubject?.id,
                 chapterTitle = selectedSubject?.title,
                 lecturePurpose = selectedSubject?.chapter,
                 chapterCount = nextChapterNumber - 1,
                 onBackClick = { depth = 1 },
                 onNextClick = { depth = 1 },
+                onUploadSuccess = { sId, cId, cName, cNum ->
+                    uploadedSubjectId = sId
+                    uploadedChapterId = cId
+                    uploadedChapterName = cName
+                    uploadedChapterNumber = cNum
+                    lectureViewBackDepth = 1
+                    depth = 7
+                },
             )
             return
         }
 
         4 -> {
             UploadScreen(
+                subjectId = selectedLectureId,
                 chapterTitle = selectedLectureTitle,
-                lecturePurpose = null,
+                lecturePurpose = selectedLectureCategory.ifBlank { null },
                 chapterCount = selectedLectureChapterCount,
                 onBackClick = { depth = 2 },
                 onNextClick = { depth = 1 },
+                onUploadSuccess = { sId, cId, cName, cNum ->
+                    uploadedSubjectId = sId
+                    uploadedChapterId = cId
+                    uploadedChapterName = cName
+                    uploadedChapterNumber = cNum
+                    lectureViewBackDepth = 1
+                    depth = 7
+                },
+            )
+            return
+        }
+
+        5 -> {
+            LectureSelectScreen(
+                onBackClick = { depth = 0 },
+                onLectureSelected = { lectureId, title, count, category ->
+                    selectedLectureId = lectureId
+                    selectedLectureTitle = title
+                    selectedLectureChapterCount = count
+                    selectedLectureCategory = category
+                    depth = 6
+                },
+            )
+            return
+        }
+
+        6 -> {
+            UploadScreen(
+                subjectId = selectedLectureId,
+                chapterTitle = selectedLectureTitle,
+                lecturePurpose = selectedLectureCategory.ifBlank { null },
+                chapterCount = selectedLectureChapterCount,
+                onBackClick = { depth = 5 },
+                onNextClick = { depth = 0 },
+                onUploadSuccess = { sId, cId, cName, cNum ->
+                    uploadedSubjectId = sId
+                    uploadedChapterId = cId
+                    uploadedChapterName = cName
+                    uploadedChapterNumber = cNum
+                    lectureViewBackDepth = 0
+                    depth = 7
+                },
+            )
+            return
+        }
+
+        7 -> {
+            LectureViewScreen(
+                subjectId = uploadedSubjectId,
+                chapter = Chapter(
+                    id = uploadedChapterId,
+                    number = uploadedChapterNumber,
+                    name = uploadedChapterName,
+                    partCount = 0,
+                ),
+                onBackClick = { depth = lectureViewBackDepth },
             )
             return
         }
@@ -299,7 +385,7 @@ fun HomeScreen(
                                     iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_upload,
                                     backgroundColor = Gray100,
                                     onClick = {
-                                        if (uiState.hasSubjects) onFabItemClick(FabAction.Upload)
+                                        if (uiState.hasSubjects) depth = 5
                                         else showNoSubjectPopup = true
                                     },
                                     modifier = Modifier.fillMaxWidth()
@@ -405,14 +491,16 @@ fun HomeScreen(
                 }
 
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().fillMaxHeight(),
                     color = White,
                     shape = RoundedCornerShape(topEnd = 24.dp)
                 ) {
-                    Box {
+                    Box(modifier = Modifier.fillMaxHeight()) {
                         if (selectedTab == 0) {
                             if (subjects.isEmpty()) {
-                                EmptySubjectContent()
+                                EmptySubjectContent(
+                                    onAddSubjectClick = { onFabItemClick(FabAction.AddSubject) },
+                                )
                             } else {
                                 ActiveSubjectContent(
                                     subjects = subjects,
@@ -422,6 +510,7 @@ fun HomeScreen(
                                         selectedSubject = subject
                                         depth = 1
                                     },
+                                    onAddSubjectClick = { onFabItemClick(FabAction.AddSubject) },
                                 )
                             }
                         } else {
@@ -499,10 +588,10 @@ fun HomeScreen(
             onFabClick = { isExpanded = !isExpanded },
             onItemClick = { action ->
                 isExpanded = false
-                if (action == FabAction.Upload && !uiState.hasSubjects) {
-                    showNoSubjectPopup = true
-                } else {
-                    onFabItemClick(action)
+                when {
+                    action == FabAction.Upload && !uiState.hasSubjects -> showNoSubjectPopup = true
+                    action == FabAction.Upload -> depth = 5
+                    else -> onFabItemClick(action)
                 }
             },
             modifier = Modifier
@@ -530,6 +619,7 @@ fun HomeScreen(
 private fun HomeData?.toHomeSubjects(): List<Subject> =
     this?.subjects.orEmpty().map { subject ->
         Subject(
+            id = subject.id,
             title = subject.name,
             chapter = "챕터 ${subject.chapterCount}",
             isStarred = false,

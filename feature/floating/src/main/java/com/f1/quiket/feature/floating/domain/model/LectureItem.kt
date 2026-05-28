@@ -9,13 +9,14 @@ data class LectureItem(
 )
 
 data class TocChapter(
-    val id: Int,
+    val id: String,
+    val number: Int,
     val title: String,
     val parts: List<TocPart>,
 )
 
 data class TocPart(
-    val id: Int,
+    val id: String,
     val title: String,
     val isSelected: Boolean = false,
 )

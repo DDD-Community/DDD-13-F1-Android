@@ -57,6 +57,9 @@ fun LectureUploadSection(
     selectedTab: UploadTab,
     onTabSelect: (UploadTab) -> Unit,
     onReadyChange: (Boolean) -> Unit = {},
+    onFilesChange: (List<UploadFile>) -> Unit = {},
+    onImagesChange: (List<UploadImage>) -> Unit = {},
+    onTextChange: (String) -> Unit = {},
     initialFiles: List<UploadFile> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
@@ -74,6 +77,11 @@ fun LectureUploadSection(
     LaunchedEffect(isReady, selectedTab) {
         onReadyChange(isReady)
     }
+
+    // content 변경 시 상위로 전달
+    LaunchedEffect(files.toList()) { onFilesChange(files.toList()) }
+    LaunchedEffect(images.toList()) { onImagesChange(images.toList()) }
+    LaunchedEffect(lectureText) { onTextChange(lectureText) }
 
     Column(modifier = modifier) {
         Spacer(modifier = Modifier.height(16.dp))
@@ -291,18 +299,21 @@ private fun LectureUploadSectionFileStatesPreview() {
     val sampleFiles = listOf(
         UploadFile(
             id = 1,
+            uri = android.net.Uri.EMPTY,
             name = "SQLD_정리노트.pdf",
             sizeLabel = "2.4MB",
             status = UploadFileStatus.COMPLETED
         ),
         UploadFile(
             id = 2,
+            uri = android.net.Uri.EMPTY,
             name = "데이터모델링_강의자료.pdf",
             sizeLabel = "1.1MB",
             status = UploadFileStatus.FAILED
         ),
         UploadFile(
             id = 3,
+            uri = android.net.Uri.EMPTY,
             name = "SQL활용_실습.pdf",
             sizeLabel = "890KB",
             status = UploadFileStatus.UPLOADING

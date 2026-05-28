@@ -40,12 +40,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.f1.quiket.feature.floating.presentation.viewmodel.SubjectDetailViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -105,14 +109,9 @@ private fun calcDDay(dateStr: String): String {
     }.getOrDefault("D-?")
 }
 
-private val sampleChapters = listOf(
-    Chapter(1, "SQLD 기본", 3),
-    Chapter(2, "데이터 모델", 4),
-    Chapter(3, "SQL 활용", 2),
-)
-
 @Composable
 fun SubjectDetailScreen(
+    subjectId: String = "",
     subjectName: String,
     studyPurposeLabel: String,
     examTypeLabel: String,
@@ -122,13 +121,38 @@ fun SubjectDetailScreen(
     onUploadClick: (newChapterNumber: Int) -> Unit = {},
     onEditSubjectType: () -> Unit = {},
     onSubjectNameChanged: (String) -> Unit = {},
+    onExamScheduleSaved: () -> Unit = {},
+    viewModel: SubjectDetailViewModel = hiltViewModel(),
 ) {
+    val subjectDetail by viewModel.subjectDetail.collectAsState()
+    val apiExamSchedule by viewModel.examSchedule.collectAsState()
+
+    LaunchedEffect(subjectId) {
+        if (subjectId.isNotEmpty()) viewModel.loadSubject(subjectId)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.examScheduleSaved.collect { onExamScheduleSaved() }
+    }
+
+    val chapters = remember(subjectDetail) {
+        subjectDetail?.chapters?.map { chapter ->
+            Chapter(
+                id = chapter.id,
+                number = chapter.displayOrder,
+                name = chapter.name,
+                partCount = chapter.parts.size,
+            )
+        } ?: emptyList()
+    }
+
     var selectedChapter by remember { mutableStateOf<Chapter?>(null) }
 
     // LectureView로 이동
     selectedChapter?.let { chapter ->
         BackHandler { selectedChapter = null }
         LectureViewScreen(
+            subjectId = subjectId,
             chapter = chapter,
             onBackClick = { selectedChapter = null },
         )
@@ -137,12 +161,18 @@ fun SubjectDetailScreen(
 
     // Persistent state across recompositions
     var displaySubjectName by rememberSaveable { mutableStateOf(subjectName) }
-    var chapters by remember { mutableStateOf(sampleChapters) }
     var isStarred by rememberSaveable { mutableStateOf(false) }
     var showDropdownMenu by remember { mutableStateOf(false) }
     var showScheduleDialog by remember { mutableStateOf(false) }
-    var confirmedExamName by rememberSaveable { mutableStateOf("") }
-    var confirmedSchedule by rememberSaveable { mutableStateOf("") }
+    var confirmedExamName by rememberSaveable { mutableStateOf(apiExamSchedule?.examName ?: "") }
+    var confirmedSchedule by rememberSaveable { mutableStateOf(apiExamSchedule?.examDate ?: "") }
+
+    LaunchedEffect(apiExamSchedule) {
+        apiExamSchedule?.let {
+            confirmedExamName = it.examName
+            confirmedSchedule = it.examDate
+        }
+    }
     var showEditSubjectNameDialog by remember { mutableStateOf(false) }
     var isChapterEditMode by remember { mutableStateOf(false) }
     var editingChapter by remember { mutableStateOf<Chapter?>(null) }
@@ -215,9 +245,9 @@ fun SubjectDetailScreen(
                         .weight(1f)
                 )
             }
-            if (confirmedExamName.isNotBlank() && confirmedSchedule.isNotBlank()) {
+            if (confirmedSchedule.isNotBlank()) {
                 HomeExamCard(
-                    examName = confirmedExamName,
+                    examName = confirmedExamName.ifBlank { displaySubjectName },
                     date = confirmedSchedule,
                     dDay = calcDDay(confirmedSchedule),
                     onClick = { showScheduleDialog = true },
@@ -253,6 +283,7 @@ fun SubjectDetailScreen(
             onApply = { name, date ->
                 confirmedExamName = name
                 confirmedSchedule = date
+                if (subjectId.isNotEmpty()) viewModel.upsertExamSchedule(subjectId, name.ifBlank { null }, date)
                 showScheduleDialog = false
             },
         )
@@ -265,6 +296,7 @@ fun SubjectDetailScreen(
             onApply = { newName ->
                 displaySubjectName = newName
                 onSubjectNameChanged(newName)
+                if (subjectId.isNotEmpty()) viewModel.updateSubjectName(subjectId, newName)
                 showEditSubjectNameDialog = false
             },
         )
@@ -275,7 +307,7 @@ fun SubjectDetailScreen(
             currentName = chapter.name,
             onDismiss = { editingChapter = null; isChapterEditMode = false },
             onApply = { newName ->
-                chapters = chapters.map { if (it.number == chapter.number) it.copy(name = newName) else it }
+                if (chapter.id.isNotEmpty()) viewModel.updateChapterName(chapter.id, newName)
                 editingChapter = null
                 isChapterEditMode = false
             },
@@ -440,7 +472,7 @@ private fun AddTestCalendarDialog(
     var selectedDay by remember { mutableStateOf<Int?>(null) }
     var confirmedDateStr by remember { mutableStateOf("") }
 
-    val isApplyEnabled = examName.isNotBlank() && confirmedDateStr.isNotBlank()
+    val isApplyEnabled = confirmedDateStr.isNotBlank()
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
