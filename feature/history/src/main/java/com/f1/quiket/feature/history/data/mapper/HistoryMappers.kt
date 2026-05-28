@@ -11,6 +11,8 @@ import com.f1.quiket.feature.history.data.remote.QuizResultDataResponse
 import com.f1.quiket.feature.history.data.remote.QuizResultSubmitRequest
 import com.f1.quiket.feature.history.data.remote.QuizRetryRequest
 import com.f1.quiket.feature.history.data.remote.QuizReviewItemResponse
+import com.f1.quiket.feature.history.data.remote.RecentActivityPageResponse
+import com.f1.quiket.feature.history.data.remote.RecentActivityResponse
 import com.f1.quiket.feature.history.data.remote.RetryAvailableResponse
 import com.f1.quiket.feature.history.data.remote.RewardSummaryResponse
 import com.f1.quiket.feature.history.domain.model.PartSummary
@@ -28,6 +30,33 @@ import com.f1.quiket.feature.history.domain.model.RetryQuestionAnswer
 import com.f1.quiket.feature.history.domain.model.RetryQuizSession
 import com.f1.quiket.feature.history.domain.model.RetryAvailable
 import com.f1.quiket.feature.history.domain.model.RewardSummary
+import com.f1.quiket.feature.history.domain.model.RecentActivity
+import com.f1.quiket.feature.history.domain.model.RecentActivityPage
+import com.f1.quiket.feature.history.domain.model.RecentActivityType
+
+fun RecentActivityPageResponse.toDomain(): RecentActivityPage = RecentActivityPage(
+    activities = content.map { activity -> activity.toDomain() },
+    page = page,
+    size = size,
+    totalElements = totalElements,
+    totalPages = totalPages,
+    hasNext = hasNext,
+)
+
+fun RecentActivityResponse.toDomain(): RecentActivity = RecentActivity(
+    activityId = activityId,
+    activityType = activityType.toRecentActivityType(),
+    quizSessionId = quizSessionId,
+    playSessionId = playSessionId,
+    resultId = resultId,
+    title = title,
+    subjectId = subjectId,
+    subjectName = subjectName,
+    status = status,
+    progressPct = progressPct,
+    scoreText = scoreText,
+    createdAt = createdAt,
+)
 
 fun QuizResultSubmit.toRequest(): QuizResultSubmitRequest = QuizResultSubmitRequest(
     clientSessionId = clientSessionId,
@@ -60,6 +89,7 @@ fun QuizRetry.toRequest(): QuizRetryRequest = QuizRetryRequest(
 
 fun QuizResultDataResponse.toDomain(): QuizResult = QuizResult(
     playSessionId = playSessionId,
+    resultId = resultId,
     quizSessionId = quizSessionId,
     subjectId = subjectId,
     subjectName = subjectName,
@@ -175,3 +205,7 @@ private fun String.toQuizPlayType(): QuizPlayType =
 private fun String.toQuizPlaySessionStatus(): QuizPlaySessionStatus =
     QuizPlaySessionStatus.entries.firstOrNull { status -> status.wireValue == this }
         ?: QuizPlaySessionStatus.Unknown
+
+private fun String.toRecentActivityType(): RecentActivityType =
+    RecentActivityType.entries.firstOrNull { type -> type.wireValue == this }
+        ?: RecentActivityType.Unknown

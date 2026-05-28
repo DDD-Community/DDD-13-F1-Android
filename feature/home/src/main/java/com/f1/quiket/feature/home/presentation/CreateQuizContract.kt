@@ -23,6 +23,7 @@ data class CreateQuizState(
     val selectedDifficulty: QuizDifficultyOption? = null,
     val isCreatingQuiz: Boolean = false,
     val generationProgress: Float = 0f,
+    val generationFailureMessage: String? = null,
     val rewardCount: Int = 10,
 ) : UiState {
     val selectedSubject: QuizSubjectUiModel?
@@ -61,6 +62,7 @@ sealed interface CreateQuizIntent : UiIntent {
     data object ApplyCustomQuestionCount : CreateQuizIntent
     data class SelectDifficulty(val difficulty: QuizDifficultyOption) : CreateQuizIntent
     data object CreateQuiz : CreateQuizIntent
+    data object DismissGenerationFailure : CreateQuizIntent
     data object BackClick : CreateQuizIntent
 }
 

@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.f1.quiket.core.designsystem.component.QuiketPrimaryButton
 import com.f1.quiket.core.designsystem.component.QuiketTimerInputDialog
 import com.f1.quiket.core.designsystem.component.QuiketTimerInputUnit
@@ -80,11 +83,20 @@ data class QuizStartConfig(
 
 @Composable
 fun QuizStartRoute(
+    quizSessionId: String?,
     onBackClick: () -> Unit,
     onStartClick: (QuizStartConfig) -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: QuizStartViewModel = hiltViewModel(),
 ) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(quizSessionId) {
+        viewModel.onIntent(QuizStartIntent.Load(quizSessionId))
+    }
+
     QuizStartScreen(
+        state = state,
         onBackClick = onBackClick,
         onStartClick = onStartClick,
         modifier = modifier,
@@ -93,6 +105,7 @@ fun QuizStartRoute(
 
 @Composable
 fun QuizStartScreen(
+    state: QuizStartState = QuizStartState(summary = quizStartPreviewSummary()),
     onBackClick: () -> Unit,
     onStartClick: (QuizStartConfig) -> Unit,
     modifier: Modifier = Modifier,
@@ -144,7 +157,7 @@ fun QuizStartScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             CreateQuizTopBar(
-                title = "SQLD",
+                title = state.summary?.title ?: "퀴즈",
                 onBackClick = onBackClick,
             )
 
@@ -156,7 +169,11 @@ fun QuizStartScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                QuizStartOverview()
+                QuizStartOverview(
+                    summary = state.summary,
+                    isLoading = state.isLoading,
+                    errorMessage = state.errorMessage,
+                )
 
                 PlayModeSection(
                     selectedPlayMode = selectedPlayMode,
@@ -206,7 +223,7 @@ fun QuizStartScreen(
 
         QuiketPrimaryButton(
             text = "퀴즈 시작하기",
-            enabled = true,
+            enabled = state.summary != null && !state.isLoading && state.errorMessage == null,
             onClick = {
                 val timerScope = timerOptionScopeValue.toQuizTimerScope()
                 val playModeTimerScope = QuizTimerScope.PerQuestion
@@ -275,8 +292,13 @@ fun QuizStartScreen(
 
 @Composable
 private fun QuizStartOverview(
+    summary: QuizStartSummaryUiModel?,
+    isLoading: Boolean,
+    errorMessage: String?,
     modifier: Modifier = Modifier,
 ) {
+    val displaySummary = summary ?: quizStartPreviewSummary()
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -304,7 +326,7 @@ private fun QuizStartOverview(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = "SQLD",
+                    text = displaySummary.title,
                     color = Gray950,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontSize = 24.sp,
@@ -316,24 +338,43 @@ private fun QuizStartOverview(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    QuizStartDescriptionText(text = "객관식")
-                    QuizStartDescriptionText(text = "·")
-                    QuizStartDescriptionText(text = "4지선다")
+                    QuizStartDescriptionText(text = displaySummary.quizTypeLabel)
+                    displaySummary.choiceLabel?.let { choiceLabel ->
+                        QuizStartDescriptionText(text = "·")
+                        QuizStartDescriptionText(text = choiceLabel)
+                    }
                 }
             }
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                QuizInfoTag(text = "5문제")
-                QuizInfoTag(text = "난이도: 보통")
+                QuizInfoTag(text = displaySummary.questionCountLabel)
+                QuizInfoTag(text = displaySummary.difficultyLabel)
             }
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                QuizScopeChip(text = "챕터 1 / 파트 1,3")
-                QuizScopeChip(text = "챕터 2 / 전체")
+                displaySummary.scopeLabels.take(3).forEach { label ->
+                    QuizScopeChip(text = label)
+                }
+            }
+
+            if (summary == null) {
+                Text(
+                    text = when {
+                        isLoading -> "퀴즈 정보를 불러오는 중이에요"
+                        !errorMessage.isNullOrBlank() -> errorMessage
+                        else -> "퀴즈 정보를 불러올 수 없어요"
+                    },
+                    color = Gray700,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 14.sp,
+                        lineHeight = 21.sp,
+                        fontWeight = FontWeight.Medium,
+                    ),
+                )
             }
         }
     }
@@ -699,6 +740,15 @@ private fun String.toTimerSeconds(unit: QuiketTimerInputUnit): Int? {
         QuiketTimerInputUnit.Minutes -> value * 60
     }
 }
+
+private fun quizStartPreviewSummary(): QuizStartSummaryUiModel = QuizStartSummaryUiModel(
+    title = "SQLD",
+    quizTypeLabel = "객관식",
+    choiceLabel = "4지선다",
+    questionCountLabel = "5문제",
+    difficultyLabel = "난이도: 보통",
+    scopeLabels = listOf("챕터 1 / 파트 1,3", "챕터 2 / 전체"),
+)
 
 @Preview(showBackground = true, showSystemUi = true, widthDp = 360, heightDp = 800)
 @Composable

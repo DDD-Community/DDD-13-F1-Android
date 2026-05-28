@@ -148,6 +148,7 @@ class QuizPlayRepositoryImplTest {
 
         val quizResult = (result as NetworkResult.Success).data
         assertThat(quizResult.playSessionId).isEqualTo("play-1")
+        assertThat(quizResult.resultId).isEqualTo("result-1")
         assertThat(quizResult.rewards.dotoriEarned).isEqualTo(10)
     }
 
@@ -156,15 +157,15 @@ class QuizPlayRepositoryImplTest {
         val api = FakeQuizPlayApi()
         val repository = repository(api)
 
-        api.getQuizResultHandler = { playSessionId ->
-            assertThat(playSessionId).isEqualTo("play-1")
+        api.getQuizResultHandler = { resultId ->
+            assertThat(resultId).isEqualTo("result-1")
             successResponse(
                 code = "QUIZ_RESULT_SUCCESS",
                 data = quizResultResponse(),
             )
         }
 
-        val result = repository.getQuizResult("play-1")
+        val result = repository.getQuizResult("result-1")
 
         val quizResult = (result as NetworkResult.Success).data
         assertThat(quizResult.correctCount).isEqualTo(1)
@@ -211,8 +212,8 @@ class QuizPlayRepositoryImplTest {
         ): Response<ApiResponse<QuizResultDataResponse>> = submitQuizResultHandler(request)
 
         override suspend fun getQuizResult(
-            playSessionId: String,
-        ): Response<ApiResponse<QuizResultDataResponse>> = getQuizResultHandler(playSessionId)
+            resultId: String,
+        ): Response<ApiResponse<QuizResultDataResponse>> = getQuizResultHandler(resultId)
 
         private fun <T> unhandled(method: String): T {
             error("Unhandled QuizPlayApi call: $method")
@@ -271,6 +272,7 @@ class QuizPlayRepositoryImplTest {
 
         fun quizResultResponse(): QuizResultDataResponse = QuizResultDataResponse(
             playSessionId = "play-1",
+            resultId = "result-1",
             quizSessionId = "session-1",
             subjectId = "subject-1",
             subjectName = "SQLD",

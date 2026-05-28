@@ -43,15 +43,15 @@ import com.f1.quiket.feature.home.domain.model.RewardSummary
 
 @Composable
 fun QuizResultRoute(
-    playSessionId: String,
+    resultId: String,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: QuizResultViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    LaunchedEffect(playSessionId) {
-        viewModel.onIntent(QuizResultIntent.Load(playSessionId))
+    LaunchedEffect(resultId) {
+        viewModel.onIntent(QuizResultIntent.Load(resultId))
     }
 
     QuizResultScreen(

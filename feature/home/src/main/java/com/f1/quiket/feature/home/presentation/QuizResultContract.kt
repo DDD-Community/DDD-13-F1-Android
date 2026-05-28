@@ -12,7 +12,7 @@ data class QuizResultState(
 ) : UiState
 
 sealed interface QuizResultIntent : UiIntent {
-    data class Load(val playSessionId: String) : QuizResultIntent
+    data class Load(val resultId: String) : QuizResultIntent
 }
 
 sealed interface QuizResultEffect : UiEffect

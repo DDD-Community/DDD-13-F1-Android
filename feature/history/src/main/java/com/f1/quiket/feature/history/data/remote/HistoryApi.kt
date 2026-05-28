@@ -8,8 +8,16 @@ import retrofit2.http.GET
 import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface HistoryApi {
+    @Headers(AuthenticatedRequest.HEADER)
+    @GET("home/recent-activities")
+    suspend fun getRecentActivities(
+        @Query("page") page: Int,
+        @Query("size") size: Int,
+    ): Response<ApiResponse<RecentActivityPageResponse>>
+
     @Headers(AuthenticatedRequest.HEADER)
     @POST("quiz-results")
     suspend fun submitQuizResult(
@@ -17,9 +25,9 @@ interface HistoryApi {
     ): Response<ApiResponse<QuizResultDataResponse>>
 
     @Headers(AuthenticatedRequest.HEADER)
-    @GET("quiz-results/{playSessionId}")
+    @GET("quiz-results/{resultId}")
     suspend fun getQuizResult(
-        @Path("playSessionId") playSessionId: String,
+        @Path("resultId") resultId: String,
     ): Response<ApiResponse<QuizResultDataResponse>>
 
     @Headers(AuthenticatedRequest.HEADER)
