@@ -39,8 +39,8 @@ fun NavGraphBuilder.homeGraph(
             isQuizGenerating = isQuizGenerating,
             activeQuizSessionId = activeQuizSessionId,
             navigateToQuizStart = navigateToQuizStart,
-            navigateToQuizResult = { playSessionId ->
-                navController.navigate(QuizResultDestination.createRoute(playSessionId))
+            navigateToQuizResult = { resultId ->
+                navController.navigate(QuizResultDestination.createRoute(resultId))
             },
             navigateToScheduleExam = navigateToScheduleExam,
             navigateToCreateQuiz = navigateToCreateQuiz,
@@ -75,6 +75,7 @@ fun NavGraphBuilder.homeGraph(
         val quizSessionId = backStackEntry.arguments
             ?.getString(QuizStartDestination.ARG_QUIZ_SESSION_ID)
         QuizStartRoute(
+            quizSessionId = quizSessionId,
             onBackClick = { navController.popBackStack() },
             onStartClick = { config ->
                 navController.navigate(
@@ -136,12 +137,10 @@ fun NavGraphBuilder.homeGraph(
             timerScope = timerScope,
             timerSeconds = timerSeconds,
             onCloseClick = { navController.popBackStack() },
-            onResultReady = { playSessionId ->
+            onResultReady = { resultId ->
                 onQuizPlayCompleted()
-                navController.navigate(QuizResultDestination.createRoute(playSessionId)) {
-                    popUpTo(QuizPlayAllDestination.route) {
-                        inclusive = true
-                    }
+                navController.navigate(QuizResultDestination.createRoute(resultId)) {
+                    popUpTo(HomeDestination.route)
                 }
             },
         )
@@ -149,18 +148,18 @@ fun NavGraphBuilder.homeGraph(
     composable(
         route = QuizResultDestination.route,
         arguments = listOf(
-            navArgument(QuizResultDestination.ARG_PLAY_SESSION_ID) {
+            navArgument(QuizResultDestination.ARG_RESULT_ID) {
                 type = NavType.StringType
             },
         ),
     ) { backStackEntry ->
-        val playSessionId = backStackEntry.arguments
-            ?.getString(QuizResultDestination.ARG_PLAY_SESSION_ID)
+        val resultId = backStackEntry.arguments
+            ?.getString(QuizResultDestination.ARG_RESULT_ID)
             .orEmpty()
         QuizResultRoute(
-            playSessionId = playSessionId,
+            resultId = resultId,
             onBackClick = {
-                navController.popBackStack(HomeDestination.route, inclusive = false)
+                navController.popBackStack()
             },
         )
     }

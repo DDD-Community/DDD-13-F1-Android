@@ -1,5 +1,40 @@
 package com.f1.quiket.feature.history.domain.model
 
+data class RecentActivityPage(
+    val activities: List<RecentActivity>,
+    val page: Int,
+    val size: Int,
+    val totalElements: Long,
+    val totalPages: Int,
+    val hasNext: Boolean,
+)
+
+data class RecentActivity(
+    val activityId: String,
+    val activityType: RecentActivityType,
+    val quizSessionId: String?,
+    val playSessionId: String?,
+    val resultId: String?,
+    val title: String,
+    val subjectId: String,
+    val subjectName: String,
+    val status: String?,
+    val progressPct: Int?,
+    val scoreText: String?,
+    val createdAt: String,
+)
+
+enum class RecentActivityType(
+    val wireValue: String,
+) {
+    QuizGenerating("quiz_generating"),
+    QuizReady("quiz_ready"),
+    QuizInProgress("quiz_in_progress"),
+    QuizCompleted("quiz_completed"),
+    LectureUploaded("lecture_uploaded"),
+    Unknown("unknown"),
+}
+
 data class QuizResultSubmit(
     val clientSessionId: String,
     val quizSessionId: String,
@@ -31,6 +66,7 @@ data class QuizRetry(
 
 data class QuizResult(
     val playSessionId: String,
+    val resultId: String? = null,
     val quizSessionId: String,
     val subjectId: String,
     val subjectName: String?,

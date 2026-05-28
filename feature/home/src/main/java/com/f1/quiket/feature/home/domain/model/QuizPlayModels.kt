@@ -85,6 +85,7 @@ data class QuizAnswerSubmitItem(
 
 data class QuizResult(
     val playSessionId: String,
+    val resultId: String? = null,
     val quizSessionId: String,
     val subjectId: String,
     val subjectName: String?,

@@ -50,9 +50,9 @@ data object QuizPlayAllDestination : QuiketDestination {
 }
 
 data object QuizResultDestination : QuiketDestination {
-    const val ARG_PLAY_SESSION_ID = "playSessionId"
+    const val ARG_RESULT_ID = "resultId"
     const val BASE_ROUTE = "home/quiz-result"
-    override val route: String = "$BASE_ROUTE/{$ARG_PLAY_SESSION_ID}"
+    override val route: String = "$BASE_ROUTE/{$ARG_RESULT_ID}"
 
-    fun createRoute(playSessionId: String): String = "$BASE_ROUTE/$playSessionId"
+    fun createRoute(resultId: String): String = "$BASE_ROUTE/$resultId"
 }

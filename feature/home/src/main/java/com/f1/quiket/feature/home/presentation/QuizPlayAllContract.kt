@@ -99,6 +99,7 @@ sealed interface QuizPlayAllIntent : UiIntent {
         val timerSeconds: Int?,
     ) : QuizPlayAllIntent
     data class LoadQuizSession(val quizSessionId: String) : QuizPlayAllIntent
+    data object RetryLoadQuizSession : QuizPlayAllIntent
     data class SelectOption(val optionId: String) : QuizPlayAllIntent
     data object MovePrevious : QuizPlayAllIntent
     data object MoveNext : QuizPlayAllIntent
@@ -113,5 +114,5 @@ sealed interface QuizPlayAllIntent : UiIntent {
 }
 
 sealed interface QuizPlayAllEffect : UiEffect {
-    data class NavigateToResult(val playSessionId: String) : QuizPlayAllEffect
+    data class NavigateToResult(val resultId: String) : QuizPlayAllEffect
 }

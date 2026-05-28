@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.f1.quiket.core.designsystem.component.QuiketPrimaryButton
 import com.f1.quiket.core.designsystem.theme.Brown950
 import com.f1.quiket.core.designsystem.theme.Gray700
 import com.f1.quiket.core.designsystem.theme.Gray950
@@ -71,7 +72,7 @@ fun QuizPlayAllRoute(
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is QuizPlayAllEffect.NavigateToResult -> onResultReady(effect.playSessionId)
+                is QuizPlayAllEffect.NavigateToResult -> onResultReady(effect.resultId)
             }
         }
     }
@@ -128,6 +129,10 @@ fun QuizPlayAllScreen(
                         !state.errorMessage.isNullOrBlank() -> state.errorMessage
                         else -> "문제를 불러올 수 없어요"
                     },
+                    showRetry = !state.isLoading &&
+                        !state.errorMessage.isNullOrBlank() &&
+                        !state.quizSessionId.isNullOrBlank(),
+                    onRetryClick = { onIntent(QuizPlayAllIntent.RetryLoadQuizSession) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
@@ -236,21 +241,36 @@ private fun QuizPlayAllContent(
 @Composable
 private fun QuizPlayAllEmptyContent(
     message: String,
+    showRetry: Boolean,
+    onRetryClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
         modifier = modifier.padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = message,
-            color = Gray700,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = 16.sp,
-                lineHeight = 24.sp,
-                fontWeight = FontWeight.Medium,
-            ),
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = message,
+                color = Gray700,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 16.sp,
+                    lineHeight = 24.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                ),
+            )
+            if (showRetry) {
+                QuiketPrimaryButton(
+                    text = "다시 불러오기",
+                    onClick = onRetryClick,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
     }
 }
 

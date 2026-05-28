@@ -520,7 +520,8 @@ fun HomeScreen(
                                 ActiveActivityContent(
                                     activities = recentActivities,
                                     onActivityClick = { activity ->
-                                        activity.playSessionId?.let(onQuizResultClick)
+                                        (activity.resultId ?: activity.playSessionId)
+                                            ?.let(onQuizResultClick)
                                     },
                                 )
                             }
@@ -645,9 +646,12 @@ private fun HomeData?.toHomeActivities(): List<Activity> =
             activityType = activity.toActivityType(),
             description = activity.toDescription(),
             progressPercent = activity.progressPct,
-            isQuizCreated = activity.playSessionId != null || activity.status == "submitted",
+            isQuizCreated = activity.resultId != null ||
+                activity.playSessionId != null ||
+                activity.status == "submitted",
             quizSessionId = activity.quizSessionId,
             playSessionId = activity.playSessionId,
+            resultId = activity.resultId,
         )
     }
 

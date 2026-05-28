@@ -4,8 +4,14 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.f1.quiket.feature.history.presentation.HistoryRoute
 
-fun NavGraphBuilder.historyGraph() {
+fun NavGraphBuilder.historyGraph(
+    onQuizStartClick: (String) -> Unit,
+    onQuizResultClick: (String) -> Unit,
+) {
     composable(route = HistoryDestination.route) {
-        HistoryRoute()
+        HistoryRoute(
+            onQuizStartClick = onQuizStartClick,
+            onQuizResultClick = onQuizResultClick,
+        )
     }
 }

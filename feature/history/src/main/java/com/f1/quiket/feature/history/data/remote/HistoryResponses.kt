@@ -1,9 +1,37 @@
 package com.f1.quiket.feature.history.data.remote
 
 import kotlinx.serialization.Serializable
+
+@Serializable
+data class RecentActivityPageResponse(
+    val content: List<RecentActivityResponse> = emptyList(),
+    val page: Int = 0,
+    val size: Int = 0,
+    val totalElements: Long = 0,
+    val totalPages: Int = 0,
+    val hasNext: Boolean = false,
+)
+
+@Serializable
+data class RecentActivityResponse(
+    val activityId: String,
+    val activityType: String,
+    val quizSessionId: String? = null,
+    val playSessionId: String? = null,
+    val resultId: String? = null,
+    val title: String,
+    val subjectId: String,
+    val subjectName: String,
+    val status: String? = null,
+    val progressPct: Int? = null,
+    val scoreText: String? = null,
+    val createdAt: String,
+)
+
 @Serializable
 data class QuizResultDataResponse(
     val playSessionId: String,
+    val resultId: String? = null,
     val quizSessionId: String,
     val subjectId: String,
     val subjectName: String? = null,

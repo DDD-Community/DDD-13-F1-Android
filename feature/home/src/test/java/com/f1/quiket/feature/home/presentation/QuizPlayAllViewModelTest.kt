@@ -15,12 +15,14 @@ import com.f1.quiket.feature.home.domain.model.QuizPlayStart
 import com.f1.quiket.feature.home.domain.model.QuizPlayType
 import com.f1.quiket.feature.home.domain.model.QuizResult
 import com.f1.quiket.feature.home.domain.model.QuizResultSubmit
-import com.f1.quiket.feature.home.domain.model.RewardSummary
 import com.f1.quiket.feature.home.domain.model.QuizSession
+import com.f1.quiket.feature.home.domain.model.RewardSummary
 import com.f1.quiket.feature.home.domain.model.ServerQuizType
 import com.f1.quiket.feature.home.domain.repository.QuizPlayRepository
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -138,6 +140,42 @@ class QuizPlayAllViewModelTest {
     }
 
     @Test
+    fun retryLoadQuizSession_reloadsAfterInitialFailure() = runTest {
+        val repository = FakeQuizPlayRepository()
+        repository.quizSessionResult = NetworkResult.Failure(
+            code = "TIMEOUT",
+            message = "timeout",
+        )
+        val viewModel = viewModel(repository)
+
+        viewModel.onIntent(QuizPlayAllIntent.LoadQuizSession("session-1"))
+        advanceUntilIdle()
+
+        assertThat(repository.loadCallCount).isEqualTo(1)
+        assertThat(viewModel.state.value.errorMessage)
+            .isEqualTo("퀴즈를 불러오지 못했어요. 네트워크 상태를 확인한 뒤 다시 시도해주세요.")
+
+        repository.quizSessionResult = NetworkResult.Success(serverQuizSession())
+        repository.playSessionResult = NetworkResult.Success(
+            QuizPlaySession(
+                playSessionId = "play-1",
+                clientSessionId = "client-1",
+                quizSessionId = "session-1",
+                playType = QuizPlayType.First,
+                status = QuizPlaySessionStatus.InProgress,
+                quizSession = null,
+            ),
+        )
+
+        viewModel.onIntent(QuizPlayAllIntent.RetryLoadQuizSession)
+        advanceUntilIdle()
+
+        assertThat(repository.loadCallCount).isEqualTo(2)
+        assertThat(viewModel.state.value.errorMessage).isNull()
+        assertThat(viewModel.state.value.questions).hasSize(1)
+    }
+
+    @Test
     fun submit_sendsAnswersAndNavigatesToResult() = runTest {
         val repository = FakeQuizPlayRepository()
         repository.quizSessionResult = NetworkResult.Success(serverQuizSession())
@@ -157,6 +195,8 @@ class QuizPlayAllViewModelTest {
         viewModel.onIntent(QuizPlayAllIntent.LoadQuizSession("session-1"))
         advanceUntilIdle()
         viewModel.onIntent(QuizPlayAllIntent.SelectOption("option-1"))
+        val effect = async { viewModel.effect.first() }
+
         viewModel.onIntent(QuizPlayAllIntent.Submit)
         advanceUntilIdle()
 
@@ -172,6 +212,7 @@ class QuizPlayAllViewModelTest {
                 ),
             )
         assertThat(viewModel.state.value.isSubmitting).isFalse()
+        assertThat(effect.await()).isEqualTo(QuizPlayAllEffect.NavigateToResult("result-1"))
     }
 
     private fun viewModel(
@@ -181,6 +222,7 @@ class QuizPlayAllViewModelTest {
     private class FakeQuizPlayRepository : QuizPlayRepository {
         var loadedQuizSessionId: String? = null
         var startedQuizSessionId: String? = null
+        var loadCallCount: Int = 0
         var quizSessionResult: NetworkResult<QuizSession> =
             NetworkResult.Failure(code = "TEST", message = "not configured")
         var playSessionResult: NetworkResult<QuizPlaySession> =
@@ -190,6 +232,7 @@ class QuizPlayAllViewModelTest {
         var submittedRequest: QuizResultSubmit? = null
 
         override suspend fun getQuizSession(quizSessionId: String): NetworkResult<QuizSession> {
+            loadCallCount += 1
             loadedQuizSessionId = quizSessionId
             return quizSessionResult
         }
@@ -209,12 +252,13 @@ class QuizPlayAllViewModelTest {
             return submitResult
         }
 
-        override suspend fun getQuizResult(playSessionId: String): NetworkResult<QuizResult> =
+        override suspend fun getQuizResult(resultId: String): NetworkResult<QuizResult> =
             NetworkResult.Failure(code = "TEST", message = "not configured")
     }
 
     private fun result(): QuizResult = QuizResult(
         playSessionId = "play-1",
+        resultId = "result-1",
         quizSessionId = "session-1",
         subjectId = "subject-1",
         subjectName = "SQLD",
