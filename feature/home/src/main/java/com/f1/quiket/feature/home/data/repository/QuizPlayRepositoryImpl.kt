@@ -51,10 +51,10 @@ class QuizPlayRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getQuizResult(
-        playSessionId: String,
+        resultId: String,
     ): NetworkResult<QuizResult> = withContext(dispatchers.io) {
         responseHandler.execute(
-            call = { api.getQuizResult(playSessionId = playSessionId) },
+            call = { api.getQuizResult(resultId = resultId) },
             mapper = { response -> response.toDomain() },
         )
     }

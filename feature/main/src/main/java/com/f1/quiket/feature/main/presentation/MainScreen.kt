@@ -152,8 +152,8 @@ fun MainScreen(onLogout: () -> Unit) {
                     activeQuizSessionId = quizSessionId
                     navController.navigate(QuizStartDestination.createRoute(quizSessionId))
                 },
-                onQuizResultClick = { playSessionId ->
-                    navController.navigate(QuizResultDestination.createRoute(playSessionId))
+                onQuizResultClick = { resultId ->
+                    navController.navigate(QuizResultDestination.createRoute(resultId))
                 },
             )
             reviewGraph()

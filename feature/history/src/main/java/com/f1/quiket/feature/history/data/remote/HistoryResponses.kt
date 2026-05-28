@@ -31,6 +31,7 @@ data class RecentActivityResponse(
 @Serializable
 data class QuizResultDataResponse(
     val playSessionId: String,
+    val resultId: String? = null,
     val quizSessionId: String,
     val subjectId: String,
     val subjectName: String? = null,

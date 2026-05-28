@@ -25,9 +25,9 @@ interface HistoryApi {
     ): Response<ApiResponse<QuizResultDataResponse>>
 
     @Headers(AuthenticatedRequest.HEADER)
-    @GET("quiz-results/{playSessionId}")
+    @GET("quiz-results/{resultId}")
     suspend fun getQuizResult(
-        @Path("playSessionId") playSessionId: String,
+        @Path("resultId") resultId: String,
     ): Response<ApiResponse<QuizResultDataResponse>>
 
     @Headers(AuthenticatedRequest.HEADER)

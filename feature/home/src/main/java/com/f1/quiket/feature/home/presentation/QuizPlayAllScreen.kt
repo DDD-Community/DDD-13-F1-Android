@@ -72,7 +72,7 @@ fun QuizPlayAllRoute(
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is QuizPlayAllEffect.NavigateToResult -> onResultReady(effect.playSessionId)
+                is QuizPlayAllEffect.NavigateToResult -> onResultReady(effect.resultId)
             }
         }
     }

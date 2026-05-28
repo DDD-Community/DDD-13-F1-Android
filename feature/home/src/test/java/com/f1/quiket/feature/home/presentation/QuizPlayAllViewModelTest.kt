@@ -15,12 +15,14 @@ import com.f1.quiket.feature.home.domain.model.QuizPlayStart
 import com.f1.quiket.feature.home.domain.model.QuizPlayType
 import com.f1.quiket.feature.home.domain.model.QuizResult
 import com.f1.quiket.feature.home.domain.model.QuizResultSubmit
-import com.f1.quiket.feature.home.domain.model.RewardSummary
 import com.f1.quiket.feature.home.domain.model.QuizSession
+import com.f1.quiket.feature.home.domain.model.RewardSummary
 import com.f1.quiket.feature.home.domain.model.ServerQuizType
 import com.f1.quiket.feature.home.domain.repository.QuizPlayRepository
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -193,6 +195,8 @@ class QuizPlayAllViewModelTest {
         viewModel.onIntent(QuizPlayAllIntent.LoadQuizSession("session-1"))
         advanceUntilIdle()
         viewModel.onIntent(QuizPlayAllIntent.SelectOption("option-1"))
+        val effect = async { viewModel.effect.first() }
+
         viewModel.onIntent(QuizPlayAllIntent.Submit)
         advanceUntilIdle()
 
@@ -208,6 +212,7 @@ class QuizPlayAllViewModelTest {
                 ),
             )
         assertThat(viewModel.state.value.isSubmitting).isFalse()
+        assertThat(effect.await()).isEqualTo(QuizPlayAllEffect.NavigateToResult("result-1"))
     }
 
     private fun viewModel(
@@ -247,12 +252,13 @@ class QuizPlayAllViewModelTest {
             return submitResult
         }
 
-        override suspend fun getQuizResult(playSessionId: String): NetworkResult<QuizResult> =
+        override suspend fun getQuizResult(resultId: String): NetworkResult<QuizResult> =
             NetworkResult.Failure(code = "TEST", message = "not configured")
     }
 
     private fun result(): QuizResult = QuizResult(
         playSessionId = "play-1",
+        resultId = "result-1",
         quizSessionId = "session-1",
         subjectId = "subject-1",
         subjectName = "SQLD",

@@ -115,7 +115,7 @@ class QuizStartViewModelTest {
         override suspend fun submitQuizResult(request: QuizResultSubmit): NetworkResult<QuizResult> =
             NetworkResult.Failure(code = "TEST", message = "not configured")
 
-        override suspend fun getQuizResult(playSessionId: String): NetworkResult<QuizResult> =
+        override suspend fun getQuizResult(resultId: String): NetworkResult<QuizResult> =
             NetworkResult.Failure(code = "TEST", message = "not configured")
     }
 }

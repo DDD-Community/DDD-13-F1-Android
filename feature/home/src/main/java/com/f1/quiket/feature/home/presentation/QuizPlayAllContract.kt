@@ -114,5 +114,5 @@ sealed interface QuizPlayAllIntent : UiIntent {
 }
 
 sealed interface QuizPlayAllEffect : UiEffect {
-    data class NavigateToResult(val playSessionId: String) : QuizPlayAllEffect
+    data class NavigateToResult(val resultId: String) : QuizPlayAllEffect
 }

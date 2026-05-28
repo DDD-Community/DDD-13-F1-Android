@@ -283,7 +283,11 @@ class QuizPlayAllViewModel @Inject constructor(
                             errorMessage = null,
                         )
                     }
-                    sendEffect(QuizPlayAllEffect.NavigateToResult(result.data.playSessionId))
+                    sendEffect(
+                        QuizPlayAllEffect.NavigateToResult(
+                            result.data.resultId ?: result.data.playSessionId,
+                        ),
+                    )
                 }
 
                 is NetworkResult.Failure -> {

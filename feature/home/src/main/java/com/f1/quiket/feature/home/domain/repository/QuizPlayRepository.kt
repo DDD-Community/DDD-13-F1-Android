@@ -17,5 +17,5 @@ interface QuizPlayRepository {
 
     suspend fun submitQuizResult(request: QuizResultSubmit): NetworkResult<QuizResult>
 
-    suspend fun getQuizResult(playSessionId: String): NetworkResult<QuizResult>
+    suspend fun getQuizResult(resultId: String): NetworkResult<QuizResult>
 }

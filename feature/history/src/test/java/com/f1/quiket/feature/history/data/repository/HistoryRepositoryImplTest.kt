@@ -128,6 +128,7 @@ class HistoryRepositoryImplTest {
 
         val quizResult = (result as NetworkResult.Success).data
         assertThat(quizResult.playSessionId).isEqualTo("play-1")
+        assertThat(quizResult.resultId).isEqualTo("result-1")
         assertThat(quizResult.rewards.dotoriEarned).isEqualTo(10)
     }
 
@@ -222,7 +223,7 @@ class HistoryRepositoryImplTest {
         ): Response<ApiResponse<QuizResultDataResponse>> = submitQuizResultHandler(request)
 
         override suspend fun getQuizResult(
-            playSessionId: String,
+            resultId: String,
         ): Response<ApiResponse<QuizResultDataResponse>> = unhandled("getQuizResult")
 
         override suspend fun retryAllQuestions(
@@ -251,6 +252,7 @@ class HistoryRepositoryImplTest {
 
         fun resultResponse(): QuizResultDataResponse = QuizResultDataResponse(
             playSessionId = "play-1",
+            resultId = "result-1",
             quizSessionId = "session-1",
             subjectId = "subject-1",
             subjectName = "SQLD",

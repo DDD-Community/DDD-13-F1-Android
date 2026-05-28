@@ -14,12 +14,12 @@ class QuizResultViewModel @Inject constructor(
 ) {
     override fun handleIntent(intent: QuizResultIntent) {
         when (intent) {
-            is QuizResultIntent.Load -> load(intent.playSessionId)
+            is QuizResultIntent.Load -> load(intent.resultId)
         }
     }
 
-    private fun load(playSessionId: String) {
-        if (playSessionId.isBlank()) {
+    private fun load(resultId: String) {
+        if (resultId.isBlank()) {
             updateState { copy(errorMessage = "결과를 불러올 수 없어요.") }
             return
         }
@@ -31,7 +31,7 @@ class QuizResultViewModel @Inject constructor(
                     errorMessage = null,
                 )
             }
-            when (val result = quizPlayRepository.getQuizResult(playSessionId)) {
+            when (val result = quizPlayRepository.getQuizResult(resultId)) {
                 is NetworkResult.Success -> {
                     updateState {
                         copy(

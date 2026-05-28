@@ -89,6 +89,7 @@ fun QuizRetry.toRequest(): QuizRetryRequest = QuizRetryRequest(
 
 fun QuizResultDataResponse.toDomain(): QuizResult = QuizResult(
     playSessionId = playSessionId,
+    resultId = resultId,
     quizSessionId = quizSessionId,
     subjectId = subjectId,
     subjectName = subjectName,
