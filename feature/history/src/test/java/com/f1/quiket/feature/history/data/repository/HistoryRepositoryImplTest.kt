@@ -11,6 +11,8 @@ import com.f1.quiket.feature.history.data.remote.QuizPlaySessionDataResponse
 import com.f1.quiket.feature.history.data.remote.QuizResultDataResponse
 import com.f1.quiket.feature.history.data.remote.QuizResultSubmitRequest
 import com.f1.quiket.feature.history.data.remote.QuizRetryRequest
+import com.f1.quiket.feature.history.data.remote.RecentActivityPageResponse
+import com.f1.quiket.feature.history.data.remote.RecentActivityResponse
 import com.f1.quiket.feature.history.data.remote.RetryQuestionAnswerResponse
 import com.f1.quiket.feature.history.data.remote.RetryQuestionResponse
 import com.f1.quiket.feature.history.data.remote.RetryQuizSessionResponse
@@ -33,6 +35,49 @@ import retrofit2.Response
 @OptIn(ExperimentalCoroutinesApi::class)
 class HistoryRepositoryImplTest {
     private val dispatcher: TestDispatcher = UnconfinedTestDispatcher()
+
+    @Test
+    fun getRecentActivities_success_mapsPage() = runTest {
+        val api = FakeHistoryApi()
+        val repository = repository(api)
+
+        api.getRecentActivitiesHandler = { page, size ->
+            assertThat(page).isEqualTo(1)
+            assertThat(size).isEqualTo(10)
+            successResponse(
+                code = "RECENT_ACTIVITIES_SUCCESS",
+                data = RecentActivityPageResponse(
+                    content = listOf(
+                        RecentActivityResponse(
+                            activityId = "activity-1",
+                            activityType = "quiz_completed",
+                            quizSessionId = "session-1",
+                            playSessionId = "play-1",
+                            resultId = "result-1",
+                            title = "SQLD 객관식 10문제",
+                            subjectId = "subject-1",
+                            subjectName = "SQLD",
+                            status = "completed",
+                            scoreText = "8/10",
+                            createdAt = "2026-05-28T20:00:00+09:00",
+                        ),
+                    ),
+                    page = 1,
+                    size = 10,
+                    totalElements = 21,
+                    totalPages = 3,
+                    hasNext = true,
+                ),
+            )
+        }
+
+        val result = repository.getRecentActivities(page = 1, size = 10)
+
+        val page = (result as NetworkResult.Success).data
+        assertThat(page.activities).hasSize(1)
+        assertThat(page.activities.first().playSessionId).isEqualTo("play-1")
+        assertThat(page.hasNext).isTrue()
+    }
 
     @Test
     fun submitQuizResult_success_mapsRequestBody() = runTest {
@@ -153,6 +198,9 @@ class HistoryRepositoryImplTest {
         )
 
     private class FakeHistoryApi : HistoryApi {
+        var getRecentActivitiesHandler:
+            suspend (Int, Int) -> Response<ApiResponse<RecentActivityPageResponse>> =
+            { _, _ -> unhandled("getRecentActivities") }
         var submitQuizResultHandler:
             suspend (QuizResultSubmitRequest) -> Response<ApiResponse<QuizResultDataResponse>> =
             { unhandled("submitQuizResult") }
@@ -162,6 +210,12 @@ class HistoryRepositoryImplTest {
         var retryWrongQuestionsHandler:
             suspend (String, QuizRetryRequest) -> Response<ApiResponse<QuizPlaySessionDataResponse>> =
             { _, _ -> unhandled("retryWrongQuestions") }
+
+        override suspend fun getRecentActivities(
+            page: Int,
+            size: Int,
+        ): Response<ApiResponse<RecentActivityPageResponse>> =
+            getRecentActivitiesHandler(page, size)
 
         override suspend fun submitQuizResult(
             request: QuizResultSubmitRequest,

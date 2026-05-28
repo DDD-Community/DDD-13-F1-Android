@@ -10,6 +10,7 @@ import com.f1.quiket.feature.history.domain.model.QuizPlaySession
 import com.f1.quiket.feature.history.domain.model.QuizResult
 import com.f1.quiket.feature.history.domain.model.QuizResultSubmit
 import com.f1.quiket.feature.history.domain.model.QuizRetry
+import com.f1.quiket.feature.history.domain.model.RecentActivityPage
 import com.f1.quiket.feature.history.domain.repository.HistoryRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,6 +22,16 @@ class HistoryRepositoryImpl @Inject constructor(
     private val responseHandler: ApiResponseHandler,
     private val dispatchers: AppDispatchers,
 ) : HistoryRepository {
+    override suspend fun getRecentActivities(
+        page: Int,
+        size: Int,
+    ): NetworkResult<RecentActivityPage> = withContext(dispatchers.io) {
+        responseHandler.execute(
+            call = { api.getRecentActivities(page = page, size = size) },
+            mapper = { response -> response.toDomain() },
+        )
+    }
+
     override suspend fun submitQuizResult(
         request: QuizResultSubmit,
     ): NetworkResult<QuizResult> = withContext(dispatchers.io) {

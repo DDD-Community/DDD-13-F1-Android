@@ -147,7 +147,15 @@ fun MainScreen(onLogout: () -> Unit) {
                     navController.navigate(AddSubjectDestination.route)
                 }
             )
-            historyGraph()
+            historyGraph(
+                onQuizStartClick = { quizSessionId ->
+                    activeQuizSessionId = quizSessionId
+                    navController.navigate(QuizStartDestination.createRoute(quizSessionId))
+                },
+                onQuizResultClick = { playSessionId ->
+                    navController.navigate(QuizResultDestination.createRoute(playSessionId))
+                },
+            )
             reviewGraph()
             myPageGraph(navController, onLogout = onLogout)
             lectureSelectGraph(navController = navController, onFinish = { navController.popBackStack() })

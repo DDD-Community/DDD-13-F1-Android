@@ -47,7 +47,7 @@ fun QuiketApp() {
                     coroutineScope.launch {
                         val nextRoute = when {
                             !context.isOnboardingCompleted() -> OnboardingDestination.route
-                            appSessionViewModel.hasSavedToken() -> MainDestination.route
+                            appSessionViewModel.hasValidSession() -> MainDestination.route
                             else -> LoginDestination.route
                         }
                         navigateToRoot(navController, nextRoute, SplashDestination.route)

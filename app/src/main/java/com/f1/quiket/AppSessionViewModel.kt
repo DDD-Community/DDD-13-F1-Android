@@ -12,12 +12,31 @@ class AppSessionViewModel @Inject constructor(
     private val authTokenStore: AuthTokenStore,
     private val authRepository: AuthRepository,
 ) : ViewModel() {
-    suspend fun hasSavedToken(): Boolean = authTokenStore.getTokenPair() != null
+    suspend fun hasValidSession(): Boolean {
+        authTokenStore.getTokenPair() ?: return false
+
+        return when (val result = authRepository.getMe()) {
+            is AuthResult.Success -> true
+            is AuthResult.Failure -> {
+                if (result.isUnauthorized()) {
+                    authTokenStore.clear()
+                }
+                false
+            }
+        }
+    }
 
     suspend fun logout() {
         val result = authRepository.logout()
         if (result is AuthResult.Failure) {
             authTokenStore.clear()
         }
+    }
+
+    private fun AuthResult.Failure.isUnauthorized(): Boolean =
+        httpCode == HTTP_UNAUTHORIZED || code.contains("UNAUTHORIZED", ignoreCase = true)
+
+    private companion object {
+        const val HTTP_UNAUTHORIZED = 401
     }
 }

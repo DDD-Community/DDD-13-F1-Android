@@ -74,6 +74,7 @@ fun NavGraphBuilder.homeGraph(
         val quizSessionId = backStackEntry.arguments
             ?.getString(QuizStartDestination.ARG_QUIZ_SESSION_ID)
         QuizStartRoute(
+            quizSessionId = quizSessionId,
             onBackClick = { navController.popBackStack() },
             onStartClick = { config ->
                 navController.navigate(
@@ -138,9 +139,7 @@ fun NavGraphBuilder.homeGraph(
             onResultReady = { playSessionId ->
                 onQuizPlayCompleted()
                 navController.navigate(QuizResultDestination.createRoute(playSessionId)) {
-                    popUpTo(QuizPlayAllDestination.route) {
-                        inclusive = true
-                    }
+                    popUpTo(HomeDestination.route)
                 }
             },
         )
@@ -159,7 +158,7 @@ fun NavGraphBuilder.homeGraph(
         QuizResultRoute(
             playSessionId = playSessionId,
             onBackClick = {
-                navController.popBackStack(HomeDestination.route, inclusive = false)
+                navController.popBackStack()
             },
         )
     }
