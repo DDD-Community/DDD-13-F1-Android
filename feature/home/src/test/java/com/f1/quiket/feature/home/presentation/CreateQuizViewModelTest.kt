@@ -75,6 +75,16 @@ class CreateQuizViewModelTest {
     }
 
     @Test
+    fun selectMultipleChoice_defaultsChoiceCountToFour() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        viewModel.onIntent(CreateQuizIntent.SelectQuizType(QuizTypeOption.MultipleChoice))
+
+        assertThat(viewModel.state.value.selectedChoiceCount).isEqualTo(4)
+    }
+
+    @Test
     fun createQuiz_passesRequestAndEmitsCreated_whenAcceptedAlreadyCompleted() = runTest {
         val quizGenerationRepository = FakeQuizGenerationRepository()
         quizGenerationRepository.quizScopeResult = NetworkResult.Success(quizScope())
@@ -225,6 +235,48 @@ class CreateQuizViewModelTest {
             )
             .inOrder()
         collectJob.cancel()
+    }
+
+    @Test
+    fun createQuiz_generationFailed_keepsFailReasonForDialog() = runTest {
+        val quizGenerationRepository = FakeQuizGenerationRepository()
+        quizGenerationRepository.quizScopeResult = NetworkResult.Success(quizScope())
+        quizGenerationRepository.createResult = NetworkResult.Success(
+            QuizGenerationAccepted(
+                quizSessionId = "session-1",
+                jobId = "job-1",
+                status = QuizGenerationStatus.InProgress,
+                estimatedSeconds = 3,
+            ),
+        )
+        quizGenerationRepository.generationStatusResults += NetworkResult.Success(
+            QuizGenerationProgress(
+                quizSessionId = "session-1",
+                jobId = "job-1",
+                status = QuizGenerationStatus.Failed,
+                estimatedSeconds = null,
+                progressPct = 40,
+                generatedCount = 0,
+                failReason = "출제 범위 밖 partId가 포함되었습니다.",
+            ),
+        )
+        val viewModel = viewModel(quizGenerationRepository = quizGenerationRepository)
+        advanceUntilIdle()
+        viewModel.selectSubjectAndScope()
+        advanceUntilIdle()
+        viewModel.selectDefaultOptions()
+
+        viewModel.onIntent(CreateQuizIntent.CreateQuiz)
+        advanceUntilIdle()
+
+        assertThat(viewModel.state.value.currentStep).isEqualTo(CreateQuizStep.Options)
+        assertThat(viewModel.state.value.isCreatingQuiz).isFalse()
+        assertThat(viewModel.state.value.generationFailureMessage)
+            .isEqualTo("출제 범위 밖 partId가 포함되었습니다.")
+
+        viewModel.onIntent(CreateQuizIntent.DismissGenerationFailure)
+
+        assertThat(viewModel.state.value.generationFailureMessage).isNull()
     }
 
     private fun viewModel(

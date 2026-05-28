@@ -99,6 +99,7 @@ sealed interface QuizPlayAllIntent : UiIntent {
         val timerSeconds: Int?,
     ) : QuizPlayAllIntent
     data class LoadQuizSession(val quizSessionId: String) : QuizPlayAllIntent
+    data object RetryLoadQuizSession : QuizPlayAllIntent
     data class SelectOption(val optionId: String) : QuizPlayAllIntent
     data object MovePrevious : QuizPlayAllIntent
     data object MoveNext : QuizPlayAllIntent

@@ -2,12 +2,31 @@ package com.f1.quiket.feature.home.presentation
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.f1.quiket.core.designsystem.component.QuiketPrimaryButton
+import com.f1.quiket.core.designsystem.theme.Gray700
+import com.f1.quiket.core.designsystem.theme.Gray950
+import com.f1.quiket.core.designsystem.theme.White
 
 @Composable
 fun CreateQuizRoute(
@@ -40,7 +59,9 @@ fun CreateQuizRoute(
     }
 
     BackHandler(
-        enabled = state.currentStep != CreateQuizStep.Subject && !state.customQuestionCountDialogVisible,
+        enabled = state.currentStep != CreateQuizStep.Subject &&
+            !state.customQuestionCountDialogVisible &&
+            state.generationFailureMessage == null,
     ) {
         if (state.currentStep == CreateQuizStep.Loading) {
             onBackClick()
@@ -147,6 +168,62 @@ fun CreateQuizRoute(
                 rewardCount = state.rewardCount,
                 onBrowseClick = onBackClick,
             )
+        }
+    }
+
+    state.generationFailureMessage?.let { message ->
+        CreateQuizGenerationFailureDialog(
+            message = message,
+            onDismiss = {
+                viewModel.onIntent(CreateQuizIntent.DismissGenerationFailure)
+            },
+        )
+    }
+}
+
+@Composable
+private fun CreateQuizGenerationFailureDialog(
+    message: String,
+    onDismiss: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp),
+            color = White,
+            shape = RoundedCornerShape(24.dp),
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(
+                    text = "퀴즈 생성에 실패했어요",
+                    color = Gray950,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 20.sp,
+                        lineHeight = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
+                Text(
+                    text = message,
+                    color = Gray700,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 16.sp,
+                        lineHeight = 24.sp,
+                        textAlign = TextAlign.Start,
+                    ),
+                )
+                QuiketPrimaryButton(
+                    text = "확인",
+                    onClick = onDismiss,
+                )
+            }
         }
     }
 }

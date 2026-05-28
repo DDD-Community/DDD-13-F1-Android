@@ -355,7 +355,7 @@ private fun HistoryMessage(
 
 private val RecentActivity.isClickable: Boolean
     get() = when (activityType) {
-        RecentActivityType.QuizCompleted -> playSessionId != null
+        RecentActivityType.QuizCompleted -> resultId != null || playSessionId != null
         RecentActivityType.QuizReady,
         RecentActivityType.QuizInProgress,
         -> quizSessionId != null

@@ -9,4 +9,5 @@ data class Activity(
     val isQuizCreated: Boolean = false,
     val quizSessionId: String? = null,
     val playSessionId: String? = null,
+    val resultId: String? = null,
 )

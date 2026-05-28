@@ -32,10 +32,11 @@ fun HistoryRoute(
         state = state,
         onIntent = viewModel::onIntent,
         onActivityClick = { activity ->
+            val quizResultId = activity.resultId ?: activity.playSessionId
             when {
-                activity.playSessionId != null &&
+                quizResultId != null &&
                     activity.activityType == RecentActivityType.QuizCompleted -> {
-                    onQuizResultClick(activity.playSessionId)
+                    onQuizResultClick(quizResultId)
                 }
 
                 activity.quizSessionId != null &&

@@ -52,6 +52,9 @@ class CreateQuizViewModel @Inject constructor(
             CreateQuizIntent.ApplyCustomQuestionCount -> applyCustomQuestionCount()
             is CreateQuizIntent.SelectDifficulty -> updateState { copy(selectedDifficulty = intent.difficulty) }
             CreateQuizIntent.CreateQuiz -> createQuiz()
+            CreateQuizIntent.DismissGenerationFailure -> updateState {
+                copy(generationFailureMessage = null)
+            }
             CreateQuizIntent.BackClick -> handleBackClick()
         }
     }
@@ -217,7 +220,11 @@ class CreateQuizViewModel @Inject constructor(
         updateState {
             copy(
                 selectedQuizType = quizType,
-                selectedChoiceCount = if (quizType.requiresChoiceCount) selectedChoiceCount else null,
+                selectedChoiceCount = if (quizType.requiresChoiceCount) {
+                    selectedChoiceCount ?: 4
+                } else {
+                    null
+                },
             )
         }
     }
@@ -259,6 +266,7 @@ class CreateQuizViewModel @Inject constructor(
                     currentStep = CreateQuizStep.Loading,
                     isCreatingQuiz = true,
                     generationProgress = 0.05f,
+                    generationFailureMessage = null,
                 )
             }
             sendEffect(CreateQuizEffect.QuizGenerationStarted)
@@ -339,18 +347,16 @@ class CreateQuizViewModel @Inject constructor(
                         }
 
                         QuizGenerationStatus.Failed -> {
+                            val failMessage = status.data.failReason ?: "퀴즈 생성에 실패했어요."
                             updateState {
                                 copy(
                                     currentStep = CreateQuizStep.Options,
                                     isCreatingQuiz = false,
+                                    generationFailureMessage = failMessage,
                                 )
                             }
                             sendEffect(CreateQuizEffect.QuizGenerationFinished)
-                            sendEffect(
-                                CreateQuizEffect.ShowMessage(
-                                    status.data.failReason ?: "퀴즈 생성에 실패했어요.",
-                                ),
-                            )
+                            sendEffect(CreateQuizEffect.ShowMessage(failMessage))
                             return
                         }
 
@@ -362,27 +368,31 @@ class CreateQuizViewModel @Inject constructor(
                 }
 
                 is NetworkResult.Failure -> {
+                    val failMessage = status.message
                     updateState {
                         copy(
                             currentStep = CreateQuizStep.Options,
                             isCreatingQuiz = false,
+                            generationFailureMessage = failMessage,
                         )
                     }
                     sendEffect(CreateQuizEffect.QuizGenerationFinished)
-                    sendEffect(CreateQuizEffect.ShowMessage(status.message))
+                    sendEffect(CreateQuizEffect.ShowMessage(failMessage))
                     return
                 }
             }
         }
 
+        val timeoutMessage = "퀴즈 생성 상태 확인 시간이 초과됐어요."
         updateState {
             copy(
                 currentStep = CreateQuizStep.Options,
                 isCreatingQuiz = false,
+                generationFailureMessage = timeoutMessage,
             )
         }
         sendEffect(CreateQuizEffect.QuizGenerationFinished)
-        sendEffect(CreateQuizEffect.ShowMessage("퀴즈 생성 상태 확인 시간이 초과됐어요."))
+        sendEffect(CreateQuizEffect.ShowMessage(timeoutMessage))
     }
 
     private companion object {

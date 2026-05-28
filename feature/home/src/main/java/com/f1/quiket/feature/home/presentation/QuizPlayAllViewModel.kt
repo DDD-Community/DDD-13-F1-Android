@@ -29,6 +29,7 @@ class QuizPlayAllViewModel @Inject constructor(
         when (intent) {
             is QuizPlayAllIntent.ConfigurePlay -> configurePlay(intent)
             is QuizPlayAllIntent.LoadQuizSession -> loadQuizSession(intent.quizSessionId)
+            QuizPlayAllIntent.RetryLoadQuizSession -> retryLoadQuizSession()
             is QuizPlayAllIntent.SelectOption -> selectOption(intent.optionId)
             QuizPlayAllIntent.MovePrevious -> movePrevious()
             QuizPlayAllIntent.MoveNext -> moveNext()
@@ -60,7 +61,13 @@ class QuizPlayAllViewModel @Inject constructor(
     }
 
     private fun loadQuizSession(quizSessionId: String) {
-        if (currentState.quizSessionId == quizSessionId && currentState.questions.isNotEmpty()) return
+        if (
+            currentState.quizSessionId == quizSessionId &&
+            currentState.questions.isNotEmpty() &&
+            currentState.errorMessage == null
+        ) {
+            return
+        }
 
         launch {
             updateState {
@@ -118,13 +125,25 @@ class QuizPlayAllViewModel @Inject constructor(
                     updateState {
                         copy(
                             isLoading = false,
-                            errorMessage = sessionResult.message,
+                            errorMessage = sessionResult.message.toQuizLoadErrorMessage(),
                         )
                     }
                 }
             }
         }
     }
+
+    private fun retryLoadQuizSession() {
+        val quizSessionId = currentState.quizSessionId ?: return
+        loadQuizSession(quizSessionId)
+    }
+
+    private fun String.toQuizLoadErrorMessage(): String =
+        if (equals("timeout", ignoreCase = true) || contains("timeout", ignoreCase = true)) {
+            "퀴즈를 불러오지 못했어요. 네트워크 상태를 확인한 뒤 다시 시도해주세요."
+        } else {
+            this
+        }
 
     private suspend fun startPlaySession(quizSession: QuizSession) {
         val clientSessionId = UUID.randomUUID().toString()

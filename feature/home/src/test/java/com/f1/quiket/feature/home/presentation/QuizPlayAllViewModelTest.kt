@@ -138,6 +138,42 @@ class QuizPlayAllViewModelTest {
     }
 
     @Test
+    fun retryLoadQuizSession_reloadsAfterInitialFailure() = runTest {
+        val repository = FakeQuizPlayRepository()
+        repository.quizSessionResult = NetworkResult.Failure(
+            code = "TIMEOUT",
+            message = "timeout",
+        )
+        val viewModel = viewModel(repository)
+
+        viewModel.onIntent(QuizPlayAllIntent.LoadQuizSession("session-1"))
+        advanceUntilIdle()
+
+        assertThat(repository.loadCallCount).isEqualTo(1)
+        assertThat(viewModel.state.value.errorMessage)
+            .isEqualTo("퀴즈를 불러오지 못했어요. 네트워크 상태를 확인한 뒤 다시 시도해주세요.")
+
+        repository.quizSessionResult = NetworkResult.Success(serverQuizSession())
+        repository.playSessionResult = NetworkResult.Success(
+            QuizPlaySession(
+                playSessionId = "play-1",
+                clientSessionId = "client-1",
+                quizSessionId = "session-1",
+                playType = QuizPlayType.First,
+                status = QuizPlaySessionStatus.InProgress,
+                quizSession = null,
+            ),
+        )
+
+        viewModel.onIntent(QuizPlayAllIntent.RetryLoadQuizSession)
+        advanceUntilIdle()
+
+        assertThat(repository.loadCallCount).isEqualTo(2)
+        assertThat(viewModel.state.value.errorMessage).isNull()
+        assertThat(viewModel.state.value.questions).hasSize(1)
+    }
+
+    @Test
     fun submit_sendsAnswersAndNavigatesToResult() = runTest {
         val repository = FakeQuizPlayRepository()
         repository.quizSessionResult = NetworkResult.Success(serverQuizSession())
@@ -181,6 +217,7 @@ class QuizPlayAllViewModelTest {
     private class FakeQuizPlayRepository : QuizPlayRepository {
         var loadedQuizSessionId: String? = null
         var startedQuizSessionId: String? = null
+        var loadCallCount: Int = 0
         var quizSessionResult: NetworkResult<QuizSession> =
             NetworkResult.Failure(code = "TEST", message = "not configured")
         var playSessionResult: NetworkResult<QuizPlaySession> =
@@ -190,6 +227,7 @@ class QuizPlayAllViewModelTest {
         var submittedRequest: QuizResultSubmit? = null
 
         override suspend fun getQuizSession(quizSessionId: String): NetworkResult<QuizSession> {
+            loadCallCount += 1
             loadedQuizSessionId = quizSessionId
             return quizSessionResult
         }
