@@ -23,6 +23,7 @@ fun HomeRoute(
     navigateToCreateQuiz: () -> Unit,
     navigateToUpload: () -> Unit,
     navigateToAddSubject: () -> Unit,
+    navigateToMyPage: () -> Unit,
     homeBackStackEntry: NavBackStackEntry? = null,
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
@@ -86,6 +87,7 @@ fun HomeRoute(
                 FabAction.Upload -> navigateToUpload()
                 FabAction.AddSubject -> navigateToAddSubject()
             }
-        }
+        },
+        onProfileClick = navigateToMyPage,
     )
 }

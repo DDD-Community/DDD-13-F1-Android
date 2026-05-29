@@ -61,6 +61,7 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.f1.quiket.core.designsystem.component.HomeActionButton
+import com.f1.quiket.core.designsystem.component.HomeEmptyExamCard
 import com.f1.quiket.core.designsystem.component.HomeExamCard
 import com.f1.quiket.core.designsystem.component.HomeProfileCard
 import com.f1.quiket.core.designsystem.component.NoSubjectPopup
@@ -103,6 +104,7 @@ fun HomeScreen(
     onQuizResultClick: (String) -> Unit = {},
     onFabItemClick: (FabAction) -> Unit,
     onHomeRefresh: () -> Unit = {},
+    onProfileClick: () -> Unit = {},
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
@@ -133,6 +135,10 @@ fun HomeScreen(
     var uploadedChapterNumber by remember { mutableStateOf(1) }
     var lectureViewBackDepth by remember { mutableStateOf(0) }
 
+    BackHandler(enabled = isExpanded) {
+        isExpanded = false
+    }
+
     BackHandler(enabled = depth > 0) {
         when (depth) {
             1 -> { depth = 0; onHomeRefresh() }
@@ -155,8 +161,8 @@ fun HomeScreen(
                 subjectName = selectedSubject?.title ?: "",
                 onBackClick = { depth = 0; onHomeRefresh() },
                 onExamScheduleSaved = onHomeRefresh,
-                onUploadClick = { n -> nextChapterNumber = n; depth = 3 },
-                onChapterAddClick = { n -> nextChapterNumber = n; depth = 3 },
+                onUploadClick = { count -> nextChapterNumber = count + 1; depth = 3 },
+                onChapterAddClick = { count -> nextChapterNumber = count + 1; depth = 3 },
                 onSubjectNameChanged = { newName ->
                     subjects = subjects.map { s ->
                         if (s.title == selectedSubject?.title) s.copy(title = newName) else s
@@ -191,7 +197,7 @@ fun HomeScreen(
             UploadScreen(
                 subjectId = selectedSubject?.id,
                 chapterTitle = selectedSubject?.title,
-                lecturePurpose = selectedSubject?.chapter,
+                lecturePurpose = selectedSubject?.purpose?.ifBlank { null },
                 chapterCount = nextChapterNumber - 1,
                 onBackClick = { depth = 1 },
                 onNextClick = { depth = 1 },
@@ -259,6 +265,7 @@ fun HomeScreen(
                         id = selectedLectureId,
                         title = selectedLectureTitle,
                         chapter = "챕터 $selectedLectureChapterCount",
+                        purpose = selectedLectureCategory,
                         isStarred = false,
                     )
                     lectureViewBackDepth = 1
@@ -306,14 +313,12 @@ fun HomeScreen(
     var showTutorial by remember { mutableStateOf(false) }
     var tutorialPage by remember { mutableStateOf(TutorialPage.FIRST) }
 
-    val exams = remember(homeData?.dDayCards) {
+    val exams = remember(homeData?.subjects) {
         homeData.toHomeExams()
     }
     val recentActivities = remember(homeData?.recentActivities) {
         homeData.toHomeActivities()
     }
-    val pagerState = rememberPagerState(pageCount = { exams.size })
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -441,7 +446,7 @@ fun HomeScreen(
                     homeData?.user?.nickname ?: "닉네임",
                     homeData?.user?.dotoriBalance ?: 0,
                     com.f1.quiket.core.designsystem.R.drawable.ic_qring_profile,
-                    {},
+                    onProfileClick,
                     modifier = Modifier
                         .padding(top = 10.dp, start = 16.dp, end = 16.dp)
                         .onGloballyPositioned { coords ->
@@ -454,7 +459,13 @@ fun HomeScreen(
                         }
                 )
 
-                if (exams.isNotEmpty()) {
+                if (exams.isEmpty()) {
+                    HomeEmptyExamCard(
+                        onClick = {},
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                    )
+                } else {
+                    val pagerState = rememberPagerState(pageCount = { exams.size })
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier
@@ -637,20 +648,24 @@ private fun HomeData?.toHomeSubjects(): List<Subject> =
             id = subject.id,
             title = subject.name,
             chapter = "챕터 ${subject.chapterCount}",
+            purpose = subject.purpose,
             isStarred = false,
         )
     }
 
 private fun HomeData?.toHomeExams(): List<Exam> =
-    this?.dDayCards.orEmpty().map { schedule ->
-        Exam(
-            name = schedule.examName,
-            date = schedule.examDate,
-            dDay = schedule.dDay?.let { dDay ->
-                if (dDay >= 0) "D-$dDay" else "D+${-dDay}"
-            }.orEmpty(),
-        )
-    }
+    this?.subjects.orEmpty()
+        .mapNotNull { it.examSchedule }
+        .sortedWith(compareBy(nullsLast()) { it.dDay })
+        .map { schedule ->
+            Exam(
+                name = schedule.examName,
+                date = schedule.examDate,
+                dDay = schedule.dDay?.let { dDay ->
+                    if (dDay >= 0) "D-$dDay" else "D+${-dDay}"
+                }.orEmpty(),
+            )
+        }
 
 private fun HomeData?.toHomeActivities(): List<Activity> =
     this?.recentActivities.orEmpty().map { activity ->

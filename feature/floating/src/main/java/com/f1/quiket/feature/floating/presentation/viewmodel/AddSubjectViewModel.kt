@@ -95,48 +95,48 @@ class AddSubjectViewModel @Inject constructor(
 
 private fun AddSubjectState.toSubjectCreate(): SubjectCreate {
     val purposeKey = when (studyPurpose) {
-        StudyPurpose.EXAM -> "EXAM"
-        StudyPurpose.SELF_STUDY -> "SELF_STUDY"
-        StudyPurpose.OTHER -> "OTHER"
-        null -> "OTHER"
+        StudyPurpose.EXAM -> "exam"
+        StudyPurpose.SELF_STUDY -> "self_study"
+        StudyPurpose.OTHER -> "other"
+        null -> "other"
     }
 
     val examDetail = if (studyPurpose == StudyPurpose.EXAM) {
         SubjectExamDetail(
-            examType = examType?.name ?: "OTHER",
-            univMajorField = majorCategory?.name,
+            examType = examType?.name?.lowercase() ?: "other",
+            univMajorField = majorCategory?.name?.lowercase(),
             univMajorName = majorName.ifBlank { null },
-            univCourseType = courseType?.name,
-            mhGrade = curriculum?.name,
+            univCourseType = courseType?.name?.lowercase(),
+            mhGrade = curriculum?.name?.lowercase(),
             mhSubjectType = if (subjectType == MiddleHighSubjectType.CUSTOM) {
                 customSubjectType.ifBlank { null }
             } else {
-                subjectType?.name
+                subjectType?.name?.lowercase()
             },
             certificateName = certificateName.ifBlank { null },
-            langType = languageType?.name,
+            langType = languageType?.name?.lowercase(),
             langExamName = when (languageType) {
-                LanguageType.ENGLISH -> if (englishTest == EnglishTestType.CUSTOM) customLanguageTest.ifBlank { null } else englishTest?.name
-                LanguageType.JAPANESE -> if (japaneseTest == JapaneseTestType.CUSTOM) customLanguageTest.ifBlank { null } else japaneseTest?.name
-                LanguageType.CHINESE -> if (chineseTest == ChineseTestType.CUSTOM) customLanguageTest.ifBlank { null } else chineseTest?.name
+                LanguageType.ENGLISH -> if (englishTest == EnglishTestType.CUSTOM) customLanguageTest.ifBlank { null } else englishTest?.name?.lowercase()
+                LanguageType.JAPANESE -> if (japaneseTest == JapaneseTestType.CUSTOM) customLanguageTest.ifBlank { null } else japaneseTest?.name?.lowercase()
+                LanguageType.CHINESE -> if (chineseTest == ChineseTestType.CUSTOM) customLanguageTest.ifBlank { null } else chineseTest?.name?.lowercase()
                 null -> null
             },
-            civilRank = civilServantGrade?.name,
-            civilSeries = civilServantSeries?.name,
+            civilRank = civilServantGrade?.name?.lowercase(),
+            civilSeries = civilServantSeries?.name?.lowercase(),
             otherExamName = otherExamText.ifBlank { null },
         )
     } else null
 
     val reviewDetail = if (studyPurpose == StudyPurpose.SELF_STUDY) {
         SubjectReviewDetail(
-            field = studyField?.name ?: "",
-            studyLevel = familiarityLevel?.name ?: "",
+            field = studyField?.name?.lowercase() ?: "",
+            studyLevel = familiarityLevel?.name?.lowercase() ?: "",
         )
     } else null
 
     val otherDetail = if (studyPurpose == StudyPurpose.OTHER) {
         SubjectOtherDetail(
-            usagePurpose = usagePurpose?.name ?: "",
+            usagePurpose = usagePurpose?.name?.lowercase() ?: "",
             description = additionalDescription.ifBlank { null },
         )
     } else null

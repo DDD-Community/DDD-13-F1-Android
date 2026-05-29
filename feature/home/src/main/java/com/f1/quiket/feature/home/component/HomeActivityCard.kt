@@ -58,8 +58,7 @@ fun HomeActivityCard(
             .fillMaxWidth()
             .clickable { onClick() },
         color = Brown50,
-        shape = RoundedCornerShape(16.dp),
-        shadowElevation = 2.dp
+        shape = RoundedCornerShape(16.dp)
     ) {
         Row(
             modifier = Modifier

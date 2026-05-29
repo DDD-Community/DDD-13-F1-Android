@@ -33,6 +33,7 @@ fun NavGraphBuilder.homeGraph(
     navigateToCreateQuiz: () -> Unit,
     navigateToUpload: () -> Unit,
     navigateToAddSubject: () -> Unit,
+    navigateToMyPage: () -> Unit,
 ) {
     composable(route = HomeDestination.route) { backStackEntry ->
         HomeRoute(
@@ -46,6 +47,7 @@ fun NavGraphBuilder.homeGraph(
             navigateToCreateQuiz = navigateToCreateQuiz,
             navigateToUpload = navigateToUpload,
             navigateToAddSubject = navigateToAddSubject,
+            navigateToMyPage = navigateToMyPage,
             homeBackStackEntry = backStackEntry,
         )
     }
