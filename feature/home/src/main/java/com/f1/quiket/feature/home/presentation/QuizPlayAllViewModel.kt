@@ -1,13 +1,14 @@
 package com.f1.quiket.feature.home.presentation
 
+import androidx.lifecycle.viewModelScope
 import com.f1.quiket.core.common.mvi.MviViewModel
 import com.f1.quiket.core.network.model.NetworkResult
 import com.f1.quiket.feature.home.domain.model.Question
 import com.f1.quiket.feature.home.domain.model.QuizAnswerSubmitItem
 import com.f1.quiket.feature.home.domain.model.QuizPlayStart
 import com.f1.quiket.feature.home.domain.model.QuizPlayMode
-import com.f1.quiket.feature.home.domain.model.QuizResultSubmit
 import com.f1.quiket.feature.home.domain.model.QuizPlayType
+import com.f1.quiket.feature.home.domain.model.QuizResultSubmit
 import com.f1.quiket.feature.home.domain.model.QuizSession
 import com.f1.quiket.feature.home.domain.model.QuizTimerScope
 import com.f1.quiket.feature.home.domain.model.ServerQuizType
@@ -15,6 +16,10 @@ import com.f1.quiket.feature.home.domain.repository.QuizPlayRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 @HiltViewModel
 class QuizPlayAllViewModel @Inject constructor(
@@ -25,6 +30,8 @@ class QuizPlayAllViewModel @Inject constructor(
             questions = mockQuestions,
         ),
     ) {
+    private var timerJob: Job? = null
+
     override fun handleIntent(intent: QuizPlayAllIntent) {
         when (intent) {
             is QuizPlayAllIntent.ConfigurePlay -> configurePlay(intent)
@@ -33,6 +40,7 @@ class QuizPlayAllViewModel @Inject constructor(
             is QuizPlayAllIntent.SelectOption -> selectOption(intent.optionId)
             QuizPlayAllIntent.MovePrevious -> movePrevious()
             QuizPlayAllIntent.MoveNext -> moveNext()
+            QuizPlayAllIntent.CheckCurrentAnswer -> checkCurrentAnswer()
             QuizPlayAllIntent.ToggleBookmark -> toggleBookmark()
             QuizPlayAllIntent.OpenQuestionList -> setQuestionListVisible(true)
             QuizPlayAllIntent.CloseQuestionList -> setQuestionListVisible(false)
@@ -46,18 +54,26 @@ class QuizPlayAllViewModel @Inject constructor(
 
     private fun configurePlay(intent: QuizPlayAllIntent.ConfigurePlay) {
         updateState {
+            val configuredQuestions = questions.withTimerText(
+                timerEnabled = intent.timerEnabled,
+                timerSeconds = intent.timerSeconds,
+            )
             copy(
                 playMode = intent.playMode,
                 timerEnabled = intent.timerEnabled,
                 timerScope = intent.timerScope,
                 timerSeconds = intent.timerSeconds,
                 hasStartConfig = true,
-                questions = questions.withTimerText(
+                questions = configuredQuestions,
+                remainingTotalSeconds = intent.initialTotalRemainingSeconds(),
+                remainingSecondsByQuestionId = configuredQuestions.initialRemainingSeconds(
                     timerEnabled = intent.timerEnabled,
+                    timerScope = intent.timerScope,
                     timerSeconds = intent.timerSeconds,
                 ),
             )
         }
+        startTimerIfNeeded()
     }
 
     private fun loadQuizSession(quizSessionId: String) {
@@ -69,6 +85,7 @@ class QuizPlayAllViewModel @Inject constructor(
             return
         }
 
+        stopTimer()
         launch {
             updateState {
                 copy(
@@ -81,6 +98,9 @@ class QuizPlayAllViewModel @Inject constructor(
                     questions = emptyList(),
                     currentQuestionIndex = 0,
                     selectedOptionIds = emptyMap(),
+                    checkedQuestionIds = emptySet(),
+                    remainingTotalSeconds = null,
+                    remainingSecondsByQuestionId = emptyMap(),
                     bookmarkedQuestionIds = emptySet(),
                     isQuestionListVisible = false,
                     isSubmitConfirmVisible = false,
@@ -100,6 +120,11 @@ class QuizPlayAllViewModel @Inject constructor(
                     } else {
                         quizSession.timerSeconds
                     }
+                    val timerScope = if (currentState.hasStartConfig) {
+                        currentState.timerScope
+                    } else {
+                        quizSession.timerScope.toQuizTimerScope()
+                    }
                     val questions = quizSession.toQuizPlayAllQuestions(
                         timerEnabled = timerEnabled,
                         timerSeconds = timerSeconds,
@@ -109,15 +134,23 @@ class QuizPlayAllViewModel @Inject constructor(
                             questions = questions,
                             playMode = if (hasStartConfig) playMode else quizSession.playMode,
                             timerEnabled = timerEnabled,
-                            timerScope = if (hasStartConfig) {
-                                timerScope
-                            } else {
-                                quizSession.timerScope.toQuizTimerScope()
-                            },
+                            timerScope = timerScope,
                             timerSeconds = timerSeconds,
+                            checkedQuestionIds = emptySet(),
+                            remainingTotalSeconds = initialTotalRemainingSeconds(
+                                timerEnabled = timerEnabled,
+                                timerScope = timerScope,
+                                timerSeconds = timerSeconds,
+                            ),
+                            remainingSecondsByQuestionId = questions.initialRemainingSeconds(
+                                timerEnabled = timerEnabled,
+                                timerScope = timerScope,
+                                timerSeconds = timerSeconds,
+                            ),
                             isLoading = false,
                         )
                     }
+                    startTimerIfNeeded()
                     startPlaySession(quizSession)
                 }
 
@@ -176,6 +209,9 @@ class QuizPlayAllViewModel @Inject constructor(
     private fun selectOption(optionId: String) {
         updateState {
             val questionId = currentQuestion?.id ?: return@updateState this
+            if (isOneByOneMode && checkedQuestionIds.contains(questionId)) {
+                return@updateState this
+            }
             copy(
                 selectedOptionIds = selectedOptionIds + (questionId to optionId),
             )
@@ -188,6 +224,7 @@ class QuizPlayAllViewModel @Inject constructor(
                 currentQuestionIndex = (currentQuestionIndex - 1).coerceAtLeast(0),
             )
         }
+        startTimerIfNeeded()
     }
 
     private fun moveNext() {
@@ -198,6 +235,18 @@ class QuizPlayAllViewModel @Inject constructor(
                 ),
             )
         }
+        startTimerIfNeeded()
+    }
+
+    private fun checkCurrentAnswer(force: Boolean = false) {
+        val state = currentState
+        val questionId = state.currentQuestion?.id ?: return
+        if (!force && state.selectedOptionIds[questionId] == null) return
+
+        updateState {
+            copy(checkedQuestionIds = checkedQuestionIds + questionId)
+        }
+        stopTimer()
     }
 
     private fun toggleBookmark() {
@@ -228,6 +277,7 @@ class QuizPlayAllViewModel @Inject constructor(
                 isQuestionListVisible = false,
             )
         }
+        startTimerIfNeeded()
     }
 
     private fun setSubmitConfirmVisible(visible: Boolean) {
@@ -237,6 +287,7 @@ class QuizPlayAllViewModel @Inject constructor(
     }
 
     private fun submitQuizResult() {
+        stopTimer()
         val state = currentState
         val quizSessionId = state.quizSessionId
         val clientSessionId = state.clientSessionId
@@ -309,7 +360,112 @@ class QuizPlayAllViewModel @Inject constructor(
         }
     }
 
+    private fun startTimerIfNeeded() {
+        stopTimer()
+
+        val state = currentState
+        if (!state.timerEnabled) {
+            return
+        }
+
+        if (state.timerScope == QuizTimerScope.Total) {
+            startTotalTimer()
+            return
+        }
+
+        if (!state.isOneByOneMode || state.timerScope != QuizTimerScope.PerQuestion) {
+            return
+        }
+
+        val question = state.currentQuestion ?: return
+        if (state.checkedQuestionIds.contains(question.id)) return
+
+        val initialSeconds = state.timerSeconds ?: return
+        val remainingSeconds = state.remainingSecondsByQuestionId[question.id] ?: initialSeconds
+        if (remainingSeconds <= 0) {
+            checkCurrentAnswer(force = true)
+            return
+        }
+
+        timerJob = viewModelScope.launch {
+            while (isActive) {
+                delay(TIMER_TICK_MS)
+
+                val latestState = currentState
+                val latestQuestion = latestState.currentQuestion ?: break
+                if (
+                    latestQuestion.id != question.id ||
+                    latestState.checkedQuestionIds.contains(latestQuestion.id) ||
+                    !latestState.isOneByOneMode ||
+                    !latestState.timerEnabled
+                ) {
+                    break
+                }
+
+                val currentRemainingSeconds = latestState.remainingSecondsByQuestionId[latestQuestion.id]
+                    ?: latestState.timerSeconds
+                    ?: break
+                val nextRemainingSeconds = (currentRemainingSeconds - 1).coerceAtLeast(0)
+
+                updateState {
+                    copy(
+                        remainingSecondsByQuestionId = remainingSecondsByQuestionId +
+                            (latestQuestion.id to nextRemainingSeconds),
+                    )
+                }
+
+                if (nextRemainingSeconds == 0) {
+                    checkCurrentAnswer(force = true)
+                    break
+                }
+            }
+        }
+    }
+
+    private fun startTotalTimer() {
+        val state = currentState
+        val initialSeconds = state.timerSeconds?.coerceAtLeast(0) ?: return
+        val remainingSeconds = state.remainingTotalSeconds ?: initialSeconds
+        if (remainingSeconds <= 0) return
+
+        timerJob = viewModelScope.launch {
+            while (isActive) {
+                delay(TIMER_TICK_MS)
+
+                val latestState = currentState
+                if (!latestState.timerEnabled || latestState.timerScope != QuizTimerScope.Total) {
+                    break
+                }
+
+                val currentRemainingSeconds = latestState.remainingTotalSeconds
+                    ?: latestState.timerSeconds
+                    ?: break
+                val nextRemainingSeconds = (currentRemainingSeconds - 1).coerceAtLeast(0)
+
+                updateState {
+                    copy(remainingTotalSeconds = nextRemainingSeconds)
+                }
+
+                if (nextRemainingSeconds == 0) {
+                    break
+                }
+            }
+        }
+    }
+
+    private fun stopTimer() {
+        timerJob?.cancel()
+        timerJob = null
+    }
+
+    override fun onCleared() {
+        stopTimer()
+        super.onCleared()
+    }
+
     private companion object {
+        const val TIMER_TICK_MS = 1_000L
+
         val mockQuestions = listOf(
             QuizPlayAllQuestion(
                 id = "question-1",
@@ -482,6 +638,8 @@ private fun Question.toQuizPlayAllQuestion(
     timerText = timerText,
     questionType = questionType,
     answerValue = answer.answerValue,
+    correctExplanation = correctExplanation,
+    incorrectExplanation = incorrectExplanation,
     options = options
         .sortedBy { option -> option.optionNumber }
         .map { option ->
@@ -503,6 +661,24 @@ private fun Int.formatTimerText(): String {
 private fun String?.toQuizTimerScope(): QuizTimerScope? =
     QuizTimerScope.entries.firstOrNull { scope -> scope.wireValue == this }
 
+private fun QuizPlayAllIntent.ConfigurePlay.initialTotalRemainingSeconds(): Int? =
+    initialTotalRemainingSeconds(
+        timerEnabled = timerEnabled,
+        timerScope = timerScope,
+        timerSeconds = timerSeconds,
+    )
+
+private fun initialTotalRemainingSeconds(
+    timerEnabled: Boolean,
+    timerScope: QuizTimerScope?,
+    timerSeconds: Int?,
+): Int? =
+    if (timerEnabled && timerScope == QuizTimerScope.Total) {
+        timerSeconds?.coerceAtLeast(0)
+    } else {
+        null
+    }
+
 private fun List<QuizPlayAllQuestion>.withTimerText(
     timerEnabled: Boolean,
     timerSeconds: Int?,
@@ -513,6 +689,18 @@ private fun List<QuizPlayAllQuestion>.withTimerText(
         "00:00"
     }
     return map { question -> question.copy(timerText = timerText) }
+}
+
+private fun List<QuizPlayAllQuestion>.initialRemainingSeconds(
+    timerEnabled: Boolean,
+    timerScope: QuizTimerScope?,
+    timerSeconds: Int?,
+): Map<String, Int> {
+    val seconds = timerSeconds?.coerceAtLeast(0)
+    if (!timerEnabled || timerScope != QuizTimerScope.PerQuestion || seconds == null) {
+        return emptyMap()
+    }
+    return associate { question -> question.id to seconds }
 }
 
 private fun ServerQuizType.defaultOptions(questionId: String): List<QuizPlayAllOption> =
@@ -555,16 +743,8 @@ private fun QuizPlayAllQuestion.toAnswerSubmitItem(
         questionId = id,
         selectedOptionId = submittedOptionId,
         selectedValue = selectedValue,
-        correctClient = selectedOption?.matchesAnswer(answerValue),
+        correctClient = selectedOption?.matchesAnswerValue(answerValue),
         skipped = selectedOption == null,
         marked = marked,
     )
-}
-
-private fun QuizPlayAllOption.matchesAnswer(answerValue: String?): Boolean? {
-    if (answerValue.isNullOrBlank()) return null
-    return id == answerValue ||
-        number.toString() == answerValue ||
-        value == answerValue ||
-        text == answerValue
 }
