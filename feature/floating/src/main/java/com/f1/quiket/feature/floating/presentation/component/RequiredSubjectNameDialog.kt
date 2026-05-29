@@ -69,7 +69,7 @@ fun RequiredSubjectNameDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "과목을 만들려면 과목명이 필요해요",
+                    text = "과목명은 필수로 입력해야만 해요. \n과목명을 적어주세요!",
                     style = MaterialTheme.typography.bodySmall,
                     color = Gray700,
                     textAlign = TextAlign.Center,

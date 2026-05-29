@@ -106,7 +106,9 @@ fun MainScreen(onLogout: () -> Unit) {
         NavHost(
             navController = navController,
             startDestination = HomeDestination.route,
-            modifier = Modifier.padding(bottom = if (showBottomBar) paddingValues.calculateBottomPadding() else 0.dp),
+            modifier = Modifier
+                .padding(top = paddingValues.calculateTopPadding())
+                .padding(bottom = if (showBottomBar) paddingValues.calculateBottomPadding() else 0.dp),
         ) {
             homeGraph(
                 navController = navController,

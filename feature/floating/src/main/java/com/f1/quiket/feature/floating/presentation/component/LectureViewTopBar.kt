@@ -38,6 +38,7 @@ fun LectureViewTopBar(
     title: String,
     onBackClick: () -> Unit,
     onTocClick: () -> Unit,
+    onEditPartNameClick: () -> Unit,
     onEditClick: () -> Unit,
     onDeletePartClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -111,6 +112,28 @@ fun LectureViewTopBar(
                     },
                     text = {
                         Text(
+                            "파트명 수정",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Normal
+                            ),
+                            color = Gray950,
+                        )
+                    },
+                    onClick = {
+                        showMoreMenu = false
+                        onEditPartNameClick()
+                    },
+                )
+                DropdownMenuItem(
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_detail_edit),
+                            contentDescription = null,
+                            tint = Color.Unspecified,
+                        )
+                    },
+                    text = {
+                        Text(
                             "내용 수정",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Normal
@@ -158,6 +181,7 @@ private fun LectureViewTopBarPreview() {
             title = "SQLD",
             onBackClick = {},
             onTocClick = {},
+            onEditPartNameClick = {},
             onEditClick = {},
             onDeletePartClick = {},
         )

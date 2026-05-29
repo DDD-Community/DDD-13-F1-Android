@@ -1,5 +1,6 @@
 package com.f1.quiket.feature.floating.presentation.screen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +28,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.f1.quiket.core.designsystem.theme.Brown50
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
@@ -34,23 +38,66 @@ import com.f1.quiket.feature.floating.presentation.component.upload.LectureShort
 import com.f1.quiket.feature.floating.presentation.component.upload.LectureUploadSection
 import com.f1.quiket.feature.floating.presentation.component.upload.PartClassifyMethod
 import com.f1.quiket.feature.floating.presentation.component.upload.PartClassifySection
+import com.f1.quiket.feature.floating.presentation.component.upload.UploadFile
+import com.f1.quiket.feature.floating.presentation.component.upload.UploadImage
 import com.f1.quiket.feature.floating.presentation.component.upload.UploadNextButton
 import com.f1.quiket.feature.floating.presentation.component.upload.UploadTab
 import com.f1.quiket.feature.floating.presentation.component.upload.UploadTopBar
+import com.f1.quiket.feature.floating.presentation.viewmodel.UploadViewModel
 
 @Composable
 fun UploadScreen(
-    lectureTitle: String? = null,
+    subjectId: String? = null,
+    chapterTitle: String? = null,
     lecturePurpose: String? = null,
     chapterCount: Int? = null,
     onBackClick: () -> Unit = {},
     onNextClick: () -> Unit = {},
+    onUploadSuccess: (subjectId: String, chapterId: String, chapterName: String, chapterNumber: Int) -> Unit = { _, _, _, _ -> },
+    viewModel: UploadViewModel = hiltViewModel(),
 ) {
     var chapterName by remember { mutableStateOf("") }
     var classifyMethod by remember { mutableStateOf(PartClassifyMethod.AI) }
     var selectedTab by remember { mutableStateOf(UploadTab.FILE) }
     var isContentReady by remember { mutableStateOf(false) }
+    var manualSections by remember { mutableStateOf<List<String>>(emptyList()) }
+    var currentFiles by remember { mutableStateOf<List<UploadFile>>(emptyList()) }
+    var currentImages by remember { mutableStateOf<List<UploadImage>>(emptyList()) }
+    var currentText by remember { mutableStateOf("") }
 
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val isSuccess by viewModel.isSuccess.collectAsStateWithLifecycle()
+    val progress by viewModel.progress.collectAsStateWithLifecycle()
+    val uploadedChapterId by viewModel.uploadedChapterId.collectAsStateWithLifecycle()
+
+    // Cancel upload when back is pressed during loading
+    BackHandler(enabled = isLoading) {
+        viewModel.cancelUpload()
+        onBackClick()
+    }
+
+    LaunchedEffect(isSuccess) {
+        if (isSuccess) {
+            val sid = subjectId
+            val cid = uploadedChapterId
+            if (sid != null && cid != null) {
+                onUploadSuccess(sid, cid, chapterName, (chapterCount ?: 0) + 1)
+            } else {
+                onNextClick()
+            }
+        }
+    }
+
+    // Show loading screen while API is processing
+    if (isLoading) {
+        UploadLoadingScreen(progress = progress)
+        return
+    }
+
+    val isNextEnabled = chapterName.isNotBlank() && when (classifyMethod) {
+        PartClassifyMethod.AI -> isContentReady
+        PartClassifyMethod.MANUAL -> manualSections.isNotEmpty()
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -84,14 +131,14 @@ fun UploadScreen(
                         .fillMaxWidth()
                         .padding(start = 20.dp, end = 20.dp, bottom = 24.dp),
                 ) {
-                    if (lectureTitle != null && chapterCount != null && lecturePurpose != null) {
+                    if (chapterTitle != null && chapterCount != null && chapterCount > 0 && lecturePurpose != null) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Box(
                             modifier = Modifier.fillMaxWidth(),
                             contentAlignment = Alignment.Center,
                         ) {
                             LectureShortCard(
-                                title = lectureTitle,
+                                title = chapterTitle,
                                 chapterCount = chapterCount,
                                 purpose = lecturePurpose,
                                 onClick = {},
@@ -114,6 +161,7 @@ fun UploadScreen(
                     PartClassifySection(
                         selected = classifyMethod,
                         onSelect = { classifyMethod = it },
+                        onManualApply = { manualSections = it },
                     )
                 }
             }
@@ -123,6 +171,9 @@ fun UploadScreen(
                 selectedTab = selectedTab,
                 onTabSelect = { selectedTab = it },
                 onReadyChange = { isContentReady = it },
+                onFilesChange = { currentFiles = it },
+                onImagesChange = { currentImages = it },
+                onTextChange = { currentText = it },
                 modifier = Modifier.heightIn(min = 400.dp),
             )
         }
@@ -130,8 +181,24 @@ fun UploadScreen(
         // ── 다음 버튼 (고정) ─────────────────────────────────────────
         Surface(color = White) {
             UploadNextButton(
-                enabled = chapterName.isNotBlank() && isContentReady,
-                onClick = onNextClick,
+                enabled = isNextEnabled,
+                onClick = {
+                    val id = subjectId
+                    if (id != null) {
+                        viewModel.submit(
+                            subjectId = id,
+                            chapterName = chapterName,
+                            tab = selectedTab,
+                            classifyMethod = classifyMethod,
+                            manualSections = manualSections,
+                            files = currentFiles,
+                            images = currentImages,
+                            text = currentText,
+                        )
+                    } else {
+                        onNextClick()
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 16.dp),
@@ -145,7 +212,7 @@ fun UploadScreen(
 private fun UploadScreenWithLecturePreview() {
     QuiketTheme {
         UploadScreen(
-            lectureTitle = "SQLD",
+            chapterTitle = "SQLD",
             lecturePurpose = "시험·자격증 대비",
             chapterCount = 3,
         )

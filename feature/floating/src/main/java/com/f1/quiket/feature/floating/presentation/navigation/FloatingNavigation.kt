@@ -126,7 +126,7 @@ fun NavGraphBuilder.addSubjectGraph(
             usagePurpose = usagePurpose,
             onBackClick = { navController.popBackStack() },
             onSkipClick = onFinish,
-            onCreateClick = { _ -> onFinish() },
+            onCreateClick = { _, _ -> onFinish() },
         )
     }
 }
@@ -144,9 +144,9 @@ fun NavGraphBuilder.lectureSelectGraph(
     composable(route = LectureSelectDestination.route) {
         LectureSelectScreen(
             onBackClick = { navController.popBackStack() },
-            onLectureSelected = { lectureId, lectureTitle, chapterCount ->
+            onLectureSelected = { lectureId, lectureTitle, chapterCount, category ->
                 navController.navigate(
-                    LectureUploadFileDestination.createRoute(lectureId, lectureTitle, chapterCount)
+                    LectureUploadFileDestination.createRoute(lectureId, lectureTitle, chapterCount, category)
                 )
             },
         )
@@ -183,11 +183,18 @@ fun NavGraphBuilder.lectureUploadFileGraph(
             navArgument(LectureUploadFileDestination.ARG_CHAPTER_COUNT) {
                 type = NavType.IntType
             },
+            navArgument(LectureUploadFileDestination.ARG_CATEGORY) {
+                type = NavType.StringType
+            },
         ),
     ) { backStack ->
         val args = backStack.arguments
+        val category = args?.getString(LectureUploadFileDestination.ARG_CATEGORY)
+            ?.takeIf { it != "-" }
         UploadScreen(
-            lectureTitle = args?.getString(LectureUploadFileDestination.ARG_LECTURE_TITLE),
+            subjectId = args?.getString(LectureUploadFileDestination.ARG_LECTURE_ID),
+            chapterTitle = args?.getString(LectureUploadFileDestination.ARG_LECTURE_TITLE),
+            lecturePurpose = category,
             chapterCount = args?.getInt(LectureUploadFileDestination.ARG_CHAPTER_COUNT),
             onBackClick = { navController.popBackStack() },
             onNextClick = onFinish,

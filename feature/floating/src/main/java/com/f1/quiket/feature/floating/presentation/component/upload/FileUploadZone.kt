@@ -65,6 +65,7 @@ enum class UploadFileStatus { UPLOADING, COMPLETED, FAILED }
 
 data class UploadFile(
     val id: Int,
+    val uri: android.net.Uri,
     val name: String,
     val sizeLabel: String,
     val status: UploadFileStatus,
@@ -88,6 +89,7 @@ fun FileUploadZone(
             files.add(
                 UploadFile(
                     id = System.nanoTime().toInt(),
+                    uri = uri,
                     name = name,
                     sizeLabel = sizeLabel,
                     status = UploadFileStatus.UPLOADING,
@@ -410,6 +412,7 @@ private fun FileUploadZoneWithFilesPreview() {
             it.add(
                 UploadFile(
                     id = 1,
+                    uri = android.net.Uri.EMPTY,
                     name = "SQLD_정리노트.pdf",
                     sizeLabel = "2.4MB",
                     status = UploadFileStatus.COMPLETED
@@ -418,6 +421,7 @@ private fun FileUploadZoneWithFilesPreview() {
             it.add(
                 UploadFile(
                     id = 2,
+                    uri = android.net.Uri.EMPTY,
                     name = "데이터모델링_강의자료.pdf",
                     sizeLabel = "1.1MB",
                     status = UploadFileStatus.FAILED
@@ -426,6 +430,7 @@ private fun FileUploadZoneWithFilesPreview() {
             it.add(
                 UploadFile(
                     id = 3,
+                    uri = android.net.Uri.EMPTY,
                     name = "SQL활용_실습.pdf",
                     sizeLabel = "890KB",
                     status = UploadFileStatus.UPLOADING

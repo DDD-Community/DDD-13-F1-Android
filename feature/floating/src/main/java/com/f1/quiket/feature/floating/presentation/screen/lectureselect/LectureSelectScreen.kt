@@ -25,10 +25,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.f1.quiket.feature.floating.presentation.viewmodel.LectureSelectViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,11 +66,11 @@ data class LectureSelectItem(
 @Composable
 fun LectureSelectScreen(
     onBackClick: () -> Unit,
-    onLectureSelected: (lectureId: String, lectureTitle: String, chapterCount: Int) -> Unit,
-    // TODO: ViewModel 연결 시 실제 데이터로 교체
-    lectures: List<LectureSelectItem> = sampleLectures,
+    onLectureSelected: (lectureId: String, lectureTitle: String, chapterCount: Int, category: String) -> Unit,
     initialSelectedId: String? = null,
+    viewModel: LectureSelectViewModel = hiltViewModel(),
 ) {
+    val lectures by viewModel.subjects.collectAsState()
     var selectedId by remember { mutableStateOf<String?>(initialSelectedId) }
 
     Column(
@@ -145,7 +148,7 @@ fun LectureSelectScreen(
             enabled = selectedId != null,
             onClick = {
                 val selected = lectures.first { it.id == selectedId }
-                onLectureSelected(selected.id, selected.title, selected.chapterCount)
+                onLectureSelected(selected.id, selected.title, selected.chapterCount, selected.category)
             },
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
         )
@@ -313,7 +316,7 @@ private fun LectureSelectScreenPreview() {
     QuiketTheme {
         LectureSelectScreen(
             onBackClick = {},
-            onLectureSelected = { _, _, _ -> },
+            onLectureSelected = { _, _, _, _ -> },
         )
     }
 }
@@ -324,7 +327,7 @@ private fun LectureSelectScreenSelectedPreview() {
     QuiketTheme {
         LectureSelectScreen(
             onBackClick = {},
-            onLectureSelected = { _, _, _ -> },
+            onLectureSelected = { _, _, _, _ -> },
             initialSelectedId = "1",
         )
     }

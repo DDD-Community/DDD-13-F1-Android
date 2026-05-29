@@ -1,26 +1,55 @@
 package com.f1.quiket.feature.floating.presentation.screen.addsubject
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.f1.quiket.feature.floating.domain.model.AddSubjectState
 import com.f1.quiket.feature.floating.domain.model.ExamType
 import com.f1.quiket.feature.floating.domain.model.StudyField
 import com.f1.quiket.feature.floating.domain.model.StudyPurpose
 import com.f1.quiket.feature.floating.domain.model.UsagePurpose
+import com.f1.quiket.feature.floating.domain.model.Chapter
 import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
+import com.f1.quiket.feature.floating.presentation.screen.lectureview.LectureViewScreen
 import com.f1.quiket.feature.floating.presentation.screen.subjectdetail.SubjectDetailScreen
+import com.f1.quiket.feature.floating.presentation.viewmodel.AddSubjectViewModel
 
 @Composable
 fun AddSubjectScreen(
     onFinish: () -> Unit = {},
     onDismiss: () -> Unit = {},
+    viewModel: AddSubjectViewModel = hiltViewModel(),
 ) {
+    val createdSubjectId by viewModel.createdSubjectId.collectAsState()
     var state by remember { mutableStateOf(AddSubjectState()) }
     var depth by remember { mutableStateOf(1) }
     var skippedFromStep by remember { mutableStateOf(0) }
+    var nextChapterNumber by remember { mutableStateOf(1) }
+
+    // 업로드 성공 후 LectureViewScreen에 넘길 챕터 정보
+    var uploadedChapterId by remember { mutableStateOf("") }
+    var uploadedChapterName by remember { mutableStateOf("") }
+    var uploadedChapterNumber by remember { mutableStateOf(1) }
+
+    // depth=4(SubjectDetailScreen)에서 시스템 백버튼도 onFinish로 처리
+    BackHandler(enabled = depth == 4) { onFinish() }
+    // depth=6(LectureViewScreen)에서 시스템 백버튼 → SubjectDetail로
+    BackHandler(enabled = depth == 6) { depth = 4 }
+
+    fun goToSubjectDetail(currentState: AddSubjectState) {
+        val existingId = createdSubjectId
+        if (existingId == null) {
+            viewModel.createSubject(currentState)
+        } else {
+            viewModel.updateSubjectDetails(existingId, currentState)
+        }
+        depth = 4
+    }
 
     when (depth) {
         1 -> AddSubjectStep1Screen(
@@ -29,7 +58,7 @@ fun AddSubjectScreen(
             onSkipClick = { name ->
                 state = state.copy(subjectName = name)
                 skippedFromStep = 1
-                depth = 4
+                goToSubjectDetail(state.copy(subjectName = name))
             },
             onNextClick = { name, purpose ->
                 state = state.copy(subjectName = name, studyPurpose = purpose)
@@ -42,7 +71,7 @@ fun AddSubjectScreen(
             onBackClick = { depth = 1 },
             onSkipClick = {
                 skippedFromStep = 2
-                depth = 4
+                goToSubjectDetail(state)
             },
             onNextClick = { selection ->
                 when (selection) {
@@ -62,32 +91,53 @@ fun AddSubjectScreen(
             onBackClick = { depth = 2 },
             onSkipClick = {
                 skippedFromStep = 3
-                depth = 4
+                goToSubjectDetail(state)
             },
-            onCreateClick = { label ->
-                state = state.copy(step3Label = label)
-                depth = 4
+            onCreateClick = { label, updater ->
+                val updated = updater(state).copy(step3Label = label)
+                state = updated
+                goToSubjectDetail(updated)
             },
         )
 
         4 -> SubjectDetailScreen(
+            subjectId = createdSubjectId ?: "",
             subjectName = state.subjectName.ifBlank { "새 과목" },
             studyPurposeLabel = state.studyPurpose?.title ?: "",
             examTypeLabel = state.examType?.label ?: state.studyField?.label ?: state.usagePurpose?.title ?: "",
             detailLabel = state.step3Label,
             onBackClick = onFinish,
-            onChapterAddClick = { depth = 5 },
-            onUploadClick = { depth = 5 },
+            onChapterAddClick = { n -> nextChapterNumber = n; depth = 5 },
+            onUploadClick = { n -> nextChapterNumber = n; depth = 5 },
             onEditSubjectType = { depth = if (skippedFromStep > 0) skippedFromStep else 3 },
             onSubjectNameChanged = { newName -> state = state.copy(subjectName = newName) },
+            onSubjectDeleted = onFinish,
         )
 
         5 -> UploadScreen(
-            lectureTitle = state.subjectName.ifBlank { "새 과목" },
+            subjectId = createdSubjectId,
+            chapterTitle = state.subjectName.ifBlank { "새 과목" },
             lecturePurpose = state.studyPurpose?.title,
-            chapterCount = 0,
+            chapterCount = nextChapterNumber,
             onBackClick = { depth = 4 },
             onNextClick = { depth = 4 },
+            onUploadSuccess = { _, cId, cName, cNum ->
+                uploadedChapterId = cId
+                uploadedChapterName = cName
+                uploadedChapterNumber = cNum
+                depth = 6
+            },
+        )
+
+        6 -> LectureViewScreen(
+            subjectId = createdSubjectId ?: "",
+            chapter = Chapter(
+                id = uploadedChapterId,
+                number = uploadedChapterNumber,
+                name = uploadedChapterName,
+                partCount = 0,
+            ),
+            onBackClick = { depth = 4 },
         )
     }
 }

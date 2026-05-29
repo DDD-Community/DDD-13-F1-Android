@@ -34,7 +34,7 @@ fun NavGraphBuilder.homeGraph(
     navigateToUpload: () -> Unit,
     navigateToAddSubject: () -> Unit,
 ) {
-    composable(route = HomeDestination.route) {
+    composable(route = HomeDestination.route) { backStackEntry ->
         HomeRoute(
             isQuizGenerating = isQuizGenerating,
             activeQuizSessionId = activeQuizSessionId,
@@ -45,7 +45,8 @@ fun NavGraphBuilder.homeGraph(
             navigateToScheduleExam = navigateToScheduleExam,
             navigateToCreateQuiz = navigateToCreateQuiz,
             navigateToUpload = navigateToUpload,
-            navigateToAddSubject = navigateToAddSubject
+            navigateToAddSubject = navigateToAddSubject,
+            homeBackStackEntry = backStackEntry,
         )
     }
 
@@ -168,10 +169,17 @@ fun NavGraphBuilder.homeGraph(
             onNextClick = { navController.popBackStack() },
         )
     }
-    composable(AddSubjectDestination.route) {
+    composable(AddSubjectDestination.route) { backStackEntry ->
         AddSubjectScreen(
             onDismiss = { navController.popBackStack() },
-            onFinish = { navController.popBackStack() },
+            onFinish = {
+                runCatching {
+                    navController.getBackStackEntry(HomeDestination.route)
+                        .savedStateHandle
+                        .set("subject_created", true)
+                }
+                navController.popBackStack()
+            },
         )
     }
 }

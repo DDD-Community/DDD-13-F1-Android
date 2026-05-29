@@ -35,6 +35,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.f1.quiket.feature.floating.presentation.screen.ImagePreviewScreen
 import com.f1.quiket.core.designsystem.theme.Brown50
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.Brown950
@@ -54,12 +57,16 @@ fun LectureUploadSection(
     selectedTab: UploadTab,
     onTabSelect: (UploadTab) -> Unit,
     onReadyChange: (Boolean) -> Unit = {},
+    onFilesChange: (List<UploadFile>) -> Unit = {},
+    onImagesChange: (List<UploadImage>) -> Unit = {},
+    onTextChange: (String) -> Unit = {},
     initialFiles: List<UploadFile> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
     val files = remember { mutableStateListOf<UploadFile>().also { it.addAll(initialFiles) } }
     val images = remember { mutableStateListOf<UploadImage>() }
     var lectureText by remember { mutableStateOf("") }
+    var previewIndex by remember { mutableStateOf<Int?>(null) }
 
     // 탭별 readiness 계산
     val isReady = when (selectedTab) {
@@ -70,6 +77,11 @@ fun LectureUploadSection(
     LaunchedEffect(isReady, selectedTab) {
         onReadyChange(isReady)
     }
+
+    // content 변경 시 상위로 전달
+    LaunchedEffect(files.toList()) { onFilesChange(files.toList()) }
+    LaunchedEffect(images.toList()) { onImagesChange(images.toList()) }
+    LaunchedEffect(lectureText) { onTextChange(lectureText) }
 
     Column(modifier = modifier) {
         Spacer(modifier = Modifier.height(16.dp))
@@ -118,6 +130,7 @@ fun LectureUploadSection(
                     UploadTab.IMAGE -> ImageUploadZone(
                         images = images,
                         onRemove = { index -> if (index in images.indices) images.removeAt(index) },
+                        onImageClick = { index -> previewIndex = index },
                         modifier = Modifier.matchParentSize(),
                     )
 
@@ -128,6 +141,44 @@ fun LectureUploadSection(
                         modifier = Modifier.matchParentSize(),
                     )
                 }
+            }
+        }
+    }
+
+    // ── 이미지 미리보기 전체화면 Dialog ──────────────────────────────────
+    previewIndex?.let { idx ->
+        if (images.isNotEmpty()) {
+            Dialog(
+                onDismissRequest = { previewIndex = null },
+                properties = DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    decorFitsSystemWindows = false,
+                ),
+            ) {
+                ImagePreviewScreen(
+                    images = images.toList(),
+                    initialIndex = idx.coerceIn(0, images.size - 1),
+                    onBack = { previewIndex = null },
+                    onDelete = { deleteIdx ->
+                        if (deleteIdx in images.indices) {
+                            images.removeAt(deleteIdx)
+                            previewIndex = if (images.isEmpty()) {
+                                null
+                            } else {
+                                deleteIdx.coerceIn(0, images.size - 1)
+                            }
+                        }
+                    },
+                    onSaveCrop = { index, scale, offsetX, offsetY ->
+                        if (index in images.indices) {
+                            images[index] = images[index].copy(
+                                cropScale = scale,
+                                cropOffsetX = offsetX,
+                                cropOffsetY = offsetY,
+                            )
+                        }
+                    },
+                )
             }
         }
     }
@@ -248,18 +299,21 @@ private fun LectureUploadSectionFileStatesPreview() {
     val sampleFiles = listOf(
         UploadFile(
             id = 1,
+            uri = android.net.Uri.EMPTY,
             name = "SQLD_정리노트.pdf",
             sizeLabel = "2.4MB",
             status = UploadFileStatus.COMPLETED
         ),
         UploadFile(
             id = 2,
+            uri = android.net.Uri.EMPTY,
             name = "데이터모델링_강의자료.pdf",
             sizeLabel = "1.1MB",
             status = UploadFileStatus.FAILED
         ),
         UploadFile(
             id = 3,
+            uri = android.net.Uri.EMPTY,
             name = "SQL활용_실습.pdf",
             sizeLabel = "890KB",
             status = UploadFileStatus.UPLOADING
