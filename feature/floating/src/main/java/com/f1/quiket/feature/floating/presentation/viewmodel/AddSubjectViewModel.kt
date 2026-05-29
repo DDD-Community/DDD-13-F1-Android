@@ -17,6 +17,7 @@ import com.f1.quiket.feature.floating.domain.model.SubjectReviewDetail
 import com.f1.quiket.feature.floating.domain.repository.SubjectRepository
 import com.f1.quiket.feature.floating.presentation.contract.AddSubjectContract
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -74,10 +76,19 @@ class AddSubjectViewModel @Inject constructor(
     fun createSubject(addSubjectState: AddSubjectState) {
         viewModelScope.launch {
             val request = addSubjectState.toSubjectCreate()
-            when (val result = subjectRepository.createSubject(request)) {
-                is NetworkResult.Success -> _createdSubjectId.value = result.data.id
-                is NetworkResult.Failure -> {}
+            withContext(NonCancellable) {
+                when (val result = subjectRepository.createSubject(request)) {
+                    is NetworkResult.Success -> _createdSubjectId.value = result.data.id
+                    is NetworkResult.Failure -> {}
+                }
             }
+        }
+    }
+
+    fun updateSubjectDetails(subjectId: String, addSubjectState: AddSubjectState) {
+        viewModelScope.launch {
+            val request = addSubjectState.toSubjectCreate()
+            subjectRepository.updateSubjectDetails(subjectId, request)
         }
     }
 }

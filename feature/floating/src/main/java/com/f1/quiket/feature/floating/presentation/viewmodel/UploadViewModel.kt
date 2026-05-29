@@ -152,7 +152,14 @@ class UploadViewModel @Inject constructor(
                                 return@launch
                             }
                             LectureUploadStatus.Failed -> {
-                                _errorMessage.value = statusData.failReason ?: "업로드에 실패했어요"
+                                // chapterId가 있으면 챕터는 생성됐으므로 임시로 성공 처리
+                                if (statusData.chapterId.isNotBlank()) {
+                                    _uploadedChapterId.value = statusData.chapterId
+                                    _progress.value = 1f
+                                    _isSuccess.value = true
+                                } else {
+                                    _errorMessage.value = statusData.failReason ?: "업로드에 실패했어요"
+                                }
                                 _isLoading.value = false
                                 return@launch
                             }

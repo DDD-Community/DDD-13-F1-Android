@@ -92,4 +92,23 @@ class LectureViewViewModel @Inject constructor(
             _isPartLoading.value = false
         }
     }
+
+    fun updatePartName(partId: String, name: String) {
+        viewModelScope.launch {
+            val content = _currentPartContent.value ?: ""
+            when (val result = subjectRepository.updatePart(partId, name, content)) {
+                is NetworkResult.Success -> {
+                    _currentPartName.value = result.data.name
+                    _tocChapters.value = _tocChapters.value.map { chapter ->
+                        chapter.copy(
+                            parts = chapter.parts.map { part ->
+                                if (part.id == partId) part.copy(title = name) else part
+                            }
+                        )
+                    }
+                }
+                is NetworkResult.Failure -> {}
+            }
+        }
+    }
 }

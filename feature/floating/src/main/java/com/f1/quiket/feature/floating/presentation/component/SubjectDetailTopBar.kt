@@ -46,6 +46,7 @@ fun SubjectDetailTopBar(
     onEditSubjectType: () -> Unit = {},
     onEditSubjectName: () -> Unit = {},
     onEditChapterName: () -> Unit = {},
+    onDeleteSubjectClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -167,7 +168,7 @@ fun SubjectDetailTopBar(
                             color = Negative
                         )
                     },
-                    onClick = onMenuDismiss,
+                    onClick = { onMenuDismiss(); onDeleteSubjectClick() },
                 )
             }
         }

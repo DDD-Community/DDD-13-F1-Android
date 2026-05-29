@@ -48,6 +48,7 @@ fun SubjectDetailResponse.toDomain(): SubjectDetail = SubjectDetail(
     purpose = purpose,
     createdAt = createdAt,
     chapters = chapters.map { chapter -> chapter.toDomain() },
+    examSchedule = examSchedule?.toDomain(),
 )
 
 fun SubjectCreate.toRequest(): SubjectCreateRequest = SubjectCreateRequest(

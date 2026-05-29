@@ -42,7 +42,12 @@ fun AddSubjectScreen(
     BackHandler(enabled = depth == 6) { depth = 4 }
 
     fun goToSubjectDetail(currentState: AddSubjectState) {
-        viewModel.createSubject(currentState)
+        val existingId = createdSubjectId
+        if (existingId == null) {
+            viewModel.createSubject(currentState)
+        } else {
+            viewModel.updateSubjectDetails(existingId, currentState)
+        }
         depth = 4
     }
 
@@ -106,6 +111,7 @@ fun AddSubjectScreen(
             onUploadClick = { n -> nextChapterNumber = n; depth = 5 },
             onEditSubjectType = { depth = if (skippedFromStep > 0) skippedFromStep else 3 },
             onSubjectNameChanged = { newName -> state = state.copy(subjectName = newName) },
+            onSubjectDeleted = onFinish,
         )
 
         5 -> UploadScreen(

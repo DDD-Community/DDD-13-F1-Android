@@ -21,6 +21,7 @@ data class SubjectDetail(
     val purpose: String,
     val createdAt: String,
     val chapters: List<ChapterWithParts>,
+    val examSchedule: SubjectExamSchedule? = null,
 )
 
 data class SubjectCreate(

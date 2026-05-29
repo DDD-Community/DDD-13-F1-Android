@@ -30,15 +30,27 @@ class SubjectDetailViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    // API 성공 후 홈 화면 새로고침 트리거
     private val _examScheduleSaved = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val examScheduleSaved: SharedFlow<Unit> = _examScheduleSaved.asSharedFlow()
+
+    private val _deleteSubjectSuccess = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val deleteSubjectSuccess: SharedFlow<Unit> = _deleteSubjectSuccess.asSharedFlow()
+
+    private var loadedSubjectId: String? = null
 
     fun loadSubject(subjectId: String) {
         viewModelScope.launch {
             _isLoading.value = true
+            if (loadedSubjectId != subjectId) {
+                _subjectDetail.value = null
+                _examSchedule.value = null
+            }
             when (val result = subjectRepository.getSubject(subjectId)) {
-                is NetworkResult.Success -> _subjectDetail.value = result.data
+                is NetworkResult.Success -> {
+                    loadedSubjectId = subjectId
+                    _subjectDetail.value = result.data
+                    _examSchedule.value = result.data.examSchedule
+                }
                 is NetworkResult.Failure -> {}
             }
             _isLoading.value = false
@@ -47,7 +59,12 @@ class SubjectDetailViewModel @Inject constructor(
 
     fun updateSubjectName(subjectId: String, name: String) {
         viewModelScope.launch {
-            subjectRepository.updateSubjectName(subjectId, name)
+            when (val result = subjectRepository.updateSubjectName(subjectId, name)) {
+                is NetworkResult.Success -> {
+                    _subjectDetail.value = _subjectDetail.value?.copy(name = result.data.name)
+                }
+                is NetworkResult.Failure -> {}
+            }
         }
     }
 
@@ -68,6 +85,15 @@ class SubjectDetailViewModel @Inject constructor(
         }
     }
 
+    fun deleteSubject(subjectId: String) {
+        viewModelScope.launch {
+            when (subjectRepository.deleteSubject(subjectId)) {
+                is NetworkResult.Success -> _deleteSubjectSuccess.emit(Unit)
+                is NetworkResult.Failure -> {}
+            }
+        }
+    }
+
     fun upsertExamSchedule(subjectId: String, examName: String?, examDate: String) {
         viewModelScope.launch {
             when (val result = subjectRepository.upsertExamSchedule(subjectId, examName, examDate)) {
@@ -75,6 +101,15 @@ class SubjectDetailViewModel @Inject constructor(
                     _examSchedule.value = result.data
                     _examScheduleSaved.emit(Unit)
                 }
+                is NetworkResult.Failure -> {}
+            }
+        }
+    }
+
+    fun deleteExamSchedule(subjectId: String) {
+        viewModelScope.launch {
+            when (subjectRepository.deleteExamSchedule(subjectId)) {
+                is NetworkResult.Success -> _examSchedule.value = null
                 is NetworkResult.Failure -> {}
             }
         }

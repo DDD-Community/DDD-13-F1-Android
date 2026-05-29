@@ -109,12 +109,19 @@ private fun calcDDay(dateStr: String): String {
     }.getOrDefault("D-?")
 }
 
+private fun purposeToKorean(purpose: String): String = when (purpose.uppercase()) {
+    "EXAM" -> "시험·자격증 대비"
+    "SELF_STUDY" -> "자기계발·일반 복습"
+    "OTHER" -> "기타"
+    else -> purpose
+}
+
 @Composable
 fun SubjectDetailScreen(
     subjectId: String = "",
     subjectName: String,
-    studyPurposeLabel: String,
-    examTypeLabel: String,
+    studyPurposeLabel: String = "",
+    examTypeLabel: String = "",
     detailLabel: String = "",
     onBackClick: () -> Unit = {},
     onChapterAddClick: (newChapterNumber: Int) -> Unit = {},
@@ -122,6 +129,8 @@ fun SubjectDetailScreen(
     onEditSubjectType: () -> Unit = {},
     onSubjectNameChanged: (String) -> Unit = {},
     onExamScheduleSaved: () -> Unit = {},
+    onSubjectDeleted: () -> Unit = {},
+    onCreateQuizClick: () -> Unit = {},
     viewModel: SubjectDetailViewModel = hiltViewModel(),
 ) {
     val subjectDetail by viewModel.subjectDetail.collectAsState()
@@ -134,6 +143,14 @@ fun SubjectDetailScreen(
     LaunchedEffect(viewModel) {
         viewModel.examScheduleSaved.collect { onExamScheduleSaved() }
     }
+
+    LaunchedEffect(viewModel) {
+        viewModel.deleteSubjectSuccess.collect { onSubjectDeleted() }
+    }
+
+    // API에서 받아온 값으로 헤더 정보 구성
+    val apiSubjectName = subjectDetail?.name
+    val apiPurposeLabel = subjectDetail?.purpose?.let { purposeToKorean(it) }
 
     val chapters = remember(subjectDetail) {
         subjectDetail?.chapters?.map { chapter ->
@@ -164,13 +181,26 @@ fun SubjectDetailScreen(
     var isStarred by rememberSaveable { mutableStateOf(false) }
     var showDropdownMenu by remember { mutableStateOf(false) }
     var showScheduleDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var confirmedExamName by rememberSaveable { mutableStateOf(apiExamSchedule?.examName ?: "") }
     var confirmedSchedule by rememberSaveable { mutableStateOf(apiExamSchedule?.examDate ?: "") }
+    var confirmedDDay by rememberSaveable { mutableStateOf<Int?>(apiExamSchedule?.dDay) }
+
+    // API 로드 완료 시 이름 동기화
+    LaunchedEffect(apiSubjectName) {
+        if (!apiSubjectName.isNullOrBlank()) displaySubjectName = apiSubjectName
+    }
 
     LaunchedEffect(apiExamSchedule) {
-        apiExamSchedule?.let {
-            confirmedExamName = it.examName
-            confirmedSchedule = it.examDate
+        val schedule = apiExamSchedule
+        if (schedule != null) {
+            confirmedExamName = schedule.examName
+            confirmedSchedule = schedule.examDate
+            confirmedDDay = schedule.dDay
+        } else {
+            confirmedExamName = ""
+            confirmedSchedule = ""
+            confirmedDDay = null
         }
     }
     var showEditSubjectNameDialog by remember { mutableStateOf(false) }
@@ -202,11 +232,12 @@ fun SubjectDetailScreen(
                     onEditSubjectName = { showEditSubjectNameDialog = true },
                     onEditSubjectType = onEditSubjectType,
                     onEditChapterName = { isChapterEditMode = true },
+                    onDeleteSubjectClick = { showDeleteConfirmDialog = true },
                 )
                 SubjectHeaderSection(
                     modifier = Modifier.padding(horizontal = 8.dp),
                     subjectName = displaySubjectName,
-                    studyPurposeLabel = studyPurposeLabel,
+                    studyPurposeLabel = apiPurposeLabel ?: studyPurposeLabel,
                     examTypeLabel = examTypeLabel,
                     detailLabel = detailLabel,
                 )
@@ -239,17 +270,24 @@ fun SubjectDetailScreen(
                     text = "퀴즈 만들기",
                     iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_make,
                     backgroundColor = Orange500,
-                    onClick = {},
+                    onClick = onCreateQuizClick,
                     modifier = Modifier
                         .height(103.dp)
                         .weight(1f)
                 )
             }
             if (confirmedSchedule.isNotBlank()) {
+                val dDayText = confirmedDDay?.let { d ->
+                    when {
+                        d > 0 -> "D-$d"
+                        d == 0 -> "D-Day"
+                        else -> "D+${-d}"
+                    }
+                } ?: calcDDay(confirmedSchedule)
                 HomeExamCard(
                     examName = confirmedExamName.ifBlank { displaySubjectName },
                     date = confirmedSchedule,
-                    dDay = calcDDay(confirmedSchedule),
+                    dDay = dDayText,
                     onClick = { showScheduleDialog = true },
                     modifier = Modifier.padding(16.dp),
                 )
@@ -279,11 +317,20 @@ fun SubjectDetailScreen(
     if (showScheduleDialog) {
         AddTestCalendarDialog(
             subjectName = displaySubjectName,
+            hasExistingSchedule = confirmedSchedule.isNotBlank(),
             onDismiss = { showScheduleDialog = false },
             onApply = { name, date ->
                 confirmedExamName = name
                 confirmedSchedule = date
+                confirmedDDay = null  // API 응답 전까지 로컬 계산 사용
                 if (subjectId.isNotEmpty()) viewModel.upsertExamSchedule(subjectId, name.ifBlank { null }, date)
+                showScheduleDialog = false
+            },
+            onDelete = {
+                confirmedExamName = ""
+                confirmedSchedule = ""
+                confirmedDDay = null
+                if (subjectId.isNotEmpty()) viewModel.deleteExamSchedule(subjectId)
                 showScheduleDialog = false
             },
         )
@@ -310,6 +357,17 @@ fun SubjectDetailScreen(
                 if (chapter.id.isNotEmpty()) viewModel.updateChapterName(chapter.id, newName)
                 editingChapter = null
                 isChapterEditMode = false
+            },
+        )
+    }
+
+    if (showDeleteConfirmDialog) {
+        DeleteSubjectDialog(
+            subjectName = displaySubjectName,
+            onDismiss = { showDeleteConfirmDialog = false },
+            onConfirm = {
+                showDeleteConfirmDialog = false
+                if (subjectId.isNotEmpty()) viewModel.deleteSubject(subjectId)
             },
         )
     }
@@ -460,8 +518,10 @@ private fun MySubjectSection(
 @Composable
 private fun AddTestCalendarDialog(
     subjectName: String,
+    hasExistingSchedule: Boolean = false,
     onDismiss: () -> Unit,
     onApply: (examName: String, date: String) -> Unit,
+    onDelete: () -> Unit = {},
 ) {
     var examName by remember { mutableStateOf("") }
     var showCalendar by remember { mutableStateOf(false) }
@@ -544,7 +604,19 @@ private fun AddTestCalendarDialog(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    if (hasExistingSchedule) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(
+                            onClick = onDelete,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                "일정 삭제",
+                                style = MaterialTheme.typography.bodySmall.copy(color = Negative),
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -894,6 +966,62 @@ private fun CalendarView(
                                 )
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeleteSubjectDialog(
+    subjectName: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = White),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "과목 삭제",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Gray950,
+                    ),
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "'$subjectName' 과목을 삭제할까요?\n삭제한 과목은 복구할 수 없어요.",
+                    style = MaterialTheme.typography.bodySmall.copy(color = Gray700),
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray700),
+                        border = BorderStroke(1.dp, Gray300),
+                    ) {
+                        Text("취소", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Button(
+                        onClick = onConfirm,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Negative,
+                            contentColor = White,
+                        ),
+                    ) {
+                        Text("삭제", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }

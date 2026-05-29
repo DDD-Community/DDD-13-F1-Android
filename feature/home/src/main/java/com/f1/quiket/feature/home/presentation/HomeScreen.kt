@@ -153,9 +153,6 @@ fun HomeScreen(
             SubjectDetailScreen(
                 subjectId = selectedSubject?.id ?: "",
                 subjectName = selectedSubject?.title ?: "",
-                studyPurposeLabel = "",
-                examTypeLabel = "",
-                detailLabel = "",
                 onBackClick = { depth = 0; onHomeRefresh() },
                 onExamScheduleSaved = onHomeRefresh,
                 onUploadClick = { n -> nextChapterNumber = n; depth = 3 },
@@ -166,6 +163,12 @@ fun HomeScreen(
                     }
                     selectedSubject = selectedSubject?.copy(title = newName)
                 },
+                onSubjectDeleted = {
+                    subjects = subjects.filter { it.id != selectedSubject?.id }
+                    depth = 0
+                    onHomeRefresh()
+                },
+                onCreateQuizClick = { onFabItemClick(FabAction.CreateQuiz) },
             )
             return
         }
@@ -251,7 +254,14 @@ fun HomeScreen(
                     uploadedChapterId = cId
                     uploadedChapterName = cName
                     uploadedChapterNumber = cNum
-                    lectureViewBackDepth = 0
+                    // SubjectDetailScreen에서 보여줄 과목 정보 설정
+                    selectedSubject = Subject(
+                        id = selectedLectureId,
+                        title = selectedLectureTitle,
+                        chapter = "챕터 $selectedLectureChapterCount",
+                        isStarred = false,
+                    )
+                    lectureViewBackDepth = 1
                     depth = 7
                 },
             )
@@ -282,6 +292,7 @@ fun HomeScreen(
     // 온보딩 툴팁
     var noteIconOffset by remember { mutableStateOf(Offset.Zero) }
     var noteIconSize by remember { mutableStateOf(IntSize.Zero) }
+    var homeBoxOffset by remember { mutableStateOf(Offset.Zero) }
 
     // 튜토리얼 위치
     var uploadButtonRect by remember { mutableStateOf<Rect?>(null) }
@@ -307,6 +318,9 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Brown50)
+            .onGloballyPositioned { coordinates ->
+                homeBoxOffset = coordinates.positionInRoot()
+            },
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // ── TopBar (고정) ────────────────────────────────────────────
@@ -533,7 +547,7 @@ fun HomeScreen(
 
         // 온보딩 툴팁
         if (uiState.showOnboarding && noteIconOffset != Offset.Zero) {
-            val (yDp, endPadding) = rememberTooltipOffset(noteIconOffset, noteIconSize)
+            val (yDp, endPadding) = rememberTooltipOffset(noteIconOffset, noteIconSize, homeBoxOffset)
             HomeGuideTooltip(
                 onClose = onBoardingDone,
                 modifier = Modifier
@@ -828,13 +842,14 @@ private fun HomeScreenQuizGeneratingPreview() {
 @Composable
 fun rememberTooltipOffset(
     noteIconOffset: Offset,
-    noteIconSize: IntSize
+    noteIconSize: IntSize,
+    boxOffset: Offset = Offset.Zero,
 ): Pair<Dp, Dp> {
     val density = LocalDensity.current
-    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    val yDp = with(density) { (noteIconOffset.y + noteIconSize.height).toDp() } - statusBarHeight
-    val noteIconCenterDp = with(density) { (noteIconOffset.x + noteIconSize.width / 2).toDp() }
+    // positionInRoot()은 화면 y=0 기준, offset(y=)은 Box 내부 기준이므로 Box의 root 위치를 빼줘야 함
+    val yDp = with(density) { (noteIconOffset.y + noteIconSize.height - boxOffset.y).toDp() }
+    val noteIconCenterDp = with(density) { (noteIconOffset.x + noteIconSize.width / 2f - boxOffset.x).toDp() }
     val endPadding = screenWidth - noteIconCenterDp - 19.dp
     return Pair(yDp, endPadding)
 }

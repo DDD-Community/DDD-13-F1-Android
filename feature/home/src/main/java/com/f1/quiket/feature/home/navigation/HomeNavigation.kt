@@ -169,13 +169,15 @@ fun NavGraphBuilder.homeGraph(
             onNextClick = { navController.popBackStack() },
         )
     }
-    composable(AddSubjectDestination.route) {
+    composable(AddSubjectDestination.route) { backStackEntry ->
         AddSubjectScreen(
             onDismiss = { navController.popBackStack() },
             onFinish = {
-                navController.previousBackStackEntry
-                    ?.savedStateHandle
-                    ?.set("subject_created", true)
+                runCatching {
+                    navController.getBackStackEntry(HomeDestination.route)
+                        .savedStateHandle
+                        .set("subject_created", true)
+                }
                 navController.popBackStack()
             },
         )

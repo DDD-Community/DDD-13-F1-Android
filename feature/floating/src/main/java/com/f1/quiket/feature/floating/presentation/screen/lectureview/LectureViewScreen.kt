@@ -15,11 +15,17 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,16 +40,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.f1.quiket.core.designsystem.component.BaseTextField
 import com.f1.quiket.core.designsystem.theme.Brown50
+import com.f1.quiket.core.designsystem.theme.Brown950
 import com.f1.quiket.core.designsystem.theme.Dimmed
 import com.f1.quiket.core.designsystem.theme.Gray100
+import com.f1.quiket.core.designsystem.theme.Gray300
 import com.f1.quiket.core.designsystem.theme.Gray50
 import com.f1.quiket.core.designsystem.theme.Gray500
+import com.f1.quiket.core.designsystem.theme.Gray700
 import com.f1.quiket.core.designsystem.theme.Gray950
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
+import com.f1.quiket.core.designsystem.theme.White
 import com.f1.quiket.feature.floating.domain.model.Chapter
 import com.f1.quiket.feature.floating.domain.model.LectureItem
 import com.f1.quiket.feature.floating.presentation.component.LectureViewBottomBar
@@ -66,6 +78,7 @@ fun LectureViewScreen(
     val currentPartContent by viewModel.currentPartContent.collectAsStateWithLifecycle()
 
     var showTocSidebar by remember { mutableStateOf(false) }
+    var showEditPartNameDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(subjectId, chapter.id) {
         if (subjectId.isNotEmpty() && chapter.id.isNotEmpty()) {
@@ -93,6 +106,7 @@ fun LectureViewScreen(
                     title = chapter.name,
                     onBackClick = onBackClick,
                     onTocClick = { showTocSidebar = true },
+                    onEditPartNameClick = { showEditPartNameDialog = true },
                     onEditClick = {},
                     onDeletePartClick = {},
                 )
@@ -153,6 +167,17 @@ fun LectureViewScreen(
                 onClose = { showTocSidebar = false },
             )
         }
+    }
+
+    if (showEditPartNameDialog) {
+        EditPartNameDialog(
+            currentName = currentPartName ?: "",
+            onDismiss = { showEditPartNameDialog = false },
+            onApply = { newName ->
+                currentPartId?.let { viewModel.updatePartName(it, newName) }
+                showEditPartNameDialog = false
+            },
+        )
     }
 }
 
@@ -218,32 +243,88 @@ private fun LectureTextItem(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text = item.number,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontWeight = FontWeight.Medium
-                ),
-                color = Gray950,
-                modifier = Modifier.width(30.dp),
-            )
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontWeight = FontWeight.Medium
-                ),
-                color = Gray950,
-            )
         }
-        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = item.content,
             style = MaterialTheme.typography.bodySmall.copy(
                 fontWeight = FontWeight.Medium
             ),
             color = Gray950,
-            lineHeight = 20.sp,
-            modifier = Modifier.padding(start = 36.dp),
+            lineHeight = 20.sp
         )
+    }
+}
+
+@Composable
+private fun EditPartNameDialog(
+    currentName: String,
+    onDismiss: () -> Unit,
+    onApply: (String) -> Unit,
+) {
+    var name by remember { mutableStateOf(currentName) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = White),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "파트명 수정",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Gray950,
+                    ),
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "파트명",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = Gray700,
+                    ),
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                BaseTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    hint = "파트명을 입력해주세요",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray700),
+                        border = BorderStroke(1.dp, Gray300),
+                    ) {
+                        Text("취소", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Button(
+                        onClick = { onApply(name) },
+                        enabled = name.isNotBlank(),
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Brown950,
+                            contentColor = White,
+                            disabledContainerColor = Gray300,
+                            disabledContentColor = White,
+                        ),
+                    ) {
+                        Text("적용", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
     }
 }
 
