@@ -131,7 +131,7 @@ fun UploadScreen(
                         .fillMaxWidth()
                         .padding(start = 20.dp, end = 20.dp, bottom = 24.dp),
                 ) {
-                    if (chapterTitle != null && chapterCount != null && chapterCount > 0 && lecturePurpose != null) {
+                    if (chapterTitle != null && chapterCount != null && chapterCount >= 0) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Box(
                             modifier = Modifier.fillMaxWidth(),
@@ -140,7 +140,7 @@ fun UploadScreen(
                             LectureShortCard(
                                 title = chapterTitle,
                                 chapterCount = chapterCount,
-                                purpose = lecturePurpose,
+                                purpose = lecturePurpose.orEmpty(),
                                 onClick = {},
                                 modifier = Modifier.width(142.dp),
                             )

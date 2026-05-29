@@ -34,6 +34,7 @@ import com.f1.quiket.feature.home.navigation.QuizPlayAllDestination
 import com.f1.quiket.feature.home.navigation.QuizResultDestination
 import com.f1.quiket.feature.home.navigation.QuizStartDestination
 import com.f1.quiket.feature.home.navigation.homeGraph
+import com.f1.quiket.feature.mypage.navigation.MyPageDestination
 import com.f1.quiket.feature.mypage.navigation.myPageGraph
 import com.f1.quiket.feature.review.navigation.reviewGraph
 
@@ -147,7 +148,16 @@ fun MainScreen(onLogout: () -> Unit) {
                 },
                 navigateToAddSubject = {
                     navController.navigate(AddSubjectDestination.route)
-                }
+                },
+                navigateToMyPage = {
+                    navController.navigate(MyPageDestination.route) {
+                        launchSingleTop = true
+                        restoreState = true
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                    }
+                },
             )
             historyGraph(
                 onQuizStartClick = { quizSessionId ->

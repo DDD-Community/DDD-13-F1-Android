@@ -39,12 +39,12 @@ class SubjectDetailViewModel @Inject constructor(
     private var loadedSubjectId: String? = null
 
     fun loadSubject(subjectId: String) {
+        if (loadedSubjectId != subjectId) {
+            _subjectDetail.value = null
+            _examSchedule.value = null
+        }
         viewModelScope.launch {
             _isLoading.value = true
-            if (loadedSubjectId != subjectId) {
-                _subjectDetail.value = null
-                _examSchedule.value = null
-            }
             when (val result = subjectRepository.getSubject(subjectId)) {
                 is NetworkResult.Success -> {
                     loadedSubjectId = subjectId

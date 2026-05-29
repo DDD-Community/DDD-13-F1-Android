@@ -136,10 +136,6 @@ fun SubjectDetailScreen(
     val subjectDetail by viewModel.subjectDetail.collectAsState()
     val apiExamSchedule by viewModel.examSchedule.collectAsState()
 
-    LaunchedEffect(subjectId) {
-        if (subjectId.isNotEmpty()) viewModel.loadSubject(subjectId)
-    }
-
     LaunchedEffect(viewModel) {
         viewModel.examScheduleSaved.collect { onExamScheduleSaved() }
     }
@@ -182,9 +178,17 @@ fun SubjectDetailScreen(
     var showDropdownMenu by remember { mutableStateOf(false) }
     var showScheduleDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
-    var confirmedExamName by rememberSaveable { mutableStateOf(apiExamSchedule?.examName ?: "") }
-    var confirmedSchedule by rememberSaveable { mutableStateOf(apiExamSchedule?.examDate ?: "") }
-    var confirmedDDay by rememberSaveable { mutableStateOf<Int?>(apiExamSchedule?.dDay) }
+    var confirmedExamName by rememberSaveable { mutableStateOf("") }
+    var confirmedSchedule by rememberSaveable { mutableStateOf("") }
+    var confirmedDDay by rememberSaveable { mutableStateOf<Int?>(null) }
+
+    // subjectId 변경 시 스테일 시험 데이터 즉시 초기화 후 로드
+    LaunchedEffect(subjectId) {
+        confirmedExamName = ""
+        confirmedSchedule = ""
+        confirmedDDay = null
+        if (subjectId.isNotEmpty()) viewModel.loadSubject(subjectId)
+    }
 
     // API 로드 완료 시 이름 동기화
     LaunchedEffect(apiSubjectName) {
@@ -258,8 +262,7 @@ fun SubjectDetailScreen(
                     iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_upload,
                     backgroundColor = Gray100,
                     onClick = {
-                        val next = if (chapters.isEmpty()) 1 else chapters.maxOf { it.number } + 1
-                        onUploadClick(next)
+                        onUploadClick(chapters.size)
                     },
                     modifier = Modifier
                         .height(103.dp)
@@ -307,8 +310,7 @@ fun SubjectDetailScreen(
                 onChapterClick = { selectedChapter = it },
                 onChapterEditClick = { chapter -> editingChapter = chapter },
                 onChapterAddClick = {
-                    val next = if (chapters.isEmpty()) 1 else chapters.maxOf { it.number } + 1
-                    onChapterAddClick(next)
+                    onChapterAddClick(chapters.size)
                 },
             )
         }
@@ -318,12 +320,14 @@ fun SubjectDetailScreen(
         AddTestCalendarDialog(
             subjectName = displaySubjectName,
             hasExistingSchedule = confirmedSchedule.isNotBlank(),
+            initialExamName = confirmedExamName,
+            initialDate = confirmedSchedule,
             onDismiss = { showScheduleDialog = false },
             onApply = { name, date ->
                 confirmedExamName = name
                 confirmedSchedule = date
                 confirmedDDay = null  // API 응답 전까지 로컬 계산 사용
-                if (subjectId.isNotEmpty()) viewModel.upsertExamSchedule(subjectId, name.ifBlank { null }, date)
+                if (subjectId.isNotEmpty()) viewModel.upsertExamSchedule(subjectId, name.ifBlank { displaySubjectName }.ifBlank { null }, date)
                 showScheduleDialog = false
             },
             onDelete = {
@@ -519,18 +523,26 @@ private fun MySubjectSection(
 private fun AddTestCalendarDialog(
     subjectName: String,
     hasExistingSchedule: Boolean = false,
+    initialExamName: String = "",
+    initialDate: String = "",
     onDismiss: () -> Unit,
     onApply: (examName: String, date: String) -> Unit,
     onDelete: () -> Unit = {},
 ) {
-    var examName by remember { mutableStateOf("") }
+    var examName by remember { mutableStateOf(initialExamName) }
     var showCalendar by remember { mutableStateOf(false) }
 
     val now = remember { Calendar.getInstance() }
-    var calYear by remember { mutableIntStateOf(now.get(Calendar.YEAR)) }
-    var calMonth by remember { mutableIntStateOf(now.get(Calendar.MONTH) + 1) } // 1-indexed
-    var selectedDay by remember { mutableStateOf<Int?>(null) }
-    var confirmedDateStr by remember { mutableStateOf("") }
+    val parsedDate = remember(initialDate) {
+        runCatching {
+            val parts = initialDate.split("-")
+            Triple(parts[0].toInt(), parts[1].toInt(), parts[2].toInt())
+        }.getOrNull()
+    } // Triple: (year, month, day)
+    var calYear by remember { mutableIntStateOf(parsedDate?.first ?: now.get(Calendar.YEAR)) }
+    var calMonth by remember { mutableIntStateOf(parsedDate?.second ?: (now.get(Calendar.MONTH) + 1)) }
+    var selectedDay by remember { mutableStateOf(parsedDate?.third) }
+    var confirmedDateStr by remember { mutableStateOf(initialDate) }
 
     val isApplyEnabled = confirmedDateStr.isNotBlank()
 
@@ -694,7 +706,7 @@ private fun AddTestCalendarDialog(
                         Button(
                             onClick = {
                                 selectedDay?.let { day ->
-                                    confirmedDateStr = "%d.%02d.%02d".format(calYear, calMonth, day)
+                                    confirmedDateStr = "%d-%02d-%02d".format(calYear, calMonth, day)
                                 }
                                 showCalendar = false
                             },
@@ -1035,25 +1047,24 @@ private fun DeleteSubjectDialog(
 
 @Preview(showBackground = true)
 @Composable
-private fun SubjectDetailPreview() {
-    QuiketTheme {
-        SubjectDetailScreen(
-            subjectName = "SQLD",
-            studyPurposeLabel = "시험·자격증 대비",
-            examTypeLabel = "자격증",
-            onBackClick = {},
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
 private fun AddTestCalendarDialogPreview() {
     QuiketTheme {
         AddTestCalendarDialog(
             subjectName = "SQLD",
             onDismiss = {},
             onApply = { _, _ -> },
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "과목 삭제 다이얼로그")
+@Composable
+private fun DeleteSubjectDialogPreview() {
+    QuiketTheme {
+        DeleteSubjectDialog(
+            subjectName = "SQLD",
+            onDismiss = {},
+            onConfirm = {},
         )
     }
 }
