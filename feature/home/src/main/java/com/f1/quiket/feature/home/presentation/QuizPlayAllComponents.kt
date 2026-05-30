@@ -22,7 +22,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,8 +58,11 @@ import com.f1.quiket.core.designsystem.theme.Gray900
 import com.f1.quiket.core.designsystem.theme.Gray950
 import com.f1.quiket.core.designsystem.theme.Negative
 import com.f1.quiket.core.designsystem.theme.NegativeBg
+import com.f1.quiket.core.designsystem.theme.Positive
+import com.f1.quiket.core.designsystem.theme.PositiveBg
 import com.f1.quiket.core.designsystem.theme.Tutorial
 import com.f1.quiket.core.designsystem.theme.White
+import com.f1.quiket.feature.home.domain.model.ServerQuizType
 
 private val BookmarkBg = Color(0xFFFEF7EE)
 private val BookmarkText = Color(0xFFEE7D36)
@@ -137,7 +144,8 @@ internal fun QuizPlayAllProgress(
 @Composable
 internal fun QuizPlayAllQuestionHeader(
     questionNumber: Int,
-    timerText: String,
+    timerText: String?,
+    timerWarning: Boolean,
     bookmarked: Boolean,
     onBookmarkClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -173,7 +181,12 @@ internal fun QuizPlayAllQuestionHeader(
             modifier = Modifier.padding(start = 8.dp),
         )
         Spacer(modifier = Modifier.weight(1f))
-        QuizTimerChip(text = timerText)
+        if (!timerText.isNullOrBlank()) {
+            QuizTimerChip(
+                text = timerText,
+                warning = timerWarning,
+            )
+        }
     }
 }
 
@@ -235,6 +248,363 @@ internal fun QuizPlayAllOptionButton(
             ),
             modifier = Modifier.weight(1f),
         )
+    }
+}
+
+@Composable
+internal fun QuizPlayOxOptionCard(
+    option: QuizPlayAllOption,
+    state: QuizPlayOxOptionState,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(12.dp)
+    val backgroundColor = when (state) {
+        QuizPlayOxOptionState.Default -> Gray50
+        QuizPlayOxOptionState.Selected -> Brown50
+        QuizPlayOxOptionState.Correct -> PositiveBg
+        QuizPlayOxOptionState.Incorrect -> NegativeBg
+    }
+    val borderColor = when (state) {
+        QuizPlayOxOptionState.Default -> null
+        QuizPlayOxOptionState.Selected -> Brown950
+        QuizPlayOxOptionState.Correct -> Positive
+        QuizPlayOxOptionState.Incorrect -> Negative
+    }
+    val iconBackgroundColor = when (state) {
+        QuizPlayOxOptionState.Default -> Gray100
+        QuizPlayOxOptionState.Selected -> Brown50
+        QuizPlayOxOptionState.Correct -> PositiveBg
+        QuizPlayOxOptionState.Incorrect -> NegativeBg
+    }
+
+    Column(
+        modifier = modifier
+            .height(100.dp)
+            .clip(shape)
+            .background(backgroundColor)
+            .then(
+                if (borderColor != null) {
+                    Modifier.border(2.dp, borderColor, shape)
+                } else {
+                    Modifier
+                },
+            )
+            .clickable(
+                enabled = enabled,
+                role = Role.RadioButton,
+                onClick = onClick,
+            )
+            .padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(iconBackgroundColor),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = option.oxSymbol(),
+                color = Brown950,
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontSize = 24.sp,
+                    lineHeight = 24.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                ),
+            )
+        }
+        Text(
+            text = option.oxLabel(),
+            color = Gray950,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = 16.sp,
+                lineHeight = 24.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+internal fun QuizPlayChoiceOptionButton(
+    option: QuizPlayAllOption,
+    state: QuizPlayChoiceOptionState,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    selectedBackgroundColor: Color = White,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(12.dp)
+    val backgroundColor = when (state) {
+        QuizPlayChoiceOptionState.Default -> Gray50
+        QuizPlayChoiceOptionState.Selected -> selectedBackgroundColor
+        QuizPlayChoiceOptionState.Correct -> PositiveBg
+        QuizPlayChoiceOptionState.Incorrect -> NegativeBg
+    }
+    val borderColor = when (state) {
+        QuizPlayChoiceOptionState.Default -> null
+        QuizPlayChoiceOptionState.Selected -> Brown950
+        QuizPlayChoiceOptionState.Correct -> Positive
+        QuizPlayChoiceOptionState.Incorrect -> Negative
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clip(shape)
+            .background(backgroundColor)
+            .then(
+                if (borderColor != null) {
+                    Modifier.border(2.dp, borderColor, shape)
+                } else {
+                    Modifier
+                },
+            )
+            .clickable(
+                enabled = enabled,
+                role = Role.RadioButton,
+                onClick = onClick,
+            )
+            .padding(horizontal = 12.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        QuizChoiceOptionIcon(state = state)
+        Text(
+            text = option.text,
+            color = Gray950,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = 16.sp,
+                lineHeight = 24.sp,
+                fontWeight = FontWeight.SemiBold,
+            ),
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+internal fun QuizPlayAnswerDescriptionCard(
+    question: QuizPlayAllQuestion,
+    selectedOptionId: String?,
+    modifier: Modifier = Modifier,
+) {
+    val correctOption = question.correctOption()
+    val selectedCorrect = question.isSelectedAnswerCorrect(selectedOptionId) == true
+    val correctExplanation = question.correctExplanation.orEmpty()
+    val wrongExplanation = question.incorrectExplanation.orEmpty()
+    var wrongExplanationExpanded by rememberSaveable(question.id, selectedOptionId) {
+        mutableStateOf(false)
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Gray50)
+            .border(1.dp, Gray300, RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .height(26.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Positive)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "정답",
+                    color = White,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                    ),
+                )
+            }
+            Text(
+                text = correctOption?.answerTitle(question.questionType).orEmpty(),
+                color = Gray950,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 16.sp,
+                    lineHeight = 24.sp,
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        Text(
+            text = correctExplanation.ifBlank { "해설이 준비되지 않았어요." },
+            color = Gray900,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 14.sp,
+                lineHeight = 21.sp,
+                fontWeight = FontWeight.Normal,
+            ),
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Gray300),
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(
+                    enabled = !selectedCorrect && wrongExplanation.isNotBlank(),
+                    role = Role.Button,
+                    onClick = { wrongExplanationExpanded = !wrongExplanationExpanded },
+                ),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = if (selectedCorrect) "정답 해설" else "오답 해설 보기",
+                color = Gray900,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 12.sp,
+                    lineHeight = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                ),
+                modifier = Modifier.weight(1f),
+            )
+            if (!selectedCorrect && wrongExplanation.isNotBlank()) {
+                DrawChevronDownCanvas(
+                    color = Gray700,
+                    expanded = wrongExplanationExpanded,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+
+        if (!selectedCorrect && wrongExplanationExpanded && wrongExplanation.isNotBlank()) {
+            Text(
+                text = wrongExplanation,
+                color = Gray900,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontSize = 14.sp,
+                    lineHeight = 21.sp,
+                    fontWeight = FontWeight.Normal,
+                ),
+            )
+        }
+    }
+}
+
+internal enum class QuizPlayChoiceOptionState {
+    Default,
+    Selected,
+    Correct,
+    Incorrect,
+}
+
+internal enum class QuizPlayOxOptionState {
+    Default,
+    Selected,
+    Correct,
+    Incorrect,
+}
+
+private fun QuizPlayAllOption.oxSymbol(): String =
+    when {
+        (value ?: text).equals("O", ignoreCase = true) -> "O"
+        (value ?: text).equals("X", ignoreCase = true) -> "X"
+        text == "그렇다" || text == "맞다" -> "O"
+        text == "아니다" || text == "틀리다" -> "X"
+        number == 1 -> "O"
+        number == 2 -> "X"
+        else -> text.take(1)
+    }
+
+private fun QuizPlayAllOption.oxLabel(): String =
+    when (oxSymbol()) {
+        "O" -> "그렇다"
+        "X" -> "아니다"
+        else -> text
+    }
+
+private fun QuizPlayAllOption.answerTitle(questionType: ServerQuizType): String =
+    when (questionType) {
+        ServerQuizType.Ox -> "${oxSymbol()} (${oxLabel()})"
+        ServerQuizType.MultipleChoice -> text
+    }
+
+@Composable
+private fun QuizChoiceOptionIcon(
+    state: QuizPlayChoiceOptionState,
+    modifier: Modifier = Modifier,
+) {
+    val iconColor = when (state) {
+        QuizPlayChoiceOptionState.Default -> Gray100
+        QuizPlayChoiceOptionState.Selected -> Brown950
+        QuizPlayChoiceOptionState.Correct -> Positive
+        QuizPlayChoiceOptionState.Incorrect -> Negative
+    }
+
+    Box(
+        modifier = modifier
+            .size(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        when (state) {
+            QuizPlayChoiceOptionState.Default -> Box(
+                modifier = Modifier
+                    .size(19.dp)
+                    .clip(CircleShape)
+                    .background(Gray100)
+                    .border(1.dp, Gray300, CircleShape),
+            )
+
+            QuizPlayChoiceOptionState.Selected,
+            QuizPlayChoiceOptionState.Correct -> {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(iconColor),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    DrawCheckCanvas(color = White, modifier = Modifier.size(16.dp))
+                }
+            }
+
+            QuizPlayChoiceOptionState.Incorrect -> {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(iconColor),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    DrawSmallCloseIcon(color = White, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
     }
 }
 
@@ -558,21 +928,28 @@ private fun QuizBookmarkButton(
 @Composable
 private fun QuizTimerChip(
     text: String,
+    warning: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val containerColor = if (warning) NegativeBg else Gray50
+    val contentColor = if (warning) Negative else Gray900
+
     Row(
         modifier = modifier
             .height(29.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(Gray50)
+            .background(containerColor)
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DrawTimerIcon(color = Gray700, modifier = Modifier.size(16.dp))
+        DrawTimerIcon(
+            color = if (warning) Negative else Gray700,
+            modifier = Modifier.size(16.dp),
+        )
         Text(
             text = text,
-            color = Gray900,
+            color = contentColor,
             style = MaterialTheme.typography.bodySmall.copy(
                 fontSize = 14.sp,
                 lineHeight = 21.sp,
@@ -941,6 +1318,54 @@ private fun DrawCloseIcon(
 }
 
 @Composable
+private fun DrawSmallCloseIcon(
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier = modifier) {
+        val strokeWidth = 2.2.dp.toPx()
+        drawLine(
+            color = color,
+            start = Offset(size.width * 0.3f, size.height * 0.3f),
+            end = Offset(size.width * 0.7f, size.height * 0.7f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+        drawLine(
+            color = color,
+            start = Offset(size.width * 0.7f, size.height * 0.3f),
+            end = Offset(size.width * 0.3f, size.height * 0.7f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+    }
+}
+
+@Composable
+private fun DrawCheckCanvas(
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier = modifier) {
+        val strokeWidth = 2.2.dp.toPx()
+        drawLine(
+            color = color,
+            start = Offset(size.width * 0.22f, size.height * 0.52f),
+            end = Offset(size.width * 0.42f, size.height * 0.72f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+        drawLine(
+            color = color,
+            start = Offset(size.width * 0.42f, size.height * 0.72f),
+            end = Offset(size.width * 0.78f, size.height * 0.3f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+    }
+}
+
+@Composable
 private fun DrawBookmarkIcon(
     color: Color,
     modifier: Modifier = Modifier,
@@ -1013,6 +1438,33 @@ private fun DrawChevronRightCanvas(
             color = color,
             start = Offset(size.width * 0.62f, size.height * 0.5f),
             end = Offset(size.width * 0.36f, size.height * 0.8f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+    }
+}
+
+@Composable
+private fun DrawChevronDownCanvas(
+    color: Color,
+    expanded: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier = modifier) {
+        val strokeWidth = 2.dp.toPx()
+        val topY = if (expanded) 0.62f else 0.38f
+        val bottomY = if (expanded) 0.38f else 0.62f
+        drawLine(
+            color = color,
+            start = Offset(size.width * 0.22f, size.height * topY),
+            end = Offset(size.width * 0.5f, size.height * bottomY),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+        drawLine(
+            color = color,
+            start = Offset(size.width * 0.5f, size.height * bottomY),
+            end = Offset(size.width * 0.78f, size.height * topY),
             strokeWidth = strokeWidth,
             cap = StrokeCap.Round,
         )

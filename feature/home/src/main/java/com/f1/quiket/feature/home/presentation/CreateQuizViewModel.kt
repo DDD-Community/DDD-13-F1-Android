@@ -323,14 +323,16 @@ class CreateQuizViewModel @Inject constructor(
 
             when (val status = quizGenerationRepository.getGenerationStatus(quizSessionId)) {
                 is NetworkResult.Success -> {
-                    val progress = status.data.progressPct
+                    val serverProgress = status.data.progressPct
                         ?.coerceIn(0, 100)
                         ?.div(100f)
-                        ?: currentState.generationProgress
 
                     updateState {
                         copy(
-                            generationProgress = progress.coerceAtLeast(generationProgress),
+                            generationProgress = generationProgress.nextVisibleGenerationProgress(
+                                serverProgress = serverProgress,
+                                status = status.data.status,
+                            ),
                         )
                     }
 
@@ -395,9 +397,34 @@ class CreateQuizViewModel @Inject constructor(
         sendEffect(CreateQuizEffect.ShowMessage(timeoutMessage))
     }
 
+    private fun Float.nextVisibleGenerationProgress(
+        serverProgress: Float?,
+        status: QuizGenerationStatus,
+    ): Float {
+        val visibleServerProgress = serverProgress
+            ?.takeIf { status == QuizGenerationStatus.Completed }
+            ?: serverProgress?.coerceAtMost(GENERATION_CLIENT_PROGRESS_MAX)
+        val baselineProgress = maxOf(this, visibleServerProgress ?: 0f)
+
+        return when (status) {
+            QuizGenerationStatus.Completed -> 1f
+            QuizGenerationStatus.Failed -> baselineProgress
+            QuizGenerationStatus.Pending,
+            QuizGenerationStatus.InProgress,
+            QuizGenerationStatus.Unknown,
+            -> maxOf(
+                baselineProgress,
+                (this + GENERATION_CLIENT_PROGRESS_STEP)
+                    .coerceAtMost(GENERATION_CLIENT_PROGRESS_MAX),
+            )
+        }
+    }
+
     private companion object {
         const val GENERATION_POLL_INTERVAL_MILLIS = 1_000L
         const val GENERATION_POLL_MAX_ATTEMPTS = 120
+        const val GENERATION_CLIENT_PROGRESS_STEP = 0.03f
+        const val GENERATION_CLIENT_PROGRESS_MAX = 0.95f
     }
 }
 

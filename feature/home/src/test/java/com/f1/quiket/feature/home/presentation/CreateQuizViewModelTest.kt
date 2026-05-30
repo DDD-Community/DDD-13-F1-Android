@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -164,6 +166,54 @@ class CreateQuizViewModelTest {
             )
             .inOrder()
         collectJob.cancel()
+    }
+
+    @Test
+    fun createQuiz_incrementsVisibleProgress_whenServerProgressStaysFixed() = runTest {
+        val quizGenerationRepository = FakeQuizGenerationRepository()
+        quizGenerationRepository.quizScopeResult = NetworkResult.Success(quizScope())
+        quizGenerationRepository.createResult = NetworkResult.Success(
+            QuizGenerationAccepted(
+                quizSessionId = "session-1",
+                jobId = "job-1",
+                status = QuizGenerationStatus.InProgress,
+                estimatedSeconds = null,
+            ),
+        )
+        quizGenerationRepository.generationStatusResults += quizGenerationProgress(
+            status = QuizGenerationStatus.InProgress,
+            progressPct = 10,
+        )
+        quizGenerationRepository.generationStatusResults += quizGenerationProgress(
+            status = QuizGenerationStatus.InProgress,
+            progressPct = 10,
+        )
+        val viewModel = viewModel(quizGenerationRepository = quizGenerationRepository)
+        advanceUntilIdle()
+        viewModel.selectSubjectAndScope()
+        advanceUntilIdle()
+        viewModel.selectDefaultOptions()
+
+        viewModel.onIntent(CreateQuizIntent.CreateQuiz)
+        runCurrent()
+
+        val firstPolledProgress = viewModel.state.value.generationProgress
+        assertThat(firstPolledProgress).isGreaterThan(0.1f)
+
+        advanceTimeBy(1_000L)
+        runCurrent()
+
+        val secondPolledProgress = viewModel.state.value.generationProgress
+        assertThat(secondPolledProgress).isGreaterThan(firstPolledProgress)
+        assertThat(secondPolledProgress).isLessThan(1f)
+
+        quizGenerationRepository.generationStatusResults += quizGenerationProgress(
+            status = QuizGenerationStatus.Completed,
+            progressPct = 10,
+        )
+        advanceUntilIdle()
+
+        assertThat(viewModel.state.value.generationProgress).isEqualTo(1f)
     }
 
     @Test
@@ -431,6 +481,21 @@ private fun quizScope(): QuizScope = QuizScope(
                 ),
             ),
         ),
+    ),
+)
+
+private fun quizGenerationProgress(
+    status: QuizGenerationStatus,
+    progressPct: Int?,
+): NetworkResult<QuizGenerationProgress> = NetworkResult.Success(
+    QuizGenerationProgress(
+        quizSessionId = "session-1",
+        jobId = "job-1",
+        status = status,
+        estimatedSeconds = null,
+        progressPct = progressPct,
+        generatedCount = null,
+        failReason = null,
     ),
 )
 

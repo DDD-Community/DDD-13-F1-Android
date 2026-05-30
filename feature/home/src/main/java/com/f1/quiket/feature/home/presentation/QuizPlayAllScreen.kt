@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.f1.quiket.core.designsystem.component.QuiketPrimaryButton
+import com.f1.quiket.core.designsystem.theme.Brown50
 import com.f1.quiket.core.designsystem.theme.Brown950
 import com.f1.quiket.core.designsystem.theme.Gray700
 import com.f1.quiket.core.designsystem.theme.Gray950
@@ -40,6 +42,7 @@ import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
 import com.f1.quiket.feature.home.domain.model.QuizPlayMode
 import com.f1.quiket.feature.home.domain.model.QuizTimerScope
+import com.f1.quiket.feature.home.domain.model.ServerQuizType
 
 @Composable
 fun QuizPlayAllRoute(
@@ -141,6 +144,10 @@ fun QuizPlayAllScreen(
                 QuizPlayAllContent(
                     question = currentQuestion,
                     selectedOptionId = state.selectedOptionId,
+                    timerText = state.playTimerText(),
+                    timerWarning = state.playTimerRemainingSeconds()?.let { it <= 10 } == true,
+                    isOneByOneMode = state.isOneByOneMode,
+                    isAnswerChecked = state.isCurrentQuestionChecked,
                     bookmarked = state.isCurrentQuestionBookmarked,
                     onOptionClick = { optionId -> onIntent(QuizPlayAllIntent.SelectOption(optionId)) },
                     onBookmarkClick = { onIntent(QuizPlayAllIntent.ToggleBookmark) },
@@ -152,15 +159,44 @@ fun QuizPlayAllScreen(
         }
 
         if (currentQuestion != null) {
-            QuizPlayAllBottomBar(
-                canMovePrevious = state.canMovePrevious,
-                canMoveNext = state.canMoveNext,
-                isLastQuestion = state.isLastQuestion,
-                onPreviousClick = { onIntent(QuizPlayAllIntent.MovePrevious) },
-                onNextClick = { onIntent(QuizPlayAllIntent.MoveNext) },
-                onSubmitClick = { onIntent(QuizPlayAllIntent.OpenSubmitConfirm) },
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
+            if (state.isOneByOneMode) {
+                QuizPlayOneByOneBottomBar(
+                    text = when {
+                        state.isCurrentQuestionChecked && state.isLastQuestion -> "결과 보기"
+                        state.isCurrentQuestionChecked -> "다음"
+                        else -> "정답 확인"
+                    },
+                    enabled = if (state.isCurrentQuestionChecked) {
+                        !state.isSubmitting
+                    } else {
+                        state.canCheckCurrentQuestion && !state.isSubmitting
+                    },
+                    onClick = {
+                        when {
+                            !state.isCurrentQuestionChecked -> {
+                                onIntent(QuizPlayAllIntent.CheckCurrentAnswer)
+                            }
+                            state.isLastQuestion -> {
+                                onIntent(QuizPlayAllIntent.Submit)
+                            }
+                            else -> {
+                                onIntent(QuizPlayAllIntent.MoveNext)
+                            }
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            } else {
+                QuizPlayAllBottomBar(
+                    canMovePrevious = state.canMovePrevious,
+                    canMoveNext = state.canMoveNext,
+                    isLastQuestion = state.isLastQuestion,
+                    onPreviousClick = { onIntent(QuizPlayAllIntent.MovePrevious) },
+                    onNextClick = { onIntent(QuizPlayAllIntent.MoveNext) },
+                    onSubmitClick = { onIntent(QuizPlayAllIntent.OpenSubmitConfirm) },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
         }
 
         if (state.isQuestionListVisible) {
@@ -192,6 +228,10 @@ fun QuizPlayAllScreen(
 private fun QuizPlayAllContent(
     question: QuizPlayAllQuestion,
     selectedOptionId: String?,
+    timerText: String?,
+    timerWarning: Boolean,
+    isOneByOneMode: Boolean,
+    isAnswerChecked: Boolean,
     bookmarked: Boolean,
     onOptionClick: (String) -> Unit,
     onBookmarkClick: () -> Unit,
@@ -204,7 +244,8 @@ private fun QuizPlayAllContent(
     ) {
         QuizPlayAllQuestionHeader(
             questionNumber = question.number,
-            timerText = question.timerText,
+            timerText = timerText,
+            timerWarning = timerWarning,
             bookmarked = bookmarked,
             onBookmarkClick = onBookmarkClick,
         )
@@ -223,16 +264,89 @@ private fun QuizPlayAllContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            question.options.forEach { option ->
-                QuizPlayAllOptionButton(
-                    option = option,
-                    selected = selectedOptionId == option.id,
-                    onClick = { onOptionClick(option.id) },
+        if (isOneByOneMode) {
+            when (question.questionType) {
+                ServerQuizType.Ox -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        question.options.forEach { option ->
+                            QuizPlayOxOptionCard(
+                                option = option,
+                                state = question.oxOptionState(
+                                    option = option,
+                                    selectedOptionId = selectedOptionId,
+                                    isAnswerChecked = isAnswerChecked,
+                                ),
+                                enabled = !isAnswerChecked,
+                                onClick = { onOptionClick(option.id) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+
+                ServerQuizType.MultipleChoice -> {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        question.options.forEach { option ->
+                            QuizPlayChoiceOptionButton(
+                                option = option,
+                                state = question.choiceOptionState(
+                                    option = option,
+                                    selectedOptionId = selectedOptionId,
+                                    isAnswerChecked = isAnswerChecked,
+                                ),
+                                enabled = !isAnswerChecked,
+                                onClick = { onOptionClick(option.id) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (isAnswerChecked) {
+                Spacer(modifier = Modifier.height(16.dp))
+                QuizPlayAnswerDescriptionCard(
+                    question = question,
+                    selectedOptionId = selectedOptionId,
                 )
+            }
+        } else {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                when (question.questionType) {
+                    ServerQuizType.MultipleChoice -> {
+                        question.options.forEach { option ->
+                            QuizPlayChoiceOptionButton(
+                                option = option,
+                                state = if (selectedOptionId == option.id) {
+                                    QuizPlayChoiceOptionState.Selected
+                                } else {
+                                    QuizPlayChoiceOptionState.Default
+                                },
+                                enabled = true,
+                                onClick = { onOptionClick(option.id) },
+                                selectedBackgroundColor = Brown50,
+                            )
+                        }
+                    }
+
+                    ServerQuizType.Ox -> {
+                        question.options.forEach { option ->
+                            QuizPlayAllOptionButton(
+                                option = option,
+                                selected = selectedOptionId == option.id,
+                                onClick = { onOptionClick(option.id) },
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -315,6 +429,33 @@ private fun QuizPlayAllBottomBar(
 }
 
 @Composable
+private fun QuizPlayOneByOneBottomBar(
+    text: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(92.dp)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(White.copy(alpha = 0f), White, White),
+                ),
+            )
+            .padding(start = 16.dp, end = 16.dp, bottom = 28.dp),
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+        QuiketPrimaryButton(
+            text = text,
+            enabled = enabled,
+            onClick = onClick,
+        )
+    }
+}
+
+@Composable
 private fun QuizPlayAllSubmitButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -342,6 +483,65 @@ private fun QuizPlayAllSubmitButton(
                 fontWeight = FontWeight.SemiBold,
             ),
         )
+    }
+}
+
+private fun QuizPlayAllState.playTimerText(): String? =
+    when {
+        !timerEnabled -> null
+        timerScope == QuizTimerScope.Total -> playTimerRemainingSeconds()?.formatPlayTimerText()
+        isOneByOneMode -> playTimerRemainingSeconds()?.formatPlayTimerText()
+        else -> currentQuestion?.timerText
+    }
+
+private fun QuizPlayAllState.playTimerRemainingSeconds(): Int? =
+    when {
+        !timerEnabled -> null
+        timerScope == QuizTimerScope.Total -> remainingTotalSeconds ?: timerSeconds
+        isOneByOneMode -> currentRemainingSeconds ?: timerSeconds
+        else -> null
+    }
+
+private fun Int.formatPlayTimerText(): String =
+    when {
+        this < 60 -> "${this}초"
+        this % 60 == 0 -> "${this / 60}분"
+        else -> "%d:%02d".format(this / 60, this % 60)
+    }
+
+private fun QuizPlayAllQuestion.oxOptionState(
+    option: QuizPlayAllOption,
+    selectedOptionId: String?,
+    isAnswerChecked: Boolean,
+): QuizPlayOxOptionState {
+    val selected = option.id == selectedOptionId
+    if (!isAnswerChecked) {
+        return if (selected) QuizPlayOxOptionState.Selected else QuizPlayOxOptionState.Default
+    }
+
+    val correct = option.matchesAnswerValue(answerValue) == true
+    return when {
+        correct -> QuizPlayOxOptionState.Correct
+        selected -> QuizPlayOxOptionState.Incorrect
+        else -> QuizPlayOxOptionState.Default
+    }
+}
+
+private fun QuizPlayAllQuestion.choiceOptionState(
+    option: QuizPlayAllOption,
+    selectedOptionId: String?,
+    isAnswerChecked: Boolean,
+): QuizPlayChoiceOptionState {
+    val selected = option.id == selectedOptionId
+    if (!isAnswerChecked) {
+        return if (selected) QuizPlayChoiceOptionState.Selected else QuizPlayChoiceOptionState.Default
+    }
+
+    val correct = option.matchesAnswerValue(answerValue) == true
+    return when {
+        correct -> QuizPlayChoiceOptionState.Correct
+        selected -> QuizPlayChoiceOptionState.Incorrect
+        else -> QuizPlayChoiceOptionState.Default
     }
 }
 

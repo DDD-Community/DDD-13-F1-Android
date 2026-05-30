@@ -16,6 +16,7 @@ import com.f1.quiket.feature.home.domain.model.QuizPlayType
 import com.f1.quiket.feature.home.domain.model.QuizResult
 import com.f1.quiket.feature.home.domain.model.QuizResultSubmit
 import com.f1.quiket.feature.home.domain.model.QuizSession
+import com.f1.quiket.feature.home.domain.model.QuizTimerScope
 import com.f1.quiket.feature.home.domain.model.RewardSummary
 import com.f1.quiket.feature.home.domain.model.ServerQuizType
 import com.f1.quiket.feature.home.domain.repository.QuizPlayRepository
@@ -23,7 +24,9 @@ import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -42,6 +45,93 @@ class QuizPlayAllViewModelTest {
         viewModel.onIntent(QuizPlayAllIntent.SelectOption(option.id))
 
         assertThat(viewModel.state.value.selectedOptionIds[question.id]).isEqualTo(option.id)
+    }
+
+    @Test
+    fun checkCurrentAnswer_marksCurrentQuestionChecked() {
+        val viewModel = viewModel()
+        val question = viewModel.state.value.currentQuestion!!
+        val option = question.options[1]
+
+        viewModel.onIntent(
+            QuizPlayAllIntent.ConfigurePlay(
+                playMode = QuizPlayMode.OneByOne,
+                timerEnabled = false,
+                timerScope = null,
+                timerSeconds = null,
+            ),
+        )
+        viewModel.onIntent(QuizPlayAllIntent.SelectOption(option.id))
+        viewModel.onIntent(QuizPlayAllIntent.CheckCurrentAnswer)
+
+        assertThat(viewModel.state.value.checkedQuestionIds).contains(question.id)
+    }
+
+    @Test
+    fun oneByOnePerQuestionTimer_countsDownAndChecksQuestionAtZero() = runTest {
+        val viewModel = viewModel()
+        val question = viewModel.state.value.currentQuestion!!
+
+        viewModel.onIntent(
+            QuizPlayAllIntent.ConfigurePlay(
+                playMode = QuizPlayMode.OneByOne,
+                timerEnabled = true,
+                timerScope = QuizTimerScope.PerQuestion,
+                timerSeconds = 2,
+            ),
+        )
+        runCurrent()
+
+        assertThat(viewModel.state.value.currentRemainingSeconds).isEqualTo(2)
+
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        assertThat(viewModel.state.value.currentRemainingSeconds).isEqualTo(1)
+        assertThat(viewModel.state.value.checkedQuestionIds).doesNotContain(question.id)
+
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        assertThat(viewModel.state.value.currentRemainingSeconds).isEqualTo(0)
+        assertThat(viewModel.state.value.checkedQuestionIds).contains(question.id)
+    }
+
+    @Test
+    fun allAtOnceTotalTimer_countsDownAcrossQuestionMovement() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.onIntent(
+            QuizPlayAllIntent.ConfigurePlay(
+                playMode = QuizPlayMode.AllAtOnce,
+                timerEnabled = true,
+                timerScope = QuizTimerScope.Total,
+                timerSeconds = 3,
+            ),
+        )
+        runCurrent()
+
+        assertThat(viewModel.state.value.remainingTotalSeconds).isEqualTo(3)
+
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        assertThat(viewModel.state.value.remainingTotalSeconds).isEqualTo(2)
+
+        viewModel.onIntent(QuizPlayAllIntent.MoveNext)
+        runCurrent()
+
+        assertThat(viewModel.state.value.currentQuestionIndex).isEqualTo(1)
+
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        assertThat(viewModel.state.value.remainingTotalSeconds).isEqualTo(1)
+
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        assertThat(viewModel.state.value.remainingTotalSeconds).isEqualTo(0)
     }
 
     @Test
