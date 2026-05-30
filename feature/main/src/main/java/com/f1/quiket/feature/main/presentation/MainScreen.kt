@@ -109,7 +109,7 @@ fun MainScreen(onLogout: () -> Unit) {
             startDestination = HomeDestination.route,
             modifier = Modifier
                 .padding(top = paddingValues.calculateTopPadding())
-                .padding(bottom = if (showBottomBar) paddingValues.calculateBottomPadding() else 0.dp),
+                .padding(bottom = paddingValues.calculateBottomPadding()),
         ) {
             homeGraph(
                 navController = navController,
