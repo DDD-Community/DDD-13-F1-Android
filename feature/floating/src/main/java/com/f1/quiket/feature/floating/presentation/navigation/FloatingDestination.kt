@@ -64,6 +64,44 @@ data object LectureSelectDestination : QuiketDestination {
 }
 
 /**
+ * 강의 뷰어 화면.
+ */
+data object LectureViewDestination : QuiketDestination {
+    const val ARG_SUBJECT_ID = "subjectId"
+    const val ARG_CHAPTER_ID = "chapterId"
+    const val ARG_CHAPTER_NUMBER = "chapterNumber"
+    const val ARG_CHAPTER_NAME = "chapterName"
+    const val ARG_PART_COUNT = "partCount"
+
+    override val route: String =
+        "lecture_view/{$ARG_SUBJECT_ID}/{$ARG_CHAPTER_ID}/{$ARG_CHAPTER_NUMBER}/{$ARG_CHAPTER_NAME}/{$ARG_PART_COUNT}"
+
+    fun createRoute(
+        subjectId: String,
+        chapterId: String,
+        chapterNumber: Int,
+        chapterName: String,
+        partCount: Int,
+    ) = "lecture_view/$subjectId/$chapterId/$chapterNumber/${chapterName.ifBlank { "-" }}/$partCount"
+}
+
+/**
+ * 자료 확인 화면.
+ * 업로드 완료 후 챕터/파트 이름을 수정하는 화면
+ */
+data object MaterialCheckDestination : QuiketDestination {
+    const val ARG_SUBJECT_ID = "subjectId"
+    const val ARG_CHAPTER_ID = "chapterId"
+    const val ARG_CHAPTER_NUMBER = "chapterNumber"
+
+    override val route: String =
+        "material_check/{$ARG_SUBJECT_ID}/{$ARG_CHAPTER_ID}/{$ARG_CHAPTER_NUMBER}"
+
+    fun createRoute(subjectId: String, chapterId: String, chapterNumber: Int) =
+        "material_check/$subjectId/$chapterId/$chapterNumber"
+}
+
+/**
  * 자료 추가 화면.
  * - 강의 없이 바로 진입: route = "lecture_upload_file"
  * - 과목 선택 후 진입 : route = "lecture_upload_file/{lectureId}/{lectureTitle}/{chapterCount}"

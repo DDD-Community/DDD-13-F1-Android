@@ -21,6 +21,7 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":feature:floating"))
 
+    implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.navigation.compose)
     implementation(platform(libs.androidx.compose.bom))

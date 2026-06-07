@@ -304,9 +304,12 @@ private fun EditPartNameDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray700),
-                        border = BorderStroke(1.dp, Gray300),
+                        border = BorderStroke(2.dp, Brown950),
                     ) {
-                        Text("취소", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "취소", style = MaterialTheme.typography.bodySmall,
+                            color = Brown950
+                        )
                     }
                     Button(
                         onClick = { onApply(name) },

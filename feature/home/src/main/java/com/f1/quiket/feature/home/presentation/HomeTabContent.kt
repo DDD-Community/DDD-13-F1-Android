@@ -102,15 +102,22 @@ fun ActiveSubjectContent(
                 .padding(vertical = 12.dp, horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val totalCount = subjects.size + 1  // +1 for AddSubjectCard
-            (0 until totalCount).chunked(2).forEachIndexed { rowIndex, rowIndices ->
+            // index 0 = AddSubjectCard, index 1..N = subjects
+            val totalCount = subjects.size + 1
+            (0 until totalCount).chunked(2).forEach { rowIndices ->
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     rowIndices.forEach { idx ->
-                        if (idx < subjects.size) {
-                            val subject = subjects[idx]
+                        if (idx == 0) {
+                            AddSubjectCard(
+                                title = "과목 추가",
+                                onClick = onAddSubjectClick,
+                                modifier = Modifier.weight(1f),
+                            )
+                        } else {
+                            val subject = subjects[idx - 1]
                             SubjectShortCard(
                                 title = subject.title,
                                 chapter = subject.chapter,
@@ -118,17 +125,11 @@ fun ActiveSubjectContent(
                                 modifier = Modifier.weight(1f),
                                 onStarToggle = {
                                     onSubjectsChange(subjects.mapIndexed { i, item ->
-                                        if (i == idx) item.copy(isStarred = !item.isStarred)
+                                        if (i == idx - 1) item.copy(isStarred = !item.isStarred)
                                         else item
                                     })
                                 },
                                 onClick = { onSubjectClick(subject) }
-                            )
-                        } else {
-                            AddSubjectCard(
-                                title = "과목 추가",
-                                onClick = onAddSubjectClick,
-                                modifier = Modifier.weight(1f),
                             )
                         }
                     }

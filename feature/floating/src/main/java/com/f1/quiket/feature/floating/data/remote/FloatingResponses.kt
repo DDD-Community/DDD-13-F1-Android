@@ -43,6 +43,35 @@ data class SubjectDetailResponse(
 )
 
 @Serializable
+data class SubjectExamDetailResponse(
+    val examType: String = "",
+    val univMajorField: String? = null,
+    val univMajorName: String? = null,
+    val univCourseType: String? = null,
+    val mhGrade: String? = null,
+    val mhSubjectType: String? = null,
+    val certificateId: String? = null,
+    val certificateName: String? = null,
+    val civilRank: String? = null,
+    val civilSeries: String? = null,
+    val langType: String? = null,
+    val langExamName: String? = null,
+    val otherExamName: String? = null,
+)
+
+@Serializable
+data class SubjectReviewDetailResponse(
+    val field: String = "",
+    val studyLevel: String = "",
+)
+
+@Serializable
+data class SubjectOtherDetailResponse(
+    val usagePurpose: String = "",
+    val description: String? = null,
+)
+
+@Serializable
 data class CertificateResponse(
     val id: Long,
     val name: String,

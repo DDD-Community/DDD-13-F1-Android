@@ -15,6 +15,7 @@ import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectS
 import com.f1.quiket.feature.home.domain.model.QuizPlayMode
 import com.f1.quiket.feature.home.domain.model.QuizTimerScope
 import com.f1.quiket.feature.home.presentation.CreateQuizRoute
+import com.f1.quiket.feature.home.presentation.ExamScheduleRoute
 import com.f1.quiket.feature.home.presentation.HomeRoute
 import com.f1.quiket.feature.home.presentation.QuizPlayAllRoute
 import com.f1.quiket.feature.home.presentation.QuizResultRoute
@@ -48,7 +49,15 @@ fun NavGraphBuilder.homeGraph(
             navigateToUpload = navigateToUpload,
             navigateToAddSubject = navigateToAddSubject,
             navigateToMyPage = navigateToMyPage,
+            navigateToExamScheduleList = { navController.navigate(ExamScheduleDestination.route) },
             homeBackStackEntry = backStackEntry,
+        )
+    }
+
+    composable(route = ExamScheduleDestination.route) {
+        ExamScheduleRoute(
+            onBackClick = { navController.popBackStack() },
+            onQuizClick = { navController.navigate(CreateQuizDestination.route) },
         )
     }
 

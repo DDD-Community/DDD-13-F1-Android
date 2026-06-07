@@ -32,6 +32,7 @@ dependencies {
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.activity.compose)
     implementation(libs.coil.compose)
+    implementation(libs.lottie.compose)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.metadata.jvm)
     implementation(libs.kotlinx.serialization.json)

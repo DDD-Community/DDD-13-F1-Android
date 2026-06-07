@@ -29,6 +29,7 @@ import com.f1.quiket.core.designsystem.theme.Brown950
 import com.f1.quiket.core.designsystem.theme.Gray50
 import com.f1.quiket.core.designsystem.theme.Gray900
 import com.f1.quiket.core.designsystem.theme.Gray950
+import com.f1.quiket.core.designsystem.theme.Negative
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
 
@@ -40,6 +41,9 @@ fun HomeExamCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val dDayNum = dDay.substringAfter("D-").toIntOrNull() ?: Int.MAX_VALUE
+    val isUrgent = dDayNum in 0..7
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -84,19 +88,21 @@ fun HomeExamCard(
             )
         }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(Brown950)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-        ) {
-            Text(
-                text = dDay,
-                maxLines = 1,
-                style = MaterialTheme.typography.labelMedium,
-                color = White
-            )
+        if (dDay.isNotEmpty()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(if (isUrgent) Negative else Brown950)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                Text(
+                    text = dDay,
+                    maxLines = 1,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = White
+                )
+            }
         }
     }
 }
