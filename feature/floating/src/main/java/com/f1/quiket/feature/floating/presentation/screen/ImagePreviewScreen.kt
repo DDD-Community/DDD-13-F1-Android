@@ -49,7 +49,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.f1.quiket.core.designsystem.R
 import com.f1.quiket.core.designsystem.theme.Black
 import com.f1.quiket.core.designsystem.theme.Gray100
 import com.f1.quiket.core.designsystem.theme.Gray300
@@ -260,7 +259,7 @@ fun ImagePreviewScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        painter = painterResource(com.f1.quiket.feature.floating.R.drawable.ic_image_back),
+                        painter = painterResource(com.f1.quiket.feature.floating.R.drawable.ic_common_back),
                         contentDescription = null,
                         modifier = Modifier.size(24.dp)
                     )
@@ -296,7 +295,7 @@ fun ImagePreviewScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        painter = painterResource(com.f1.quiket.feature.floating.R.drawable.ic_image_next),
+                        painter = painterResource(com.f1.quiket.feature.floating.R.drawable.ic_common_next),
                         contentDescription = null,
                         modifier = Modifier.size(24.dp)
                     )

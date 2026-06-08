@@ -9,10 +9,13 @@ import com.f1.quiket.feature.floating.domain.model.ExamType
 import com.f1.quiket.feature.floating.domain.model.StudyField
 import com.f1.quiket.feature.floating.domain.model.StudyPurpose
 import com.f1.quiket.feature.floating.domain.model.UsagePurpose
+import com.f1.quiket.feature.floating.domain.model.Chapter
 import com.f1.quiket.feature.floating.presentation.screen.CreateQuizScreen
 import com.f1.quiket.feature.floating.presentation.screen.ScheduleExamScreen
 import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
 import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectScreen
+import com.f1.quiket.feature.floating.presentation.screen.lectureview.LectureViewScreen
+import com.f1.quiket.feature.floating.presentation.screen.materialcheck.MaterialCheckScreen
 import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectStep1Screen
 import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectStep2Screen
 import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectStep3Screen
@@ -149,6 +152,7 @@ fun NavGraphBuilder.lectureSelectGraph(
                     LectureUploadFileDestination.createRoute(lectureId, lectureTitle, chapterCount, category)
                 )
             },
+            onAddSubjectClick = { navController.navigate(AddSubjectDestination.route) },
         )
     }
 }
@@ -189,15 +193,71 @@ fun NavGraphBuilder.lectureUploadFileGraph(
         ),
     ) { backStack ->
         val args = backStack.arguments
+        val subjectId = args?.getString(LectureUploadFileDestination.ARG_LECTURE_ID)
         val category = args?.getString(LectureUploadFileDestination.ARG_CATEGORY)
             ?.takeIf { it != "-" }
         UploadScreen(
-            subjectId = args?.getString(LectureUploadFileDestination.ARG_LECTURE_ID),
+            subjectId = subjectId,
             chapterTitle = args?.getString(LectureUploadFileDestination.ARG_LECTURE_TITLE),
             lecturePurpose = category,
             chapterCount = args?.getInt(LectureUploadFileDestination.ARG_CHAPTER_COUNT),
             onBackClick = { navController.popBackStack() },
             onNextClick = onFinish,
+            onUploadSuccess = { sid, cId, _, cNum ->
+                navController.navigate(MaterialCheckDestination.createRoute(sid, cId, cNum))
+            },
+        )
+    }
+
+    // 자료 확인 화면
+    composable(
+        route = MaterialCheckDestination.route,
+        arguments = listOf(
+            navArgument(MaterialCheckDestination.ARG_SUBJECT_ID) { type = NavType.StringType },
+            navArgument(MaterialCheckDestination.ARG_CHAPTER_ID) { type = NavType.StringType },
+            navArgument(MaterialCheckDestination.ARG_CHAPTER_NUMBER) { type = NavType.IntType },
+        ),
+    ) { backStack ->
+        val args = backStack.arguments
+        val subjectId = args?.getString(MaterialCheckDestination.ARG_SUBJECT_ID) ?: ""
+        val chapterId = args?.getString(MaterialCheckDestination.ARG_CHAPTER_ID) ?: ""
+        val chapterNumber = args?.getInt(MaterialCheckDestination.ARG_CHAPTER_NUMBER) ?: 1
+        MaterialCheckScreen(
+            subjectId = subjectId,
+            chapterId = chapterId,
+            chapterNumber = chapterNumber,
+            onBackClick = { navController.popBackStack() },
+            onComplete = { chapterName, partCount ->
+                navController.navigate(
+                    LectureViewDestination.createRoute(subjectId, chapterId, chapterNumber, chapterName, partCount)
+                ) {
+                    popUpTo(LectureUploadFileDestination.route) { inclusive = true }
+                }
+            },
+        )
+    }
+
+    // 강의 뷰어 화면
+    composable(
+        route = LectureViewDestination.route,
+        arguments = listOf(
+            navArgument(LectureViewDestination.ARG_SUBJECT_ID) { type = NavType.StringType },
+            navArgument(LectureViewDestination.ARG_CHAPTER_ID) { type = NavType.StringType },
+            navArgument(LectureViewDestination.ARG_CHAPTER_NUMBER) { type = NavType.IntType },
+            navArgument(LectureViewDestination.ARG_CHAPTER_NAME) { type = NavType.StringType },
+            navArgument(LectureViewDestination.ARG_PART_COUNT) { type = NavType.IntType },
+        ),
+    ) { backStack ->
+        val args = backStack.arguments
+        LectureViewScreen(
+            subjectId = args?.getString(LectureViewDestination.ARG_SUBJECT_ID) ?: "",
+            chapter = Chapter(
+                id = args?.getString(LectureViewDestination.ARG_CHAPTER_ID) ?: "",
+                number = args?.getInt(LectureViewDestination.ARG_CHAPTER_NUMBER) ?: 1,
+                name = args?.getString(LectureViewDestination.ARG_CHAPTER_NAME) ?: "",
+                partCount = args?.getInt(LectureViewDestination.ARG_PART_COUNT) ?: 0,
+            ),
+            onBackClick = { navController.popBackStack() },
         )
     }
 }

@@ -16,6 +16,7 @@ import com.f1.quiket.feature.floating.domain.model.UsagePurpose
 import com.f1.quiket.feature.floating.domain.model.Chapter
 import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
 import com.f1.quiket.feature.floating.presentation.screen.lectureview.LectureViewScreen
+import com.f1.quiket.feature.floating.presentation.screen.materialcheck.MaterialCheckScreen
 import com.f1.quiket.feature.floating.presentation.screen.subjectdetail.SubjectDetailScreen
 import com.f1.quiket.feature.floating.presentation.viewmodel.AddSubjectViewModel
 
@@ -35,11 +36,12 @@ fun AddSubjectScreen(
     var uploadedChapterId by remember { mutableStateOf("") }
     var uploadedChapterName by remember { mutableStateOf("") }
     var uploadedChapterNumber by remember { mutableStateOf(1) }
+    var uploadedPartCount by remember { mutableStateOf(0) }
 
     // depth=4(SubjectDetailScreen)에서 시스템 백버튼도 onFinish로 처리
     BackHandler(enabled = depth == 4) { onFinish() }
-    // depth=6(LectureViewScreen)에서 시스템 백버튼 → SubjectDetail로
-    BackHandler(enabled = depth == 6) { depth = 4 }
+    // depth=7(LectureViewScreen)에서 시스템 백버튼 → SubjectDetail로
+    BackHandler(enabled = depth == 7) { depth = 4 }
 
     fun goToSubjectDetail(currentState: AddSubjectState) {
         val existingId = createdSubjectId
@@ -129,13 +131,25 @@ fun AddSubjectScreen(
             },
         )
 
-        6 -> LectureViewScreen(
+        6 -> MaterialCheckScreen(
+            subjectId = createdSubjectId ?: "",
+            chapterId = uploadedChapterId,
+            chapterNumber = uploadedChapterNumber,
+            onBackClick = { depth = 4 },
+            onComplete = { finalChapterName, partCount ->
+                uploadedChapterName = finalChapterName
+                uploadedPartCount = partCount
+                depth = 7
+            },
+        )
+
+        7 -> LectureViewScreen(
             subjectId = createdSubjectId ?: "",
             chapter = Chapter(
                 id = uploadedChapterId,
                 number = uploadedChapterNumber,
                 name = uploadedChapterName,
-                partCount = 0,
+                partCount = uploadedPartCount,
             ),
             onBackClick = { depth = 4 },
         )

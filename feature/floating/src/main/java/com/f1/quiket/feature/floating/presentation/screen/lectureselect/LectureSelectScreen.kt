@@ -8,14 +8,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -30,17 +27,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.f1.quiket.feature.floating.presentation.viewmodel.LectureSelectViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.f1.quiket.core.designsystem.component.QuiketPrimaryButton
 import com.f1.quiket.core.designsystem.component.SubjectLongCard
 import com.f1.quiket.core.designsystem.theme.Brown950
 import com.f1.quiket.core.designsystem.theme.Gray100
@@ -48,9 +44,8 @@ import com.f1.quiket.core.designsystem.theme.Gray400
 import com.f1.quiket.core.designsystem.theme.Gray500
 import com.f1.quiket.core.designsystem.theme.Gray600
 import com.f1.quiket.core.designsystem.theme.Gray950
-import com.f1.quiket.core.designsystem.theme.Orange300
-import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
+import com.f1.quiket.feature.floating.presentation.viewmodel.LectureSelectViewModel
 
 // ─── Model ─────────────────────────────────────────────────────────────────────
 
@@ -67,6 +62,7 @@ data class LectureSelectItem(
 fun LectureSelectScreen(
     onBackClick: () -> Unit,
     onLectureSelected: (lectureId: String, lectureTitle: String, chapterCount: Int, category: String) -> Unit,
+    onAddSubjectClick: () -> Unit = {},
     initialSelectedId: String? = null,
     viewModel: LectureSelectViewModel = hiltViewModel(),
 ) {
@@ -79,11 +75,6 @@ fun LectureSelectScreen(
             .background(White),
     ) {
         // TopBar
-        Spacer(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsTopHeight(WindowInsets.statusBars),
-        )
         LectureSelectTopBar(onBackClick = onBackClick)
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -91,7 +82,7 @@ fun LectureSelectScreen(
         // Header
         Column(modifier = Modifier.padding(horizontal = 20.dp)) {
             Text(
-                text = "어떤 과목에 강의를 추가할까요?",
+                text = "어떤 과목에 자료를 추가할까요?",
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                 color = Brown950,
             )
@@ -101,9 +92,21 @@ fun LectureSelectScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = Gray500,
             )
-        }
 
-        Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 새 과목 추가 버튼
+            QuiketPrimaryButton(
+                text = "새 과목 추가하기",
+                onClick = onAddSubjectClick,
+                containerColor = White,
+                contentColor = Gray950,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(2.dp, Brown950, RoundedCornerShape(12.dp))
+            )
+        }
+        Spacer(modifier = Modifier.height(12.dp))
 
         // 과목 목록
         LazyColumn(
@@ -281,54 +284,6 @@ private fun LectureSelectNextButton(
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
             color = if (enabled) White else Gray400,
-        )
-    }
-}
-
-// ─── Sample Data ───────────────────────────────────────────────────────────────
-
-private val sampleLectures = listOf(
-    LectureSelectItem(
-        id = "1",
-        category = "시험·자격증 대비",
-        title = "SQLD",
-        chapterCount = 3,
-    ),
-    LectureSelectItem(
-        id = "2",
-        category = "자기개발 일반 복습",
-        title = "기획자의 피그마 실무 워크숍",
-        chapterCount = 3,
-    ),
-    LectureSelectItem(
-        id = "3",
-        category = "시험·자격증 대비",
-        title = "서양철학사",
-        chapterCount = 1,
-    ),
-)
-
-// ─── Preview ───────────────────────────────────────────────────────────────────
-
-@Preview(showBackground = true, showSystemUi = true, name = "과목 선택 — 미선택")
-@Composable
-private fun LectureSelectScreenPreview() {
-    QuiketTheme {
-        LectureSelectScreen(
-            onBackClick = {},
-            onLectureSelected = { _, _, _, _ -> },
-        )
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true, name = "과목 선택 — 선택됨")
-@Composable
-private fun LectureSelectScreenSelectedPreview() {
-    QuiketTheme {
-        LectureSelectScreen(
-            onBackClick = {},
-            onLectureSelected = { _, _, _, _ -> },
-            initialSelectedId = "1",
         )
     }
 }

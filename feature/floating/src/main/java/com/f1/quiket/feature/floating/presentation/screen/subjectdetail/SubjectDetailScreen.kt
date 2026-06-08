@@ -13,10 +13,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -83,7 +80,7 @@ import com.f1.quiket.core.designsystem.theme.Orange500
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
 import com.f1.quiket.feature.floating.R
-import com.f1.quiket.feature.floating.domain.model.Chapter
+import com.f1.quiket.feature.floating.domain.model.*
 import com.f1.quiket.feature.floating.presentation.component.SubjectDetailTopBar
 import com.f1.quiket.feature.floating.presentation.screen.lectureview.LectureViewScreen
 import java.util.Calendar
@@ -109,11 +106,78 @@ private fun calcDDay(dateStr: String): String {
     }.getOrDefault("D-?")
 }
 
-private fun purposeToKorean(purpose: String): String = when (purpose.uppercase()) {
-    "EXAM" -> "시험·자격증 대비"
-    "SELF_STUDY" -> "자기계발·일반 복습"
-    "OTHER" -> "기타"
-    else -> purpose
+private fun purposeToKorean(purpose: String): String =
+    StudyPurpose.entries.find { it.name.equals(purpose, ignoreCase = true) }?.title ?: purpose
+
+private data class SubjectLabels(val h1: String, val h2: String, val h3: String)
+
+private fun <T : Enum<T>> Iterable<T>.findByName(value: String): T? =
+    find { it.name.equals(value, ignoreCase = true) }
+
+private fun SubjectDetail.toLabels(): SubjectLabels {
+    val h1 = purposeToKorean(purpose)
+    return when (purpose.lowercase()) {
+        "exam" -> {
+            val e = examDetail
+            val examTypeLower = e?.examType?.lowercase()
+            val h2 = ExamType.entries.find { it.name.lowercase() == examTypeLower }?.label ?: ""
+            val h3: String = if (e == null) "" else when (examTypeLower) {
+                "university" -> listOfNotNull(
+                    e.univMajorField?.let { UniversityMajorCategory.entries.findByName(it)?.label },
+                    e.univMajorName,
+                    e.univCourseType?.let { CourseType.entries.findByName(it)?.label },
+                ).joinToString(" · ")
+
+                "middle_high" -> listOfNotNull(
+                    e.mhGrade?.let { MiddleHighCurriculum.entries.findByName(it)?.label ?: it },
+                    e.mhSubjectType?.let { s ->
+                        MiddleHighSubjectType.entries.findByName(s)?.label?.takeIf { it != "직접 입력" }
+                            ?: s
+                    },
+                ).joinToString(" · ")
+
+                "certificate" -> e.certificateName ?: ""
+                "civil_servant" -> listOfNotNull(
+                    e.civilRank?.let { CivilServantGrade.entries.findByName(it)?.label ?: it },
+                    e.civilSeries?.let { CivilServantSeries.entries.findByName(it)?.label ?: it },
+                ).joinToString(" · ")
+
+                "language" -> listOfNotNull(
+                    e.langType?.let { LanguageType.entries.findByName(it)?.label ?: it },
+                    e.langExamName?.let { name ->
+                        val lower = name.lowercase()
+                        (EnglishTestType.entries.find { it.name.lowercase() == lower }?.label
+                            ?: JapaneseTestType.entries.find { it.name.lowercase() == lower }?.label
+                            ?: ChineseTestType.entries.find { it.name.lowercase() == lower }?.label
+                            ?: name).takeIf { it != "직접 입력" }
+                    },
+                ).joinToString(" · ")
+
+                "other" -> e.otherExamName ?: ""
+                else -> ""
+            }
+            SubjectLabels(h1, h2, h3)
+        }
+
+        "self_study" -> {
+            val r = reviewDetail
+            SubjectLabels(
+                h1 = h1,
+                h2 = r?.field?.let { StudyField.entries.findByName(it)?.label ?: it } ?: "",
+                h3 = r?.studyLevel?.let { FamiliarityLevel.entries.findByName(it)?.label ?: it }
+                    ?: "",
+            )
+        }
+
+        "other" -> SubjectLabels(
+            h1 = h1,
+            h2 = otherDetail?.usagePurpose?.let { UsagePurpose.entries.findByName(it)?.title ?: it }
+                ?: "",
+            h3 = otherDetail?.description ?: "",
+        )
+
+        else -> SubjectLabels(h1, "", "")
+    }
 }
 
 @Composable
@@ -146,7 +210,7 @@ fun SubjectDetailScreen(
 
     // API에서 받아온 값으로 헤더 정보 구성
     val apiSubjectName = subjectDetail?.name
-    val apiPurposeLabel = subjectDetail?.purpose?.let { purposeToKorean(it) }
+    val apiLabels = remember(subjectDetail) { subjectDetail?.toLabels() }
 
     val chapters = remember(subjectDetail) {
         subjectDetail?.chapters?.map { chapter ->
@@ -220,11 +284,6 @@ fun SubjectDetailScreen(
         ) {
 
             Column(modifier = Modifier.background(Green800)) {
-                Spacer(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .windowInsetsTopHeight(WindowInsets.statusBars),
-                )
                 SubjectDetailTopBar(
                     title = displaySubjectName,
                     isStarred = isStarred,
@@ -241,9 +300,9 @@ fun SubjectDetailScreen(
                 SubjectHeaderSection(
                     modifier = Modifier.padding(horizontal = 8.dp),
                     subjectName = displaySubjectName,
-                    studyPurposeLabel = apiPurposeLabel ?: studyPurposeLabel,
-                    examTypeLabel = examTypeLabel,
-                    detailLabel = detailLabel,
+                    studyPurposeLabel = apiLabels?.h1 ?: studyPurposeLabel,
+                    examTypeLabel = apiLabels?.h2 ?: examTypeLabel,
+                    detailLabel = apiLabels?.h3 ?: detailLabel,
                 )
             }
 
@@ -327,7 +386,11 @@ fun SubjectDetailScreen(
                 confirmedExamName = name
                 confirmedSchedule = date
                 confirmedDDay = null  // API 응답 전까지 로컬 계산 사용
-                if (subjectId.isNotEmpty()) viewModel.upsertExamSchedule(subjectId, name.ifBlank { displaySubjectName }.ifBlank { null }, date)
+                if (subjectId.isNotEmpty()) viewModel.upsertExamSchedule(
+                    subjectId,
+                    name.ifBlank { displaySubjectName }.ifBlank { null },
+                    date
+                )
                 showScheduleDialog = false
             },
             onDelete = {
@@ -485,7 +548,11 @@ private fun MySubjectSection(
                     title = chapter.name,
                     chapter = "챕터 ${chapter.number}",
                     part = "파트 ${chapter.partCount}개",
-                    onClick = { if (isEditMode) onChapterEditClick(chapter) else onChapterClick(chapter) },
+                    onClick = {
+                        if (isEditMode) onChapterEditClick(chapter) else onChapterClick(
+                            chapter
+                        )
+                    },
                     trailingIconRes = if (isEditMode) R.drawable.ic_detail_edit else com.f1.quiket.core.designsystem.R.drawable.ic_subject_card_next,
                 )
 
@@ -540,7 +607,11 @@ private fun AddTestCalendarDialog(
         }.getOrNull()
     } // Triple: (year, month, day)
     var calYear by remember { mutableIntStateOf(parsedDate?.first ?: now.get(Calendar.YEAR)) }
-    var calMonth by remember { mutableIntStateOf(parsedDate?.second ?: (now.get(Calendar.MONTH) + 1)) }
+    var calMonth by remember {
+        mutableIntStateOf(
+            parsedDate?.second ?: (now.get(Calendar.MONTH) + 1)
+        )
+    }
     var selectedDay by remember { mutableStateOf(parsedDate?.third) }
     var confirmedDateStr by remember { mutableStateOf(initialDate) }
 
@@ -638,9 +709,13 @@ private fun AddTestCalendarDialog(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray700),
-                            border = BorderStroke(1.dp, Gray300),
+                            border = BorderStroke(2.dp, Brown950),
                         ) {
-                            Text("취소", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                "취소", style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.SemiBold),
+                                color = Brown950
+                            )
                         }
                         Button(
                             onClick = { onApply(examName, confirmedDateStr) },
@@ -654,7 +729,8 @@ private fun AddTestCalendarDialog(
                                 disabledContentColor = White
                             )
                         ) {
-                            Text("적용", style = MaterialTheme.typography.bodySmall)
+                            Text("적용", style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.SemiBold))
                         }
                     }
                 } else {
@@ -747,9 +823,9 @@ private fun DialogFieldLabel(text: String) {
 
     Text(
         text = annotatedText,
-        style = MaterialTheme.typography.labelMedium.copy(
-            fontWeight = FontWeight.SemiBold,
-            color = Gray700,
+        style = MaterialTheme.typography.bodyLarge.copy(
+            fontWeight = FontWeight.Bold,
+            color = Brown950,
         )
     )
 }
@@ -766,7 +842,9 @@ private fun EditSubjectNameDialog(
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = White),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
@@ -795,9 +873,14 @@ private fun EditSubjectNameDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray700),
-                        border = BorderStroke(1.dp, Gray300),
+                        border = BorderStroke(2.dp, Brown950),
                     ) {
-                        Text("취소", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "취소", style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = Brown950
+                        )
                     }
                     Button(
                         onClick = { onApply(name) },
@@ -811,7 +894,11 @@ private fun EditSubjectNameDialog(
                             disabledContentColor = White,
                         ),
                     ) {
-                        Text("적용", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "적용", style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
                     }
                 }
             }
@@ -831,7 +918,9 @@ private fun EditChapterNameDialog(
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = White),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
@@ -860,9 +949,14 @@ private fun EditChapterNameDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray700),
-                        border = BorderStroke(1.dp, Gray300),
+                        border = BorderStroke(2.dp, Brown950),
                     ) {
-                        Text("취소", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "취소", style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = Brown950
+                        )
                     }
                     Button(
                         onClick = { onApply(name) },
@@ -876,7 +970,11 @@ private fun EditChapterNameDialog(
                             disabledContentColor = White,
                         ),
                     ) {
-                        Text("적용", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "적용", style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
                     }
                 }
             }
@@ -995,7 +1093,9 @@ private fun DeleteSubjectDialog(
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = White),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
@@ -1020,9 +1120,13 @@ private fun DeleteSubjectDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray700),
-                        border = BorderStroke(1.dp, Gray300),
+                        border = BorderStroke(2.dp, Brown950),
                     ) {
-                        Text("취소", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "취소", style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.SemiBold),
+                            color = Brown950
+                        )
                     }
                     Button(
                         onClick = onConfirm,
@@ -1033,7 +1137,8 @@ private fun DeleteSubjectDialog(
                             contentColor = White,
                         ),
                     ) {
-                        Text("삭제", style = MaterialTheme.typography.bodySmall)
+                        Text("삭제", style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold))
                     }
                 }
             }

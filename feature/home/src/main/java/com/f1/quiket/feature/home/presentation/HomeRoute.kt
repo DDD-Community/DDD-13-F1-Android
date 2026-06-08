@@ -12,6 +12,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import com.f1.quiket.feature.home.model.FabAction
 
+private const val MAX_EXAM_COUNT = 5
+private const val EXAM_LIMIT_MESSAGE = "시험은 최대 5개까지 등록할 수 있어요. 기존 일정을 삭제 후 등록해주세요"
+
 @Composable
 fun HomeRoute(
     viewModel: HomeViewModel = hiltViewModel(),
@@ -24,6 +27,7 @@ fun HomeRoute(
     navigateToUpload: () -> Unit,
     navigateToAddSubject: () -> Unit,
     navigateToMyPage: () -> Unit,
+    navigateToExamScheduleList: () -> Unit = {},
     homeBackStackEntry: NavBackStackEntry? = null,
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
@@ -82,12 +86,26 @@ fun HomeRoute(
         onHomeRefresh = { viewModel.onIntent(HomeIntent.LoadHomeData) },
         onFabItemClick = { action ->
             when (action) {
-                FabAction.ScheduleExam -> navigateToScheduleExam()
+                FabAction.ScheduleExam -> {
+                    val examCount = uiState.homeData?.subjects
+                        .orEmpty()
+                        .mapNotNull { it.examSchedule }
+                        .filter { (it.dDay ?: 0) >= 0 }
+                        .distinctBy { it.subjectId }
+                        .size
+                    if (examCount >= MAX_EXAM_COUNT) {
+                        Toast.makeText(context, EXAM_LIMIT_MESSAGE, Toast.LENGTH_LONG).show()
+                        navigateToExamScheduleList()
+                    } else {
+                        navigateToScheduleExam()
+                    }
+                }
                 FabAction.CreateQuiz -> navigateToCreateQuiz()
                 FabAction.Upload -> navigateToUpload()
                 FabAction.AddSubject -> navigateToAddSubject()
             }
         },
         onProfileClick = navigateToMyPage,
+        onExamCardClick = navigateToExamScheduleList,
     )
 }

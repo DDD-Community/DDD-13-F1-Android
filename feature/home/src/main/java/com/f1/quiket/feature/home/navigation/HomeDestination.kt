@@ -56,3 +56,7 @@ data object QuizResultDestination : QuiketDestination {
 
     fun createRoute(resultId: String): String = "$BASE_ROUTE/$resultId"
 }
+
+data object ExamScheduleDestination : QuiketDestination {
+    override val route: String = "home/exam-schedule"
+}

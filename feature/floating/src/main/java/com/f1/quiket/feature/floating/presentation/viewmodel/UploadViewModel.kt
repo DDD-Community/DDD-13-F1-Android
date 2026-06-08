@@ -50,6 +50,9 @@ class UploadViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    private val _isFailed = MutableStateFlow(false)
+    val isFailed: StateFlow<Boolean> = _isFailed.asStateFlow()
+
     private var pollingJob: Job? = null
 
     fun submit(
@@ -65,6 +68,7 @@ class UploadViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             _isSuccess.value = false
+            _isFailed.value = false
             _progress.value = 0f
             _errorMessage.value = null
 
@@ -129,6 +133,7 @@ class UploadViewModel @Inject constructor(
                 }
                 is NetworkResult.Failure -> {
                     _errorMessage.value = result.message
+                    _isFailed.value = true
                     _isLoading.value = false
                 }
             }
@@ -159,6 +164,7 @@ class UploadViewModel @Inject constructor(
                                     _isSuccess.value = true
                                 } else {
                                     _errorMessage.value = statusData.failReason ?: "업로드에 실패했어요"
+                                    _isFailed.value = true
                                 }
                                 _isLoading.value = false
                                 return@launch
@@ -179,6 +185,7 @@ class UploadViewModel @Inject constructor(
         pollingJob = null
         _isLoading.value = false
         _isSuccess.value = false
+        _isFailed.value = false
         _progress.value = 0f
     }
 

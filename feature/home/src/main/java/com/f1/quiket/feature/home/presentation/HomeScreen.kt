@@ -1,5 +1,6 @@
 package com.f1.quiket.feature.home.presentation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -16,22 +17,22 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -68,7 +69,9 @@ import com.f1.quiket.core.designsystem.component.NoSubjectPopup
 import com.f1.quiket.core.designsystem.component.QuiketTopBar
 import com.f1.quiket.core.designsystem.theme.Black
 import com.f1.quiket.core.designsystem.theme.Brown50
+import com.f1.quiket.core.designsystem.theme.Brown950
 import com.f1.quiket.core.designsystem.theme.Gray100
+import com.f1.quiket.core.designsystem.theme.Gray200
 import com.f1.quiket.core.designsystem.theme.Gray600
 import com.f1.quiket.core.designsystem.theme.Gray900
 import com.f1.quiket.core.designsystem.theme.Orange500
@@ -84,10 +87,10 @@ import com.f1.quiket.feature.home.component.HomeGuideTooltip
 import com.f1.quiket.feature.home.component.HomeTutorialOverlay
 import com.f1.quiket.feature.home.domain.model.HomeData
 import com.f1.quiket.feature.home.domain.model.RecentActivity
-import com.f1.quiket.feature.home.model.Exam
-import com.f1.quiket.feature.home.model.FabAction
 import com.f1.quiket.feature.home.model.Activity
 import com.f1.quiket.feature.home.model.ActivityType
+import com.f1.quiket.feature.home.model.Exam
+import com.f1.quiket.feature.home.model.FabAction
 import com.f1.quiket.feature.home.model.Subject
 import com.f1.quiket.feature.home.model.TutorialPage
 import com.f1.quiket.feature.home.model.buildTutorialPages
@@ -105,6 +108,7 @@ fun HomeScreen(
     onFabItemClick: (FabAction) -> Unit,
     onHomeRefresh: () -> Unit = {},
     onProfileClick: () -> Unit = {},
+    onExamCardClick: () -> Unit = {},
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
@@ -189,6 +193,7 @@ fun HomeScreen(
                     selectedLectureCategory = category
                     depth = 4
                 },
+                onAddSubjectClick = { onFabItemClick(FabAction.AddSubject) },
             )
             return
         }
@@ -243,6 +248,7 @@ fun HomeScreen(
                     selectedLectureCategory = category
                     depth = 6
                 },
+                onAddSubjectClick = { onFabItemClick(FabAction.AddSubject) },
             )
             return
         }
@@ -333,23 +339,16 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 color = White,
             ) {
-                Column {
-                    Spacer(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .windowInsetsTopHeight(WindowInsets.statusBars),
-                    )
-                    QuiketTopBar(
-                        onNoteIconClick = {
-                            tutorialPage = TutorialPage.FIRST
-                            showTutorial = true
-                        },
-                        onNoteIconPositioned = { offset, size ->
-                            noteIconOffset = offset
-                            noteIconSize = size
-                        },
-                    )
-                }
+                QuiketTopBar(
+                    onNoteIconClick = {
+                        tutorialPage = TutorialPage.FIRST
+                        showTutorial = true
+                    },
+                    onNoteIconPositioned = { offset, size ->
+                        noteIconOffset = offset
+                        noteIconSize = size
+                    },
+                )
             }
 
             // ── TopBar 아래 스크롤 영역 ──────────────────────────────────
@@ -470,14 +469,37 @@ fun HomeScreen(
                         state = pagerState,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                            .padding(horizontal = 16.dp)
+                            .padding(top = 10.dp)
                     ) { page ->
                         HomeExamCard(
                             examName = exams[page].name,
                             date = exams[page].date,
                             dDay = exams[page].dDay,
-                            onClick = {}
+                            onClick = onExamCardClick
                         )
+                    }
+                    if (exams.size > 1) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 10.dp, top = 6.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            repeat(exams.size) { index ->
+                                val isActive = pagerState.currentPage == index
+                                Box(
+                                    modifier = Modifier
+                                        .padding(horizontal = 3.dp)
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isActive) Brown950 else Gray200)
+                                )
+                            }
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.padding(bottom = 10.dp))
                     }
                 }
 
@@ -656,14 +678,21 @@ private fun HomeData?.toHomeSubjects(): List<Subject> =
 private fun HomeData?.toHomeExams(): List<Exam> =
     this?.subjects.orEmpty()
         .mapNotNull { it.examSchedule }
-        .sortedWith(compareBy(nullsLast()) { it.dDay })
+        .filter { (it.dDay ?: 0) >= 0 }             // 지난 시험(D+N) 미노출
+        .withIndex()
+        .sortedWith(
+            Comparator { a, b ->
+                val dDayCmp = compareValuesBy(a.value, b.value) { it.dDay ?: Int.MAX_VALUE }
+                if (dDayCmp != 0) dDayCmp else b.index - a.index // 동일 날짜 → 최신 등록 순
+            }
+        )
+        .map { it.value }
+        .take(5)                                     // 최대 5개
         .map { schedule ->
             Exam(
                 name = schedule.examName,
                 date = schedule.examDate,
-                dDay = schedule.dDay?.let { dDay ->
-                    if (dDay >= 0) "D-$dDay" else "D+${-dDay}"
-                }.orEmpty(),
+                dDay = schedule.dDay?.let { "D-$it" }.orEmpty(),
             )
         }
 
