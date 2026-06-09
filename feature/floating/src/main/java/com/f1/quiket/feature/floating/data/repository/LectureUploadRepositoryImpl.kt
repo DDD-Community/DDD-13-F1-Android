@@ -47,7 +47,7 @@ class LectureUploadRepositoryImpl @Inject constructor(
             call = {
                 api.createFileLectureUpload(
                     subjectId = request.subjectId.toPlainRequestBody(),
-                    chapterName = request.chapterName.toPlainRequestBody(),
+                    chapterName = request.chapterName?.toPlainRequestBody(),
                     uploadType = request.uploadType.wireValue.toPlainRequestBody(),
                     partSplitMethod = request.partSplitMethod.wireValue.toPlainRequestBody(),
                     partSplitPlansJson = request.partSplitPlans.toJsonRequestBody(),

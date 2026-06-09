@@ -1,6 +1,8 @@
 package com.f1.quiket.feature.floating.data.remote
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.EncodeDefault
 
 @Serializable
 data class SubjectCreateRequest(
@@ -62,10 +64,12 @@ data class PartUpdateRequest(
     val content: String,
 )
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class LectureTextUploadRequest(
     val subjectId: String,
-    val chapterName: String,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val chapterName: String? = null,
     val uploadType: String = "text",
     val partSplitMethod: String,
     val text: String,

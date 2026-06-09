@@ -9,14 +9,20 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowInsetsControllerCompat
+import com.f1.quiket.core.designsystem.theme.Brown50
+import com.f1.quiket.core.designsystem.theme.White
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -28,6 +34,7 @@ import com.f1.quiket.feature.floating.presentation.navigation.ScheduleExamDestin
 import com.f1.quiket.feature.floating.presentation.navigation.UploadDestination
 import com.f1.quiket.feature.floating.presentation.navigation.lectureSelectGraph
 import com.f1.quiket.feature.floating.presentation.navigation.lectureUploadFileGraph
+import com.f1.quiket.feature.history.navigation.HistoryDestination
 import com.f1.quiket.feature.history.navigation.historyGraph
 import com.f1.quiket.feature.home.navigation.HomeDestination
 import com.f1.quiket.feature.home.navigation.QuizPlayAllDestination
@@ -36,6 +43,7 @@ import com.f1.quiket.feature.home.navigation.QuizStartDestination
 import com.f1.quiket.feature.home.navigation.homeGraph
 import com.f1.quiket.feature.mypage.navigation.MyPageDestination
 import com.f1.quiket.feature.mypage.navigation.myPageGraph
+import com.f1.quiket.feature.review.navigation.ReviewDestination
 import com.f1.quiket.feature.review.navigation.reviewGraph
 
 @Composable
@@ -56,6 +64,19 @@ fun MainScreen(onLogout: () -> Unit) {
         UploadDestination.route,
     )
     val showBottomBar = currentRoute !in floatingRoutes
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        val statusBarColor = when (currentRoute) {
+            HistoryDestination.route, ReviewDestination.route -> Brown50
+            else -> White
+        }
+        SideEffect {
+            val window = (view.context as android.app.Activity).window
+            window.statusBarColor = statusBarColor.toArgb()
+            WindowInsetsControllerCompat(window, view).isAppearanceLightStatusBars = true
+        }
+    }
 
     Scaffold(
         //topBar = { QuiketTopBar(title = currentTab.label) },

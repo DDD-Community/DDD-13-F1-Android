@@ -32,7 +32,8 @@ fun AddSubjectScreen(
     var skippedFromStep by remember { mutableStateOf(0) }
     var nextChapterNumber by remember { mutableStateOf(1) }
 
-    // 업로드 성공 후 LectureViewScreen에 넘길 챕터 정보
+    // 업로드 성공 후 MaterialCheckScreen/LectureViewScreen에 넘길 정보
+    var uploadedLectureUploadId by remember { mutableStateOf("") }
     var uploadedChapterId by remember { mutableStateOf("") }
     var uploadedChapterName by remember { mutableStateOf("") }
     var uploadedChapterNumber by remember { mutableStateOf(1) }
@@ -123,20 +124,19 @@ fun AddSubjectScreen(
             chapterCount = nextChapterNumber,
             onBackClick = { depth = 4 },
             onNextClick = { depth = 4 },
-            onUploadSuccess = { _, cId, cName, cNum ->
-                uploadedChapterId = cId
-                uploadedChapterName = cName
-                uploadedChapterNumber = cNum
+            onUploadSuccess = { lectureUploadId, chapterNum ->
+                uploadedLectureUploadId = lectureUploadId
+                uploadedChapterNumber = chapterNum
                 depth = 6
             },
         )
 
         6 -> MaterialCheckScreen(
-            subjectId = createdSubjectId ?: "",
-            chapterId = uploadedChapterId,
+            lectureUploadId = uploadedLectureUploadId,
             chapterNumber = uploadedChapterNumber,
             onBackClick = { depth = 4 },
-            onComplete = { finalChapterName, partCount ->
+            onComplete = { _, chapterId, finalChapterName, partCount ->
+                uploadedChapterId = chapterId
                 uploadedChapterName = finalChapterName
                 uploadedPartCount = partCount
                 depth = 7
