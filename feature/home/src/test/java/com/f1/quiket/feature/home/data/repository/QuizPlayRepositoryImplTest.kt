@@ -11,6 +11,7 @@ import com.f1.quiket.feature.home.data.remote.QuestionResponse
 import com.f1.quiket.feature.home.data.remote.QuizPlayApi
 import com.f1.quiket.feature.home.data.remote.QuizPlaySessionDataResponse
 import com.f1.quiket.feature.home.data.remote.QuizPlayStartRequest
+import com.f1.quiket.feature.home.data.remote.QuizRetryRequest
 import com.f1.quiket.feature.home.data.remote.QuizAnswerSubmitItemRequest
 import com.f1.quiket.feature.home.data.remote.QuizResultDataResponse
 import com.f1.quiket.feature.home.data.remote.QuizResultSubmitRequest
@@ -21,6 +22,7 @@ import com.f1.quiket.feature.home.domain.model.QuizPlayMode
 import com.f1.quiket.feature.home.domain.model.QuizPlaySessionStatus
 import com.f1.quiket.feature.home.domain.model.QuizPlayStart
 import com.f1.quiket.feature.home.domain.model.QuizPlayType
+import com.f1.quiket.feature.home.domain.model.QuizRetry
 import com.f1.quiket.feature.home.domain.model.QuizResultSubmit
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -172,6 +174,44 @@ class QuizPlayRepositoryImplTest {
         assertThat(quizResult.accuracyPct).isEqualTo(100)
     }
 
+    @Test
+    fun retryAllQuestions_success_mapsRequestAndRetryPlaySession() = runTest {
+        val api = FakeQuizPlayApi()
+        val repository = repository(api)
+
+        api.retryAllQuestionsHandler = { playSessionId, request ->
+            assertThat(playSessionId).isEqualTo("play-1")
+            assertThat(request).isEqualTo(
+                QuizRetryRequest(
+                    clientSessionId = "client-retry",
+                    questionShuffled = false,
+                    optionShuffled = false,
+                ),
+            )
+            successResponse(
+                code = "QUIZ_RETRY_ALL_SUCCESS",
+                data = QuizPlaySessionDataResponse(
+                    playSessionId = "play-retry",
+                    clientSessionId = "client-retry",
+                    quizSessionId = "session-retry",
+                    playType = "retry_all",
+                    status = "in_progress",
+                    quizSession = quizSessionResponse(playMode = "all_at_once"),
+                ),
+            )
+        }
+
+        val result = repository.retryAllQuestions(
+            playSessionId = "play-1",
+            request = QuizRetry(clientSessionId = "client-retry"),
+        )
+
+        val playSession = (result as NetworkResult.Success).data
+        assertThat(playSession.playSessionId).isEqualTo("play-retry")
+        assertThat(playSession.playType).isEqualTo(QuizPlayType.RetryAll)
+        assertThat(playSession.quizSession?.questions).hasSize(1)
+    }
+
     private fun repository(api: QuizPlayApi): QuizPlayRepositoryImpl =
         QuizPlayRepositoryImpl(
             api = api,
@@ -196,6 +236,12 @@ class QuizPlayRepositoryImplTest {
         var getQuizResultHandler:
             suspend (String) -> Response<ApiResponse<QuizResultDataResponse>> =
             { unhandled("getQuizResult") }
+        var retryAllQuestionsHandler:
+            suspend (String, QuizRetryRequest) -> Response<ApiResponse<QuizPlaySessionDataResponse>> =
+            { _, _ -> unhandled("retryAllQuestions") }
+        var retryWrongQuestionsHandler:
+            suspend (String, QuizRetryRequest) -> Response<ApiResponse<QuizPlaySessionDataResponse>> =
+            { _, _ -> unhandled("retryWrongQuestions") }
 
         override suspend fun getQuizSession(
             quizSessionId: String,
@@ -214,6 +260,18 @@ class QuizPlayRepositoryImplTest {
         override suspend fun getQuizResult(
             resultId: String,
         ): Response<ApiResponse<QuizResultDataResponse>> = getQuizResultHandler(resultId)
+
+        override suspend fun retryAllQuestions(
+            playSessionId: String,
+            request: QuizRetryRequest,
+        ): Response<ApiResponse<QuizPlaySessionDataResponse>> =
+            retryAllQuestionsHandler(playSessionId, request)
+
+        override suspend fun retryWrongQuestions(
+            playSessionId: String,
+            request: QuizRetryRequest,
+        ): Response<ApiResponse<QuizPlaySessionDataResponse>> =
+            retryWrongQuestionsHandler(playSessionId, request)
 
         private fun <T> unhandled(method: String): T {
             error("Unhandled QuizPlayApi call: $method")

@@ -34,4 +34,18 @@ interface QuizPlayApi {
     suspend fun getQuizResult(
         @Path("resultId") resultId: String,
     ): Response<ApiResponse<QuizResultDataResponse>>
+
+    @Headers(AuthenticatedRequest.HEADER)
+    @POST("quiz-results/{playSessionId}/retry-all")
+    suspend fun retryAllQuestions(
+        @Path("playSessionId") playSessionId: String,
+        @Body request: QuizRetryRequest,
+    ): Response<ApiResponse<QuizPlaySessionDataResponse>>
+
+    @Headers(AuthenticatedRequest.HEADER)
+    @POST("quiz-results/{playSessionId}/retry-wrong")
+    suspend fun retryWrongQuestions(
+        @Path("playSessionId") playSessionId: String,
+        @Body request: QuizRetryRequest,
+    ): Response<ApiResponse<QuizPlaySessionDataResponse>>
 }

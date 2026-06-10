@@ -13,6 +13,7 @@ import com.f1.quiket.feature.home.domain.model.QuizPlaySession
 import com.f1.quiket.feature.home.domain.model.QuizPlaySessionStatus
 import com.f1.quiket.feature.home.domain.model.QuizPlayStart
 import com.f1.quiket.feature.home.domain.model.QuizPlayType
+import com.f1.quiket.feature.home.domain.model.QuizRetry
 import com.f1.quiket.feature.home.domain.model.QuizResult
 import com.f1.quiket.feature.home.domain.model.QuizResultSubmit
 import com.f1.quiket.feature.home.domain.model.QuizSession
@@ -230,6 +231,32 @@ class QuizPlayAllViewModelTest {
     }
 
     @Test
+    fun loadQuizSession_withExistingRetryPlaySession_doesNotStartFirstPlaySession() = runTest {
+        val repository = FakeQuizPlayRepository()
+        repository.quizSessionResult = NetworkResult.Success(serverQuizSession())
+        repository.submitResult = NetworkResult.Success(result())
+        val viewModel = viewModel(repository)
+
+        viewModel.onIntent(
+            QuizPlayAllIntent.LoadQuizSession(
+                quizSessionId = "session-retry",
+                clientSessionId = "client-retry",
+                playSessionId = "play-retry",
+                playType = QuizPlayType.RetryAll,
+            ),
+        )
+        advanceUntilIdle()
+        viewModel.onIntent(QuizPlayAllIntent.SelectOption("option-1"))
+
+        viewModel.onIntent(QuizPlayAllIntent.Submit)
+        advanceUntilIdle()
+
+        assertThat(repository.startedQuizSessionId).isNull()
+        assertThat(repository.submittedRequest?.clientSessionId).isEqualTo("client-retry")
+        assertThat(repository.submittedRequest?.playType).isEqualTo(QuizPlayType.RetryAll)
+    }
+
+    @Test
     fun retryLoadQuizSession_reloadsAfterInitialFailure() = runTest {
         val repository = FakeQuizPlayRepository()
         repository.quizSessionResult = NetworkResult.Failure(
@@ -343,6 +370,18 @@ class QuizPlayAllViewModelTest {
         }
 
         override suspend fun getQuizResult(resultId: String): NetworkResult<QuizResult> =
+            NetworkResult.Failure(code = "TEST", message = "not configured")
+
+        override suspend fun retryAllQuestions(
+            playSessionId: String,
+            request: QuizRetry,
+        ): NetworkResult<QuizPlaySession> =
+            NetworkResult.Failure(code = "TEST", message = "not configured")
+
+        override suspend fun retryWrongQuestions(
+            playSessionId: String,
+            request: QuizRetry,
+        ): NetworkResult<QuizPlaySession> =
             NetworkResult.Failure(code = "TEST", message = "not configured")
     }
 

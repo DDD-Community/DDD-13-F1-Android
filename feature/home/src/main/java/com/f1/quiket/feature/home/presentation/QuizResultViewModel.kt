@@ -2,8 +2,14 @@ package com.f1.quiket.feature.home.presentation
 
 import com.f1.quiket.core.common.mvi.MviViewModel
 import com.f1.quiket.core.network.model.NetworkResult
+import com.f1.quiket.feature.home.domain.model.QuizPlayMode
+import com.f1.quiket.feature.home.domain.model.QuizPlaySession
+import com.f1.quiket.feature.home.domain.model.QuizRetry
+import com.f1.quiket.feature.home.domain.model.QuizSession
+import com.f1.quiket.feature.home.domain.model.QuizTimerScope
 import com.f1.quiket.feature.home.domain.repository.QuizPlayRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -15,6 +21,8 @@ class QuizResultViewModel @Inject constructor(
     override fun handleIntent(intent: QuizResultIntent) {
         when (intent) {
             is QuizResultIntent.Load -> load(intent.resultId)
+            QuizResultIntent.RetryAll -> retryAll()
+            QuizResultIntent.RetryWrong -> retryWrong()
         }
     }
 
@@ -54,4 +62,81 @@ class QuizResultViewModel @Inject constructor(
             }
         }
     }
+
+    private fun retryAll() {
+        val result = currentState.result ?: return
+        if (result.retryAvailable?.retryAll == false) {
+            launch { sendEffect(QuizResultEffect.ShowMessage("전체 다시 풀기를 시작할 수 없어요.")) }
+            return
+        }
+        retry(
+            playSessionId = result.playSessionId,
+            retryCall = { playSessionId, request ->
+                quizPlayRepository.retryAllQuestions(playSessionId, request)
+            },
+        )
+    }
+
+    private fun retryWrong() {
+        val result = currentState.result ?: return
+        val wrongCount = result.retryAvailable?.wrongCount ?: result.wrongCount
+        if (wrongCount <= 0 || result.retryAvailable?.retryWrong == false) {
+            launch { sendEffect(QuizResultEffect.ShowMessage("다시 풀 오답이 없어요.")) }
+            return
+        }
+        retry(
+            playSessionId = result.playSessionId,
+            retryCall = { playSessionId, request ->
+                quizPlayRepository.retryWrongQuestions(playSessionId, request)
+            },
+        )
+    }
+
+    private fun retry(
+        playSessionId: String,
+        retryCall: suspend (String, QuizRetry) -> NetworkResult<QuizPlaySession>,
+    ) {
+        if (currentState.isRetrying || playSessionId.isBlank()) return
+
+        launch {
+            updateState { copy(isRetrying = true, errorMessage = null) }
+            val retryRequest = QuizRetry(clientSessionId = UUID.randomUUID().toString())
+            when (val result = retryCall(playSessionId, retryRequest)) {
+                is NetworkResult.Success -> {
+                    val retrySession = result.data
+                    val retryQuizSessionId = retrySession.quizSession?.id
+                        ?: retrySession.quizSessionId
+                    updateState { copy(isRetrying = false) }
+                    if (retryQuizSessionId.isBlank()) {
+                        sendEffect(QuizResultEffect.ShowMessage("다시 풀 퀴즈 정보를 찾을 수 없어요."))
+                    } else {
+                        sendEffect(
+                            QuizResultEffect.NavigateToRetry(
+                                QuizRetryPlayConfig(
+                                    quizSessionId = retryQuizSessionId,
+                                    clientSessionId = retrySession.clientSessionId,
+                                    playSessionId = retrySession.playSessionId,
+                                    playType = retrySession.playType,
+                                    playMode = retrySession.quizSession?.playMode
+                                        ?: QuizPlayMode.AllAtOnce,
+                                    timerEnabled = retrySession.quizSession?.timerEnabled
+                                        ?: false,
+                                    timerScope = retrySession.quizSession.toTimerScope(),
+                                    timerSeconds = retrySession.quizSession?.timerSeconds,
+                                ),
+                            ),
+                        )
+                    }
+                }
+
+                is NetworkResult.Failure -> {
+                    updateState { copy(isRetrying = false) }
+                    sendEffect(QuizResultEffect.ShowMessage(result.message))
+                }
+            }
+        }
+    }
+
+    private fun QuizSession?.toTimerScope(): QuizTimerScope? =
+        QuizTimerScope.entries.firstOrNull { scope -> scope.wireValue == this?.timerScope }
 }

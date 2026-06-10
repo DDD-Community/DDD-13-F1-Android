@@ -1,5 +1,7 @@
 package com.f1.quiket.feature.home.presentation
 
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -74,18 +76,33 @@ import com.f1.quiket.feature.home.domain.model.ServerQuizType
 fun QuizResultRoute(
     resultId: String,
     onBackClick: () -> Unit,
+    onRetryReady: (QuizRetryPlayConfig) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: QuizResultViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(resultId) {
         viewModel.onIntent(QuizResultIntent.Load(resultId))
     }
 
+    LaunchedEffect(viewModel) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is QuizResultEffect.NavigateToRetry -> onRetryReady(effect.config)
+                is QuizResultEffect.ShowMessage -> {
+                    Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     QuizResultScreen(
         state = state,
         onBackClick = onBackClick,
+        onRetryAllClick = { viewModel.onIntent(QuizResultIntent.RetryAll) },
+        onRetryWrongClick = { viewModel.onIntent(QuizResultIntent.RetryWrong) },
         modifier = modifier,
     )
 }
@@ -94,6 +111,8 @@ fun QuizResultRoute(
 fun QuizResultScreen(
     state: QuizResultState,
     onBackClick: () -> Unit,
+    onRetryAllClick: () -> Unit,
+    onRetryWrongClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var reviewMode by remember(state.result?.resultId) {
@@ -122,10 +141,13 @@ fun QuizResultScreen(
             state.result != null -> QuizResultContent(
                 result = state.result,
                 onBackClick = onBackClick,
+                onRetryAllClick = onRetryAllClick,
+                onRetryWrongClick = onRetryWrongClick,
                 reviewMode = reviewMode,
                 selectedReviewIndex = selectedReviewIndex,
                 onReviewModeChange = { mode -> reviewMode = mode },
                 onReviewIndexChange = { index -> selectedReviewIndex = index },
+                isRetrying = state.isRetrying,
             )
 
             else -> QuizResultMessageScaffold(
@@ -140,10 +162,13 @@ fun QuizResultScreen(
 private fun QuizResultContent(
     result: QuizResult,
     onBackClick: () -> Unit,
+    onRetryAllClick: () -> Unit,
+    onRetryWrongClick: () -> Unit,
     reviewMode: QuizResultReviewMode,
     selectedReviewIndex: Int,
     onReviewModeChange: (QuizResultReviewMode) -> Unit,
     onReviewIndexChange: (Int) -> Unit,
+    isRetrying: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val allReviewItems = result.reviewItems.sortedBy { item -> item.displayOrder }
@@ -158,6 +183,17 @@ private fun QuizResultContent(
         minimumValue = 0,
         maximumValue = (currentReviewItems.lastIndex).coerceAtLeast(0),
     )
+
+    BackHandler(enabled = reviewMode != QuizResultReviewMode.Summary) {
+        when (reviewMode) {
+            QuizResultReviewMode.AllList,
+            QuizResultReviewMode.WrongList,
+            -> onReviewModeChange(QuizResultReviewMode.Summary)
+            QuizResultReviewMode.AllDetail -> onReviewModeChange(QuizResultReviewMode.AllList)
+            QuizResultReviewMode.WrongDetail -> onReviewModeChange(QuizResultReviewMode.WrongList)
+            QuizResultReviewMode.Summary -> Unit
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         when (reviewMode) {
@@ -186,7 +222,12 @@ private fun QuizResultContent(
                                 onReviewModeChange(QuizResultReviewMode.WrongList)
                             },
                         )
-                        QuizResultRetrySection(result = result)
+                        QuizResultRetrySection(
+                            result = result,
+                            isRetrying = isRetrying,
+                            onRetryAllClick = onRetryAllClick,
+                            onRetryWrongClick = onRetryWrongClick,
+                        )
                     }
                 }
 
@@ -1013,9 +1054,16 @@ private fun QuizResultReviewDetailBottomBar(
 @Composable
 private fun QuizResultRetrySection(
     result: QuizResult,
+    isRetrying: Boolean,
+    onRetryAllClick: () -> Unit,
+    onRetryWrongClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val retryWrongCount = result.retryAvailable?.wrongCount ?: result.wrongCount
+    val retryAllEnabled = !isRetrying && result.retryAvailable?.retryAll != false
+    val retryWrongEnabled = !isRetrying &&
+        retryWrongCount > 0 &&
+        result.retryAvailable?.retryWrong != false
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -1026,8 +1074,16 @@ private fun QuizResultRetrySection(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            QuizResultActionRow(title = "전체 다시 풀기")
-            QuizResultActionRow(title = "틀린 문제만 다시 풀기", enabled = retryWrongCount > 0)
+            QuizResultActionRow(
+                title = "전체 다시 풀기",
+                enabled = retryAllEnabled,
+                onClick = onRetryAllClick,
+            )
+            QuizResultActionRow(
+                title = "틀린 문제만 다시 풀기",
+                enabled = retryWrongEnabled,
+                onClick = onRetryWrongClick,
+            )
         }
     }
 }
@@ -1101,6 +1157,7 @@ private fun QuizResultSelectBox(
 @Composable
 private fun QuizResultActionRow(
     title: String,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
@@ -1111,6 +1168,11 @@ private fun QuizResultActionRow(
             .height(48.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(Gray50)
+            .clickable(
+                enabled = enabled,
+                role = Role.Button,
+                onClick = onClick,
+            )
             .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1561,6 +1623,8 @@ private fun QuizResultScreenPreview() {
                 ),
             ),
             onBackClick = {},
+            onRetryAllClick = {},
+            onRetryWrongClick = {},
         )
     }
 }

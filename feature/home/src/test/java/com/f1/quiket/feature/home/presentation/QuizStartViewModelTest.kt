@@ -11,6 +11,7 @@ import com.f1.quiket.feature.home.domain.model.QuizGenerationStatus
 import com.f1.quiket.feature.home.domain.model.QuizPlayMode
 import com.f1.quiket.feature.home.domain.model.QuizPlaySession
 import com.f1.quiket.feature.home.domain.model.QuizPlayStart
+import com.f1.quiket.feature.home.domain.model.QuizRetry
 import com.f1.quiket.feature.home.domain.model.QuizResult
 import com.f1.quiket.feature.home.domain.model.QuizResultSubmit
 import com.f1.quiket.feature.home.domain.model.QuizSession
@@ -116,6 +117,18 @@ class QuizStartViewModelTest {
             NetworkResult.Failure(code = "TEST", message = "not configured")
 
         override suspend fun getQuizResult(resultId: String): NetworkResult<QuizResult> =
+            NetworkResult.Failure(code = "TEST", message = "not configured")
+
+        override suspend fun retryAllQuestions(
+            playSessionId: String,
+            request: QuizRetry,
+        ): NetworkResult<QuizPlaySession> =
+            NetworkResult.Failure(code = "TEST", message = "not configured")
+
+        override suspend fun retryWrongQuestions(
+            playSessionId: String,
+            request: QuizRetry,
+        ): NetworkResult<QuizPlaySession> =
             NetworkResult.Failure(code = "TEST", message = "not configured")
     }
 }
