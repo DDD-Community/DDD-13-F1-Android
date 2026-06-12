@@ -38,7 +38,7 @@ fun UploadScreen(
     chapterCount: Int? = null,
     onBackClick: () -> Unit = {},
     onNextClick: () -> Unit = {},
-    onUploadSuccess: (subjectId: String, chapterId: String, chapterName: String, chapterNumber: Int) -> Unit = { _, _, _, _ -> },
+    onUploadSuccess: (lectureUploadId: String, chapterNumber: Int) -> Unit = { _, _ -> },
     viewModel: UploadViewModel = hiltViewModel(),
 ) {
     var selectedTab by remember { mutableStateOf(UploadTab.FILE) }
@@ -51,19 +51,18 @@ fun UploadScreen(
     val isSuccess by viewModel.isSuccess.collectAsStateWithLifecycle()
     val isFailed by viewModel.isFailed.collectAsStateWithLifecycle()
     val progress by viewModel.progress.collectAsStateWithLifecycle()
-    val uploadedChapterId by viewModel.uploadedChapterId.collectAsStateWithLifecycle()
+    val uploadedLectureUploadId by viewModel.uploadedLectureUploadId.collectAsStateWithLifecycle()
 
-    // Cancel upload when back is pressed during loading
+    // Cancel upload when back is pressed during loading — preserve file state by staying in UploadScreen
     BackHandler(enabled = isLoading || isFailed) {
         viewModel.cancelUpload()
-        onBackClick()
     }
 
     LaunchedEffect(isSuccess) {
         if (isSuccess) {
-            val cid = uploadedChapterId
-            if (subjectId != null && cid != null) {
-                onUploadSuccess(subjectId, cid, "", (chapterCount ?: 0) + 1)
+            val luid = uploadedLectureUploadId
+            if (subjectId != null && luid != null) {
+                onUploadSuccess(luid, (chapterCount ?: 0) + 1)
             } else {
                 onNextClick()
             }
@@ -76,11 +75,21 @@ fun UploadScreen(
             progress = progress,
             isFailed = isFailed,
             onBack = {
+                // cancelUpload resets isLoading/isFailed → UploadScreenContent re-renders with preserved files
                 viewModel.cancelUpload()
-                onBackClick()
             },
             onRetry = {
-                viewModel.cancelUpload()
+                if (subjectId != null) {
+                    viewModel.submit(
+                        subjectId = subjectId,
+                        tab = selectedTab,
+                        classifyMethod = PartClassifyMethod.AI,
+                        manualSections = emptyList(),
+                        files = currentFiles,
+                        images = currentImages,
+                        text = currentText,
+                    )
+                }
             },
         )
         return
@@ -100,7 +109,6 @@ fun UploadScreen(
             if (subjectId != null) {
                 viewModel.submit(
                     subjectId = subjectId,
-                    chapterName = "",
                     tab = selectedTab,
                     classifyMethod = PartClassifyMethod.AI,
                     manualSections = emptyList(),

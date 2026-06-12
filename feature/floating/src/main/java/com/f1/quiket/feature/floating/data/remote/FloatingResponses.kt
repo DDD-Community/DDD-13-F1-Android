@@ -142,6 +142,7 @@ data class LectureUploadStatusDataResponse(
     val chapterId: String,
     val status: String,
     val estimatedSeconds: Int? = null,
+    val chapterName: String? = null,
     val progressPct: Int? = null,
     val parts: List<PartSummaryResponse> = emptyList(),
     val failReason: String? = null,

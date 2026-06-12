@@ -25,7 +25,7 @@ interface LectureUploadApi {
     @POST("lecture-uploads")
     suspend fun createFileLectureUpload(
         @Part("subjectId") subjectId: RequestBody,
-        @Part("chapterName") chapterName: RequestBody,
+        @Part("chapterName") chapterName: RequestBody? = null,
         @Part("uploadType") uploadType: RequestBody,
         @Part("partSplitMethod") partSplitMethod: RequestBody,
         @Part("partSplitPlansJson") partSplitPlansJson: RequestBody? = null,

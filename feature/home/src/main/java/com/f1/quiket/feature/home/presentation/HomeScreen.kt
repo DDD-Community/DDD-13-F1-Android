@@ -35,6 +35,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +52,9 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -77,10 +81,22 @@ import com.f1.quiket.core.designsystem.theme.Gray900
 import com.f1.quiket.core.designsystem.theme.Orange500
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.f1.quiket.feature.floating.domain.model.AddSubjectState
 import com.f1.quiket.feature.floating.domain.model.Chapter
+import com.f1.quiket.feature.floating.domain.model.ExamType
+import com.f1.quiket.feature.floating.domain.model.StudyField
+import com.f1.quiket.feature.floating.domain.model.StudyPurpose
+import com.f1.quiket.feature.floating.domain.model.SubjectDetail
+import com.f1.quiket.feature.floating.domain.model.UsagePurpose
+import com.f1.quiket.feature.floating.domain.model.examTypeFromBackendValue
 import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
+import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectStep2Screen
+import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectStep3Screen
+import com.f1.quiket.feature.floating.presentation.viewmodel.AddSubjectViewModel
 import com.f1.quiket.feature.floating.presentation.screen.lectureselect.LectureSelectScreen
 import com.f1.quiket.feature.floating.presentation.screen.lectureview.LectureViewScreen
+import com.f1.quiket.feature.floating.presentation.screen.materialcheck.MaterialCheckScreen
 import com.f1.quiket.feature.floating.presentation.screen.subjectdetail.SubjectDetailScreen
 import com.f1.quiket.feature.home.component.ExpandableFab
 import com.f1.quiket.feature.home.component.HomeGuideTooltip
@@ -110,10 +126,17 @@ fun HomeScreen(
     onProfileClick: () -> Unit = {},
     onExamCardClick: () -> Unit = {},
 ) {
+    val editSubjectViewModel: AddSubjectViewModel = hiltViewModel()
     var isExpanded by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
     var showNoSubjectPopup by remember { mutableStateOf(false) }
     var selectedSubject by remember { mutableStateOf<Subject?>(null) }
+    // 과목 유형 수정 편집 상태
+    var editSubjectId by remember { mutableStateOf("") }
+    var editPurpose by remember { mutableStateOf<StudyPurpose?>(null) }
+    var editExamType by remember { mutableStateOf<ExamType?>(null) }
+    var editStudyField by remember { mutableStateOf<StudyField?>(null) }
+    var editUsagePurpose by remember { mutableStateOf<UsagePurpose?>(null) }
     var depth by remember { mutableStateOf(0) }
     val homeData = uiState.homeData
     val serverSubjects = remember(homeData?.subjects) {
@@ -132,11 +155,13 @@ fun HomeScreen(
     var selectedLectureCategory by remember { mutableStateOf("") }
     // SubjectDetail에서 챕터 추가/업로드 시 넘길 챕터 번호
     var nextChapterNumber by remember { mutableStateOf(1) }
-    // 업로드 성공 후 LectureViewScreen에 넘길 챕터 정보
+    // 업로드 성공 후 MaterialCheckScreen/LectureViewScreen에 넘길 챕터 정보
+    var uploadedLectureUploadId by remember { mutableStateOf("") }
     var uploadedSubjectId by remember { mutableStateOf("") }
     var uploadedChapterId by remember { mutableStateOf("") }
     var uploadedChapterName by remember { mutableStateOf("") }
     var uploadedChapterNumber by remember { mutableStateOf(1) }
+    var uploadedPartCount by remember { mutableStateOf(0) }
     var lectureViewBackDepth by remember { mutableStateOf(0) }
 
     BackHandler(enabled = isExpanded) {
@@ -152,6 +177,9 @@ fun HomeScreen(
             5 -> depth = 0  // 홈 업로드용 LectureSelect → 홈
             6 -> depth = 5  // 홈 업로드용 UploadScreen → LectureSelect
             7 -> depth = lectureViewBackDepth
+            8 -> depth = lectureViewBackDepth  // MaterialCheckScreen → 이전 화면
+            11 -> depth = 1  // 과목 유형 수정 Step2 → 과목 상세
+            12 -> depth = 11 // 과목 유형 수정 Step3 → Step2
             else -> {}
         }
     }
@@ -167,6 +195,26 @@ fun HomeScreen(
                 onExamScheduleSaved = onHomeRefresh,
                 onUploadClick = { count -> nextChapterNumber = count + 1; depth = 3 },
                 onChapterAddClick = { count -> nextChapterNumber = count + 1; depth = 3 },
+                onEditSubjectType = { detail ->
+                    val purpose = when (detail?.purpose?.lowercase()) {
+                        "exam" -> StudyPurpose.EXAM
+                        "review", "self_study" -> StudyPurpose.SELF_STUDY
+                        "other" -> StudyPurpose.OTHER
+                        else -> StudyPurpose.EXAM
+                    }
+                    val examType = detail?.examDetail?.examType?.let { examTypeFromBackendValue(it) }
+                    editSubjectId = selectedSubject?.id ?: ""
+                    editPurpose = purpose
+                    editExamType = examType
+                    editStudyField = detail?.reviewDetail?.field?.let { field ->
+                        StudyField.entries.find { it.name.equals(field, ignoreCase = true) }
+                    }
+                    editUsagePurpose = detail?.otherDetail?.usagePurpose?.let { up ->
+                        UsagePurpose.entries.find { it.name.equals(up, ignoreCase = true) }
+                    }
+                    // examType이 이미 정해진 경우 Step3으로, 아니면 Step2부터
+                    depth = if (purpose == StudyPurpose.EXAM && examType != null) 12 else 11
+                },
                 onSubjectNameChanged = { newName ->
                     subjects = subjects.map { s ->
                         if (s.title == selectedSubject?.title) s.copy(title = newName) else s
@@ -179,6 +227,47 @@ fun HomeScreen(
                     onHomeRefresh()
                 },
                 onCreateQuizClick = { onFabItemClick(FabAction.CreateQuiz) },
+            )
+            return
+        }
+
+        11 -> {
+            AddSubjectStep2Screen(
+                studyPurpose = editPurpose ?: StudyPurpose.EXAM,
+                onBackClick = { depth = 1 },
+                onSkipClick = { depth = 1 },
+                onNextClick = { selection ->
+                    when (selection) {
+                        is ExamType -> { editExamType = selection; editStudyField = null; editUsagePurpose = null }
+                        is StudyField -> { editStudyField = selection; editExamType = null; editUsagePurpose = null }
+                        is UsagePurpose -> { editUsagePurpose = selection; editExamType = null; editStudyField = null }
+                    }
+                    depth = 12
+                },
+            )
+            return
+        }
+
+        12 -> {
+            AddSubjectStep3Screen(
+                studyPurpose = editPurpose ?: StudyPurpose.EXAM,
+                examType = editExamType,
+                studyField = editStudyField,
+                usagePurpose = editUsagePurpose,
+                onBackClick = { depth = 11 },
+                onSkipClick = { depth = 1 },
+                onCreateClick = { _, stateTransformer ->
+                    val initState = AddSubjectState(
+                        subjectName = selectedSubject?.title ?: "",
+                        studyPurpose = editPurpose,
+                        examType = editExamType,
+                        studyField = editStudyField,
+                        usagePurpose = editUsagePurpose,
+                    )
+                    val finalState = stateTransformer(initState)
+                    editSubjectViewModel.updateSubjectDetails(editSubjectId, finalState)
+                    depth = 1
+                },
             )
             return
         }
@@ -206,13 +295,11 @@ fun HomeScreen(
                 chapterCount = nextChapterNumber - 1,
                 onBackClick = { depth = 1 },
                 onNextClick = { depth = 1 },
-                onUploadSuccess = { sId, cId, cName, cNum ->
-                    uploadedSubjectId = sId
-                    uploadedChapterId = cId
-                    uploadedChapterName = cName
-                    uploadedChapterNumber = cNum
+                onUploadSuccess = { lectureUploadId, chapterNum ->
+                    uploadedLectureUploadId = lectureUploadId
+                    uploadedChapterNumber = chapterNum
                     lectureViewBackDepth = 1
-                    depth = 7
+                    depth = 8
                 },
             )
             return
@@ -226,13 +313,11 @@ fun HomeScreen(
                 chapterCount = selectedLectureChapterCount,
                 onBackClick = { depth = 2 },
                 onNextClick = { depth = 1 },
-                onUploadSuccess = { sId, cId, cName, cNum ->
-                    uploadedSubjectId = sId
-                    uploadedChapterId = cId
-                    uploadedChapterName = cName
-                    uploadedChapterNumber = cNum
+                onUploadSuccess = { lectureUploadId, chapterNum ->
+                    uploadedLectureUploadId = lectureUploadId
+                    uploadedChapterNumber = chapterNum
                     lectureViewBackDepth = 1
-                    depth = 7
+                    depth = 8
                 },
             )
             return
@@ -261,11 +346,9 @@ fun HomeScreen(
                 chapterCount = selectedLectureChapterCount,
                 onBackClick = { depth = 5 },
                 onNextClick = { depth = 0 },
-                onUploadSuccess = { sId, cId, cName, cNum ->
-                    uploadedSubjectId = sId
-                    uploadedChapterId = cId
-                    uploadedChapterName = cName
-                    uploadedChapterNumber = cNum
+                onUploadSuccess = { lectureUploadId, chapterNum ->
+                    uploadedLectureUploadId = lectureUploadId
+                    uploadedChapterNumber = chapterNum
                     // SubjectDetailScreen에서 보여줄 과목 정보 설정
                     selectedSubject = Subject(
                         id = selectedLectureId,
@@ -275,7 +358,7 @@ fun HomeScreen(
                         isStarred = false,
                     )
                     lectureViewBackDepth = 1
-                    depth = 7
+                    depth = 8
                 },
             )
             return
@@ -288,9 +371,25 @@ fun HomeScreen(
                     id = uploadedChapterId,
                     number = uploadedChapterNumber,
                     name = uploadedChapterName,
-                    partCount = 0,
+                    partCount = uploadedPartCount,
                 ),
                 onBackClick = { depth = lectureViewBackDepth },
+            )
+            return
+        }
+
+        8 -> {
+            MaterialCheckScreen(
+                lectureUploadId = uploadedLectureUploadId,
+                chapterNumber = uploadedChapterNumber,
+                onBackClick = { depth = lectureViewBackDepth },
+                onComplete = { subjectId, chapterId, chapterName, partCount ->
+                    uploadedSubjectId = subjectId
+                    uploadedChapterId = chapterId
+                    uploadedChapterName = chapterName
+                    uploadedPartCount = partCount
+                    depth = 7
+                },
             )
             return
         }
@@ -325,6 +424,15 @@ fun HomeScreen(
     val recentActivities = remember(homeData?.recentActivities) {
         homeData.toHomeActivities()
     }
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as android.app.Activity).window
+            window.statusBarColor = White.toArgb()
+            WindowInsetsControllerCompat(window, view).isAppearanceLightStatusBars = true
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()

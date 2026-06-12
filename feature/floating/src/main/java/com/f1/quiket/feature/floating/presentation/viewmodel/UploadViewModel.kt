@@ -47,6 +47,9 @@ class UploadViewModel @Inject constructor(
     private val _uploadedChapterId = MutableStateFlow<String?>(null)
     val uploadedChapterId: StateFlow<String?> = _uploadedChapterId.asStateFlow()
 
+    private val _uploadedLectureUploadId = MutableStateFlow<String?>(null)
+    val uploadedLectureUploadId: StateFlow<String?> = _uploadedLectureUploadId.asStateFlow()
+
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
@@ -57,7 +60,6 @@ class UploadViewModel @Inject constructor(
 
     fun submit(
         subjectId: String,
-        chapterName: String,
         tab: UploadTab,
         classifyMethod: PartClassifyMethod,
         manualSections: List<String>,
@@ -85,7 +87,7 @@ class UploadViewModel @Inject constructor(
                     lectureUploadRepository.createTextUpload(
                         LectureTextUpload(
                             subjectId = subjectId,
-                            chapterName = chapterName,
+                            chapterName = null,
                             partSplitMethod = splitMethod,
                             text = text,
                             partSplitPlans = splitPlans,
@@ -100,7 +102,7 @@ class UploadViewModel @Inject constructor(
                     lectureUploadRepository.createFileUpload(
                         request = LectureFileUpload(
                             subjectId = subjectId,
-                            chapterName = chapterName,
+                            chapterName = null,
                             uploadType = LectureFileUploadType.Pdf,
                             partSplitMethod = splitMethod,
                             partSplitPlans = splitPlans,
@@ -115,7 +117,7 @@ class UploadViewModel @Inject constructor(
                     lectureUploadRepository.createFileUpload(
                         request = LectureFileUpload(
                             subjectId = subjectId,
-                            chapterName = chapterName,
+                            chapterName = null,
                             uploadType = LectureFileUploadType.Image,
                             partSplitMethod = splitMethod,
                             partSplitPlans = splitPlans,
@@ -129,6 +131,7 @@ class UploadViewModel @Inject constructor(
                 is NetworkResult.Success -> {
                     val accepted = result.data
                     _uploadedChapterId.value = accepted.chapterId
+                    _uploadedLectureUploadId.value = accepted.lectureUploadId
                     startPolling(accepted.lectureUploadId)
                 }
                 is NetworkResult.Failure -> {
@@ -187,6 +190,7 @@ class UploadViewModel @Inject constructor(
         _isSuccess.value = false
         _isFailed.value = false
         _progress.value = 0f
+        _uploadedLectureUploadId.value = null
     }
 
     override fun onCleared() {

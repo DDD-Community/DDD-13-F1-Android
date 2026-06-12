@@ -87,19 +87,18 @@ private val previewParts = listOf(
 
 @Composable
 fun MaterialCheckScreen(
-    subjectId: String,
-    chapterId: String,
+    lectureUploadId: String,
     @Suppress("UNUSED_PARAMETER") chapterNumber: Int,
     onBackClick: () -> Unit = {},
-    onComplete: (chapterName: String, partCount: Int) -> Unit = { _, _ -> },
+    onComplete: (subjectId: String, chapterId: String, chapterName: String, partCount: Int) -> Unit = { _, _, _, _ -> },
     viewModel: MaterialCheckViewModel = hiltViewModel(),
 ) {
     val chapterName by viewModel.chapterName.collectAsStateWithLifecycle()
     val parts by viewModel.parts.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
-    LaunchedEffect(subjectId, chapterId) {
-        viewModel.load(subjectId, chapterId)
+    LaunchedEffect(lectureUploadId) {
+        viewModel.load(lectureUploadId)
     }
 
     MaterialCheckContent(
@@ -107,7 +106,9 @@ fun MaterialCheckScreen(
         parts = parts,
         isLoading = isLoading,
         onBackClick = onBackClick,
-        onComplete = onComplete,
+        onComplete = { name, count ->
+            onComplete(viewModel.subjectId, viewModel.chapterId, name, count)
+        },
         onChapterNameChange = { viewModel.updateChapterName(it) },
         onPartNameChange = { partId, name -> viewModel.updatePartName(partId, name) },
     )

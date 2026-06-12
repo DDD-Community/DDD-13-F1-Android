@@ -90,15 +90,14 @@ data object LectureViewDestination : QuiketDestination {
  * 업로드 완료 후 챕터/파트 이름을 수정하는 화면
  */
 data object MaterialCheckDestination : QuiketDestination {
-    const val ARG_SUBJECT_ID = "subjectId"
-    const val ARG_CHAPTER_ID = "chapterId"
+    const val ARG_LECTURE_UPLOAD_ID = "lectureUploadId"
     const val ARG_CHAPTER_NUMBER = "chapterNumber"
 
     override val route: String =
-        "material_check/{$ARG_SUBJECT_ID}/{$ARG_CHAPTER_ID}/{$ARG_CHAPTER_NUMBER}"
+        "material_check/{$ARG_LECTURE_UPLOAD_ID}/{$ARG_CHAPTER_NUMBER}"
 
-    fun createRoute(subjectId: String, chapterId: String, chapterNumber: Int) =
-        "material_check/$subjectId/$chapterId/$chapterNumber"
+    fun createRoute(lectureUploadId: String, chapterNumber: Int) =
+        "material_check/$lectureUploadId/$chapterNumber"
 }
 
 /**

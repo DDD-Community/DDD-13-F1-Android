@@ -203,8 +203,8 @@ fun NavGraphBuilder.lectureUploadFileGraph(
             chapterCount = args?.getInt(LectureUploadFileDestination.ARG_CHAPTER_COUNT),
             onBackClick = { navController.popBackStack() },
             onNextClick = onFinish,
-            onUploadSuccess = { sid, cId, _, cNum ->
-                navController.navigate(MaterialCheckDestination.createRoute(sid, cId, cNum))
+            onUploadSuccess = { lectureUploadId, chapterNumber ->
+                navController.navigate(MaterialCheckDestination.createRoute(lectureUploadId, chapterNumber))
             },
         )
     }
@@ -213,21 +213,18 @@ fun NavGraphBuilder.lectureUploadFileGraph(
     composable(
         route = MaterialCheckDestination.route,
         arguments = listOf(
-            navArgument(MaterialCheckDestination.ARG_SUBJECT_ID) { type = NavType.StringType },
-            navArgument(MaterialCheckDestination.ARG_CHAPTER_ID) { type = NavType.StringType },
+            navArgument(MaterialCheckDestination.ARG_LECTURE_UPLOAD_ID) { type = NavType.StringType },
             navArgument(MaterialCheckDestination.ARG_CHAPTER_NUMBER) { type = NavType.IntType },
         ),
     ) { backStack ->
         val args = backStack.arguments
-        val subjectId = args?.getString(MaterialCheckDestination.ARG_SUBJECT_ID) ?: ""
-        val chapterId = args?.getString(MaterialCheckDestination.ARG_CHAPTER_ID) ?: ""
+        val lectureUploadId = args?.getString(MaterialCheckDestination.ARG_LECTURE_UPLOAD_ID) ?: ""
         val chapterNumber = args?.getInt(MaterialCheckDestination.ARG_CHAPTER_NUMBER) ?: 1
         MaterialCheckScreen(
-            subjectId = subjectId,
-            chapterId = chapterId,
+            lectureUploadId = lectureUploadId,
             chapterNumber = chapterNumber,
             onBackClick = { navController.popBackStack() },
-            onComplete = { chapterName, partCount ->
+            onComplete = { subjectId, chapterId, chapterName, partCount ->
                 navController.navigate(
                     LectureViewDestination.createRoute(subjectId, chapterId, chapterNumber, chapterName, partCount)
                 ) {
