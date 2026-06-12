@@ -45,6 +45,7 @@ fun LectureUploadStatusDataResponse.toDomain(): LectureUploadProgress = LectureU
     chapterId = chapterId,
     status = status.toLectureUploadStatus(),
     estimatedSeconds = estimatedSeconds,
+    chapterName = chapterName,
     progressPct = progressPct,
     parts = parts.map { part -> part.toDomain() },
     failReason = failReason,

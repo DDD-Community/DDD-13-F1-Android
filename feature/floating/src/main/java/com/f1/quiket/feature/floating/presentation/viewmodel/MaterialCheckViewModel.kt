@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.f1.quiket.core.network.model.NetworkResult
 import com.f1.quiket.feature.floating.domain.model.PartSummary
+import com.f1.quiket.feature.floating.domain.repository.LectureUploadRepository
 import com.f1.quiket.feature.floating.domain.repository.SubjectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +15,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MaterialCheckViewModel @Inject constructor(
+    private val lectureUploadRepository: LectureUploadRepository,
     private val subjectRepository: SubjectRepository,
 ) : ViewModel() {
 
@@ -26,22 +28,25 @@ class MaterialCheckViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private var loadedSubjectId = ""
-    private var loadedChapterId = ""
+    private var loadedLectureUploadId = ""
+    private var _subjectId = ""
+    private var _chapterId = ""
 
-    fun load(subjectId: String, chapterId: String) {
-        if (loadedSubjectId == subjectId && loadedChapterId == chapterId) return
-        loadedSubjectId = subjectId
-        loadedChapterId = chapterId
+    val subjectId: String get() = _subjectId
+    val chapterId: String get() = _chapterId
+
+    fun load(lectureUploadId: String) {
+        if (loadedLectureUploadId == lectureUploadId) return
+        loadedLectureUploadId = lectureUploadId
         viewModelScope.launch {
             _isLoading.value = true
-            when (val result = subjectRepository.getSubject(subjectId)) {
+            when (val result = lectureUploadRepository.getUploadStatus(lectureUploadId)) {
                 is NetworkResult.Success -> {
-                    val chapter = result.data.chapters.find { it.id == chapterId }
-                    if (chapter != null) {
-                        _chapterName.value = chapter.name
-                        _parts.value = chapter.parts
-                    }
+                    val data = result.data
+                    _subjectId = data.subjectId
+                    _chapterId = data.chapterId
+                    _chapterName.value = data.chapterName.orEmpty()
+                    _parts.value = data.parts
                 }
                 is NetworkResult.Failure -> {}
             }
@@ -51,7 +56,7 @@ class MaterialCheckViewModel @Inject constructor(
 
     fun updateChapterName(newName: String) {
         viewModelScope.launch {
-            when (val result = subjectRepository.updateChapterName(loadedChapterId, newName)) {
+            when (val result = subjectRepository.updateChapterName(_chapterId, newName)) {
                 is NetworkResult.Success -> _chapterName.value = result.data.name
                 is NetworkResult.Failure -> {}
             }

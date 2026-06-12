@@ -20,24 +20,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -45,12 +43,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.f1.quiket.feature.floating.presentation.viewmodel.SubjectDetailViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -106,8 +107,12 @@ private fun calcDDay(dateStr: String): String {
     }.getOrDefault("D-?")
 }
 
-private fun purposeToKorean(purpose: String): String =
-    StudyPurpose.entries.find { it.name.equals(purpose, ignoreCase = true) }?.title ?: purpose
+private fun purposeToKorean(purpose: String): String = when (purpose.lowercase()) {
+    "exam" -> StudyPurpose.EXAM.title
+    "review", "self_study" -> StudyPurpose.SELF_STUDY.title
+    "other" -> StudyPurpose.OTHER.title
+    else -> StudyPurpose.entries.find { it.name.equals(purpose, ignoreCase = true) }?.title ?: purpose
+}
 
 private data class SubjectLabels(val h1: String, val h2: String, val h3: String)
 
@@ -119,16 +124,16 @@ private fun SubjectDetail.toLabels(): SubjectLabels {
     return when (purpose.lowercase()) {
         "exam" -> {
             val e = examDetail
-            val examTypeLower = e?.examType?.lowercase()
-            val h2 = ExamType.entries.find { it.name.lowercase() == examTypeLower }?.label ?: ""
-            val h3: String = if (e == null) "" else when (examTypeLower) {
-                "university" -> listOfNotNull(
+            val examType = e?.examType?.let { examTypeFromBackendValue(it) }
+            val h2 = examType?.label ?: ""
+            val h3: String = if (e == null) "" else when (examType) {
+                ExamType.UNIVERSITY -> listOfNotNull(
                     e.univMajorField?.let { UniversityMajorCategory.entries.findByName(it)?.label },
                     e.univMajorName,
                     e.univCourseType?.let { CourseType.entries.findByName(it)?.label },
                 ).joinToString(" · ")
 
-                "middle_high" -> listOfNotNull(
+                ExamType.MIDDLE_HIGH -> listOfNotNull(
                     e.mhGrade?.let { MiddleHighCurriculum.entries.findByName(it)?.label ?: it },
                     e.mhSubjectType?.let { s ->
                         MiddleHighSubjectType.entries.findByName(s)?.label?.takeIf { it != "직접 입력" }
@@ -136,13 +141,14 @@ private fun SubjectDetail.toLabels(): SubjectLabels {
                     },
                 ).joinToString(" · ")
 
-                "certificate" -> e.certificateName ?: ""
-                "civil_servant" -> listOfNotNull(
-                    e.civilRank?.let { CivilServantGrade.entries.findByName(it)?.label ?: it },
+                ExamType.CERTIFICATE -> e.certificateName ?: ""
+
+                ExamType.CIVIL_SERVANT -> listOfNotNull(
                     e.civilSeries?.let { CivilServantSeries.entries.findByName(it)?.label ?: it },
+                    e.civilRank?.let { CivilServantGrade.entries.findByName(it)?.label ?: it },
                 ).joinToString(" · ")
 
-                "language" -> listOfNotNull(
+                ExamType.LANGUAGE -> listOfNotNull(
                     e.langType?.let { LanguageType.entries.findByName(it)?.label ?: it },
                     e.langExamName?.let { name ->
                         val lower = name.lowercase()
@@ -153,26 +159,24 @@ private fun SubjectDetail.toLabels(): SubjectLabels {
                     },
                 ).joinToString(" · ")
 
-                "other" -> e.otherExamName ?: ""
-                else -> ""
+                ExamType.OTHER -> e.otherExamName ?: ""
+                null -> ""
             }
             SubjectLabels(h1, h2, h3)
         }
 
-        "self_study" -> {
+        "review", "self_study" -> {
             val r = reviewDetail
             SubjectLabels(
                 h1 = h1,
                 h2 = r?.field?.let { StudyField.entries.findByName(it)?.label ?: it } ?: "",
-                h3 = r?.studyLevel?.let { FamiliarityLevel.entries.findByName(it)?.label ?: it }
-                    ?: "",
+                h3 = r?.studyLevel?.let { FamiliarityLevel.entries.findByName(it)?.label ?: it } ?: "",
             )
         }
 
         "other" -> SubjectLabels(
             h1 = h1,
-            h2 = otherDetail?.usagePurpose?.let { UsagePurpose.entries.findByName(it)?.title ?: it }
-                ?: "",
+            h2 = otherDetail?.usagePurpose?.let { UsagePurpose.entries.findByName(it)?.title ?: it } ?: "",
             h3 = otherDetail?.description ?: "",
         )
 
@@ -190,7 +194,7 @@ fun SubjectDetailScreen(
     onBackClick: () -> Unit = {},
     onChapterAddClick: (newChapterNumber: Int) -> Unit = {},
     onUploadClick: (newChapterNumber: Int) -> Unit = {},
-    onEditSubjectType: () -> Unit = {},
+    onEditSubjectType: (SubjectDetail?) -> Unit = {},
     onSubjectNameChanged: (String) -> Unit = {},
     onExamScheduleSaved: () -> Unit = {},
     onSubjectDeleted: () -> Unit = {},
@@ -224,6 +228,15 @@ fun SubjectDetailScreen(
     }
 
     var selectedChapter by remember { mutableStateOf<Chapter?>(null) }
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = Green800.toArgb()
+            WindowInsetsControllerCompat(window, view).isAppearanceLightStatusBars = false
+        }
+    }
 
     // LectureView로 이동
     selectedChapter?.let { chapter ->
@@ -275,7 +288,7 @@ fun SubjectDetailScreen(
     var isChapterEditMode by remember { mutableStateOf(false) }
     var editingChapter by remember { mutableStateOf<Chapter?>(null) }
 
-    Scaffold(containerColor = Brown50) { innerPadding ->
+    Scaffold(containerColor = White) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -293,7 +306,7 @@ fun SubjectDetailScreen(
                     onMenuClick = { showDropdownMenu = true },
                     onMenuDismiss = { showDropdownMenu = false },
                     onEditSubjectName = { showEditSubjectNameDialog = true },
-                    onEditSubjectType = onEditSubjectType,
+                    onEditSubjectType = { onEditSubjectType(subjectDetail) },
                     onEditChapterName = { isChapterEditMode = true },
                     onDeleteSubjectClick = { showDeleteConfirmDialog = true },
                 )
@@ -338,29 +351,32 @@ fun SubjectDetailScreen(
                         .weight(1f)
                 )
             }
-            if (confirmedSchedule.isNotBlank()) {
-                val dDayText = confirmedDDay?.let { d ->
-                    when {
-                        d > 0 -> "D-$d"
-                        d == 0 -> "D-Day"
-                        else -> "D+${-d}"
+            Box(modifier = Modifier.fillMaxWidth().background(Brown50)) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    if (confirmedSchedule.isNotBlank()) {
+                        val dDayText = confirmedDDay?.let { d ->
+                            when {
+                                d > 0 -> "D-$d"
+                                d == 0 -> "D-Day"
+                                else -> "D+${-d}"
+                            }
+                        } ?: calcDDay(confirmedSchedule)
+                        HomeExamCard(
+                            examName = confirmedExamName.ifBlank { displaySubjectName },
+                            date = confirmedSchedule,
+                            dDay = dDayText,
+                            onClick = { showScheduleDialog = true },
+                            modifier = Modifier.padding(16.dp),
+                        )
+                    } else {
+                        HomeEmptyExamCard(
+                            { showScheduleDialog = true },
+                            modifier = Modifier.padding(16.dp),
+                        )
                     }
-                } ?: calcDDay(confirmedSchedule)
-                HomeExamCard(
-                    examName = confirmedExamName.ifBlank { displaySubjectName },
-                    date = confirmedSchedule,
-                    dDay = dDayText,
-                    onClick = { showScheduleDialog = true },
-                    modifier = Modifier.padding(16.dp),
-                )
-            } else {
-                HomeEmptyExamCard(
-                    { showScheduleDialog = true },
-                    modifier = Modifier.padding(16.dp),
-                )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             // My Subject Section
             MySubjectSection(
@@ -991,89 +1007,117 @@ private fun CalendarView(
     onNextMonth: () -> Unit,
     onDaySelect: (Int) -> Unit,
 ) {
+    val now = remember { Calendar.getInstance() }
+    val todayYear = now.get(Calendar.YEAR)
+    val todayMonth = now.get(Calendar.MONTH) + 1
+    val todayDay = now.get(Calendar.DAY_OF_MONTH)
+
     val cal = remember(year, month) {
         Calendar.getInstance().apply { set(year, month - 1, 1) }
     }
-    val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
-    // DAY_OF_WEEK: 1=Sun … 7=Sat → convert to 0-indexed col
-    val firstDayCol = cal.get(Calendar.DAY_OF_WEEK) - 1
+    val totalDays = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+    // 월요일 시작: 월=0 … 일=6
+    val offset = (cal.get(Calendar.DAY_OF_WEEK) - 2 + 7) % 7
+    val dayLabels = listOf("월", "화", "수", "목", "금", "토", "일")
 
     Column {
-        // Month navigation header
+        // 월 네비게이션: 제목 왼쪽, 화살표 오른쪽
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onPrevMonth) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                    contentDescription = "이전 달",
-                    tint = Gray700,
-                )
-            }
             Text(
                 text = "${year}년 ${month}월",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Gray950,
-                ),
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                color = Gray950,
             )
-            IconButton(onClick = onNextMonth) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    painter = painterResource(com.f1.quiket.core.designsystem.R.drawable.ic_common_back),
+                    contentDescription = "이전 달",
+                    tint = Color.Unspecified,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() },
+                        ) { onPrevMonth() },
+                )
+                Spacer(modifier = Modifier.width(20.dp))
+                Icon(
+                    painter = painterResource(com.f1.quiket.core.designsystem.R.drawable.ic_common_next),
                     contentDescription = "다음 달",
-                    tint = Gray700,
+                    tint = Color.Unspecified,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() },
+                        ) { onNextMonth() },
                 )
             }
         }
 
-        // Day-of-week labels
-        val dayLabels = listOf("일", "월", "화", "수", "목", "금", "토")
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // 요일 헤더 (월~일)
         Row(modifier = Modifier.fillMaxWidth()) {
             dayLabels.forEach { label ->
                 Text(
                     text = label,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelSmall.copy(color = Gray500),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Gray400,
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Day grid
-        val totalCells = firstDayCol + daysInMonth
-        val rows = (totalCells + 6) / 7
+        // 날짜 그리드
+        val totalCells = ((offset + totalDays + 6) / 7) * 7
+        Column {
+            (0 until totalCells / 7).forEach { week ->
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    (0 until 7).forEach { col ->
+                        val day = week * 7 + col - offset + 1
+                        val isToday = day == todayDay && year == todayYear && month == todayMonth
+                        val isSelected = day == selectedDay
 
-        repeat(rows) { row ->
-            Row(modifier = Modifier.fillMaxWidth()) {
-                repeat(7) { col ->
-                    val dayNumber = row * 7 + col - firstDayCol + 1
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .aspectRatio(1f),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (dayNumber in 1..daysInMonth) {
-                            val isSelected = dayNumber == selectedDay
-                            Box(
-                                modifier = Modifier
-                                    .size(34.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isSelected) Brown950 else Color.Transparent)
-                                    .clickable { onDaySelect(dayNumber) },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = "$dayNumber",
-                                    style = MaterialTheme.typography.bodySmall.copy(
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(vertical = 4.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            if (day in 1..totalDays) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            when {
+                                                isSelected -> Brown950
+                                                isToday -> Brown50
+                                                else -> Color.Transparent
+                                            }
+                                        )
+                                        .clickable(
+                                            indication = null,
+                                            interactionSource = remember { MutableInteractionSource() },
+                                        ) { onDaySelect(day) },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = day.toString(),
+                                        style = MaterialTheme.typography.bodySmall,
                                         color = if (isSelected) White else Gray950,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    ),
-                                )
+                                        textAlign = TextAlign.Center,
+                                    )
+                                }
+                                Spacer(modifier = Modifier.size(6.dp))
                             }
                         }
                     }

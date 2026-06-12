@@ -2,7 +2,7 @@ package com.f1.quiket.feature.floating.domain.model
 
 data class LectureTextUpload(
     val subjectId: String,
-    val chapterName: String,
+    val chapterName: String?,
     val partSplitMethod: PartSplitMethod,
     val text: String,
     val partSplitPlans: List<PartSplitPlan> = emptyList(),
@@ -10,7 +10,7 @@ data class LectureTextUpload(
 
 data class LectureFileUpload(
     val subjectId: String,
-    val chapterName: String,
+    val chapterName: String?,
     val uploadType: LectureFileUploadType,
     val partSplitMethod: PartSplitMethod,
     val partSplitPlans: List<PartSplitPlan> = emptyList(),
@@ -45,6 +45,7 @@ data class LectureUploadProgress(
     val chapterId: String,
     val status: LectureUploadStatus,
     val estimatedSeconds: Int?,
+    val chapterName: String?,
     val progressPct: Int?,
     val parts: List<PartSummary>,
     val failReason: String?,

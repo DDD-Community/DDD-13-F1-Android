@@ -153,6 +153,26 @@ enum class FamiliarityLevel(val label: String, val description: String) {
     ADVANCED("고급자", "심화 내용도 다뤄요"),
 }
 
+// ────────────────────────────────────────────
+// Backend value → enum mapping helpers
+// ────────────────────────────────────────────
+
+fun examTypeFromBackendValue(value: String): ExamType? = when (value.lowercase()) {
+    "university" -> ExamType.UNIVERSITY
+    "middle_high" -> ExamType.MIDDLE_HIGH
+    "certificate" -> ExamType.CERTIFICATE
+    "language" -> ExamType.LANGUAGE
+    "civil_service", "civil_servant" -> ExamType.CIVIL_SERVANT
+    "other_exam", "other" -> ExamType.OTHER
+    else -> null
+}
+
+fun studyPurposeFromBackendValue(value: String): StudyPurpose = when (value.lowercase()) {
+    "exam" -> StudyPurpose.EXAM
+    "review", "self_study" -> StudyPurpose.SELF_STUDY
+    else -> StudyPurpose.OTHER
+}
+
 data class AddSubjectState(
     val subjectName: String = "",
     val studyPurpose: StudyPurpose? = null,
