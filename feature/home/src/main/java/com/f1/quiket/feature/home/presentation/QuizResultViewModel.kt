@@ -70,9 +70,9 @@ class QuizResultViewModel @Inject constructor(
             return
         }
         retry(
-            playSessionId = result.playSessionId,
-            retryCall = { playSessionId, request ->
-                quizPlayRepository.retryAllQuestions(playSessionId, request)
+            resultId = result.resultId ?: result.playSessionId,
+            retryCall = { resultId, request ->
+                quizPlayRepository.retryAllQuestions(resultId, request)
             },
         )
     }
@@ -85,23 +85,23 @@ class QuizResultViewModel @Inject constructor(
             return
         }
         retry(
-            playSessionId = result.playSessionId,
-            retryCall = { playSessionId, request ->
-                quizPlayRepository.retryWrongQuestions(playSessionId, request)
+            resultId = result.resultId ?: result.playSessionId,
+            retryCall = { resultId, request ->
+                quizPlayRepository.retryWrongQuestions(resultId, request)
             },
         )
     }
 
     private fun retry(
-        playSessionId: String,
+        resultId: String,
         retryCall: suspend (String, QuizRetry) -> NetworkResult<QuizPlaySession>,
     ) {
-        if (currentState.isRetrying || playSessionId.isBlank()) return
+        if (currentState.isRetrying || resultId.isBlank()) return
 
         launch {
             updateState { copy(isRetrying = true, errorMessage = null) }
             val retryRequest = QuizRetry(clientSessionId = UUID.randomUUID().toString())
-            when (val result = retryCall(playSessionId, retryRequest)) {
+            when (val result = retryCall(resultId, retryRequest)) {
                 is NetworkResult.Success -> {
                     val retrySession = result.data
                     val retryQuizSessionId = retrySession.quizSession?.id

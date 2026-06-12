@@ -21,12 +21,12 @@ interface QuizPlayRepository {
     suspend fun getQuizResult(resultId: String): NetworkResult<QuizResult>
 
     suspend fun retryAllQuestions(
-        playSessionId: String,
+        resultId: String,
         request: QuizRetry,
     ): NetworkResult<QuizPlaySession>
 
     suspend fun retryWrongQuestions(
-        playSessionId: String,
+        resultId: String,
         request: QuizRetry,
     ): NetworkResult<QuizPlaySession>
 }

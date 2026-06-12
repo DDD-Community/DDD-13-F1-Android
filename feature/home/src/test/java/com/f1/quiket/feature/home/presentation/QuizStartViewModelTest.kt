@@ -120,13 +120,13 @@ class QuizStartViewModelTest {
             NetworkResult.Failure(code = "TEST", message = "not configured")
 
         override suspend fun retryAllQuestions(
-            playSessionId: String,
+            resultId: String,
             request: QuizRetry,
         ): NetworkResult<QuizPlaySession> =
             NetworkResult.Failure(code = "TEST", message = "not configured")
 
         override suspend fun retryWrongQuestions(
-            playSessionId: String,
+            resultId: String,
             request: QuizRetry,
         ): NetworkResult<QuizPlaySession> =
             NetworkResult.Failure(code = "TEST", message = "not configured")

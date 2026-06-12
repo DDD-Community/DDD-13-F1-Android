@@ -42,7 +42,7 @@ class QuizResultViewModelTest {
         viewModel.onIntent(QuizResultIntent.RetryAll)
         advanceUntilIdle()
 
-        assertThat(repository.retryAllPlaySessionId).isEqualTo("play-1")
+        assertThat(repository.retryAllResultId).isEqualTo("result-1")
         assertThat(repository.retryAllRequest?.clientSessionId).isNotEmpty()
         assertThat(viewModel.state.value.isRetrying).isFalse()
         assertThat(effect.await()).isEqualTo(
@@ -83,7 +83,7 @@ class QuizResultViewModelTest {
         viewModel.onIntent(QuizResultIntent.RetryWrong)
         advanceUntilIdle()
 
-        assertThat(repository.retryWrongPlaySessionId).isNull()
+        assertThat(repository.retryWrongResultId).isNull()
         assertThat(effect.await()).isEqualTo(QuizResultEffect.ShowMessage("다시 풀 오답이 없어요."))
     }
 
@@ -94,8 +94,8 @@ class QuizResultViewModelTest {
             NetworkResult.Failure(code = "TEST", message = "not configured")
         var retryWrongResult: NetworkResult<QuizPlaySession> =
             NetworkResult.Failure(code = "TEST", message = "not configured")
-        var retryAllPlaySessionId: String? = null
-        var retryWrongPlaySessionId: String? = null
+        var retryAllResultId: String? = null
+        var retryWrongResultId: String? = null
         var retryAllRequest: QuizRetry? = null
         var retryWrongRequest: QuizRetry? = null
 
@@ -114,19 +114,19 @@ class QuizResultViewModelTest {
         override suspend fun getQuizResult(resultId: String): NetworkResult<QuizResult> = quizResult
 
         override suspend fun retryAllQuestions(
-            playSessionId: String,
+            resultId: String,
             request: QuizRetry,
         ): NetworkResult<QuizPlaySession> {
-            retryAllPlaySessionId = playSessionId
+            retryAllResultId = resultId
             retryAllRequest = request
             return retryAllResult
         }
 
         override suspend fun retryWrongQuestions(
-            playSessionId: String,
+            resultId: String,
             request: QuizRetry,
         ): NetworkResult<QuizPlaySession> {
-            retryWrongPlaySessionId = playSessionId
+            retryWrongResultId = resultId
             retryWrongRequest = request
             return retryWrongResult
         }

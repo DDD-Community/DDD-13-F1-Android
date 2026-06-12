@@ -61,21 +61,21 @@ class QuizPlayRepositoryImpl @Inject constructor(
     }
 
     override suspend fun retryAllQuestions(
-        playSessionId: String,
+        resultId: String,
         request: QuizRetry,
     ): NetworkResult<QuizPlaySession> = withContext(dispatchers.io) {
         responseHandler.execute(
-            call = { api.retryAllQuestions(playSessionId, request.toRequest()) },
+            call = { api.retryAllQuestions(resultId, request.toRequest()) },
             mapper = { response -> response.toDomain() },
         )
     }
 
     override suspend fun retryWrongQuestions(
-        playSessionId: String,
+        resultId: String,
         request: QuizRetry,
     ): NetworkResult<QuizPlaySession> = withContext(dispatchers.io) {
         responseHandler.execute(
-            call = { api.retryWrongQuestions(playSessionId, request.toRequest()) },
+            call = { api.retryWrongQuestions(resultId, request.toRequest()) },
             mapper = { response -> response.toDomain() },
         )
     }

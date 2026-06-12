@@ -72,14 +72,17 @@ fun QuizPlayAllRoute(
         playSessionId,
         playType,
     ) {
-        viewModel.onIntent(
-            QuizPlayAllIntent.ConfigurePlay(
-                playMode = playMode,
-                timerEnabled = timerEnabled,
-                timerScope = timerScope,
-                timerSeconds = timerSeconds,
-            ),
-        )
+        val hasExistingPlaySession = !clientSessionId.isNullOrBlank() && !playSessionId.isNullOrBlank()
+        if (!hasExistingPlaySession) {
+            viewModel.onIntent(
+                QuizPlayAllIntent.ConfigurePlay(
+                    playMode = playMode,
+                    timerEnabled = timerEnabled,
+                    timerScope = timerScope,
+                    timerSeconds = timerSeconds,
+                ),
+            )
+        }
         if (!quizSessionId.isNullOrBlank()) {
             viewModel.onIntent(
                 QuizPlayAllIntent.LoadQuizSession(

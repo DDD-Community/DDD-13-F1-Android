@@ -179,8 +179,8 @@ class QuizPlayRepositoryImplTest {
         val api = FakeQuizPlayApi()
         val repository = repository(api)
 
-        api.retryAllQuestionsHandler = { playSessionId, request ->
-            assertThat(playSessionId).isEqualTo("play-1")
+        api.retryAllQuestionsHandler = { resultId, request ->
+            assertThat(resultId).isEqualTo("result-1")
             assertThat(request).isEqualTo(
                 QuizRetryRequest(
                     clientSessionId = "client-retry",
@@ -202,7 +202,7 @@ class QuizPlayRepositoryImplTest {
         }
 
         val result = repository.retryAllQuestions(
-            playSessionId = "play-1",
+            resultId = "result-1",
             request = QuizRetry(clientSessionId = "client-retry"),
         )
 
@@ -262,16 +262,16 @@ class QuizPlayRepositoryImplTest {
         ): Response<ApiResponse<QuizResultDataResponse>> = getQuizResultHandler(resultId)
 
         override suspend fun retryAllQuestions(
-            playSessionId: String,
+            resultId: String,
             request: QuizRetryRequest,
         ): Response<ApiResponse<QuizPlaySessionDataResponse>> =
-            retryAllQuestionsHandler(playSessionId, request)
+            retryAllQuestionsHandler(resultId, request)
 
         override suspend fun retryWrongQuestions(
-            playSessionId: String,
+            resultId: String,
             request: QuizRetryRequest,
         ): Response<ApiResponse<QuizPlaySessionDataResponse>> =
-            retryWrongQuestionsHandler(playSessionId, request)
+            retryWrongQuestionsHandler(resultId, request)
 
         private fun <T> unhandled(method: String): T {
             error("Unhandled QuizPlayApi call: $method")

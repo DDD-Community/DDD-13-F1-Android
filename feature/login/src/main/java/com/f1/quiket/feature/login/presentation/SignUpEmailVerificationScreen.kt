@@ -142,21 +142,15 @@ fun SignUpEmailVerificationScreen(
             .fillMaxSize()
             .background(White),
     ) {
-        SignUpTopBar(
-            title = "회원가입",
-            onBackClick = onBackClick,
-            modifier = Modifier.align(Alignment.TopCenter),
-        )
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp)
                 .padding(
                     top = 92.dp,
                     bottom = contentBottomPadding,
-                ),
+                )
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Row(
@@ -237,6 +231,12 @@ fun SignUpEmailVerificationScreen(
                 )
             }
         }
+
+        SignUpTopBar(
+            title = "회원가입",
+            onBackClick = onBackClick,
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
 
         if (showVerificationSentMessage) {
             PasswordResetToast(
