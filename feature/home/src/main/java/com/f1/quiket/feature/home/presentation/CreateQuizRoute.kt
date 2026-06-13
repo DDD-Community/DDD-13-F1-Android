@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -23,10 +24,12 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import com.f1.quiket.core.designsystem.component.QuiketPrimaryButton
 import com.f1.quiket.core.designsystem.theme.Gray700
 import com.f1.quiket.core.designsystem.theme.Gray950
 import com.f1.quiket.core.designsystem.theme.White
+import kotlinx.coroutines.flow.MutableStateFlow
 
 @Composable
 fun CreateQuizRoute(
@@ -35,10 +38,16 @@ fun CreateQuizRoute(
     onQuizGenerationStarted: () -> Unit = {},
     onQuizGenerationFinished: () -> Unit = {},
     onQuizCreated: (String) -> Unit = {},
+    createQuizBackStackEntry: NavBackStackEntry? = null,
     viewModel: CreateQuizViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val subjectCreatedFlow = remember(createQuizBackStackEntry) {
+        createQuizBackStackEntry?.savedStateHandle?.getStateFlow("subject_created", false)
+            ?: MutableStateFlow(false)
+    }
+    val subjectCreated by subjectCreatedFlow.collectAsStateWithLifecycle()
 
     fun showMessage(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -58,13 +67,22 @@ fun CreateQuizRoute(
         }
     }
 
+    LaunchedEffect(subjectCreated) {
+        if (subjectCreated) {
+            createQuizBackStackEntry?.savedStateHandle?.set("subject_created", false)
+            viewModel.onIntent(CreateQuizIntent.LoadSubjects)
+        }
+    }
+
     BackHandler(
         enabled = state.currentStep != CreateQuizStep.Subject &&
             !state.customQuestionCountDialogVisible &&
             state.generationFailureMessage == null,
     ) {
         if (state.currentStep == CreateQuizStep.Loading) {
-            onBackClick()
+            if (state.canBrowseDuringGeneration) {
+                onBackClick()
+            }
         } else {
             viewModel.onIntent(CreateQuizIntent.BackClick)
         }
@@ -166,6 +184,7 @@ fun CreateQuizRoute(
             CreateQuizLoadingScreen(
                 progress = state.generationProgress.coerceIn(0f, 1f),
                 rewardCount = state.rewardCount,
+                browseEnabled = state.canBrowseDuringGeneration,
                 onBrowseClick = onBackClick,
             )
         }

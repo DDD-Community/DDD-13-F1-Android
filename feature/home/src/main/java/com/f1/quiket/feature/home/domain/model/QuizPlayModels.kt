@@ -61,6 +61,13 @@ data class QuizPlaySession(
     val quizSession: QuizSession?,
 )
 
+data class QuizRetry(
+    val clientSessionId: String,
+    val questionShuffled: Boolean = false,
+    val optionShuffled: Boolean = false,
+    val shuffleSeed: String? = null,
+)
+
 data class QuizResultSubmit(
     val clientSessionId: String,
     val quizSessionId: String,
