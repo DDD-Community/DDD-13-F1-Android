@@ -276,7 +276,7 @@ fun PdfCard(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_upload_ok),
+                                painter = painterResource(com.f1.quiket.core.designsystem.R.drawable.ic_upload_ok),
                                 contentDescription = null,
                                 tint = Positive,
                                 modifier = Modifier.size(16.dp)
@@ -297,7 +297,7 @@ fun PdfCard(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_upload_fail),
+                                painter = painterResource(com.f1.quiket.core.designsystem.R.drawable.ic_upload_fail),
                                 contentDescription = null,
                                 tint = Negative,
                                 modifier = Modifier.size(16.dp)

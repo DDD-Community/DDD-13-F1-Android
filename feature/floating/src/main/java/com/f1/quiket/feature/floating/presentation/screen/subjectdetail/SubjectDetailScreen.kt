@@ -446,6 +446,7 @@ fun SubjectDetailScreen(
 
     if (showDeleteConfirmDialog) {
         DeleteSubjectDialog(
+            chapterNumber = chapters.size,
             subjectName = displaySubjectName,
             onDismiss = { showDeleteConfirmDialog = false },
             onConfirm = {
@@ -1129,6 +1130,7 @@ private fun CalendarView(
 
 @Composable
 private fun DeleteSubjectDialog(
+    chapterNumber: Int,
     subjectName: String,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
@@ -1143,7 +1145,7 @@ private fun DeleteSubjectDialog(
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
-                    text = "과목 삭제",
+                    text = "'챕터 $chapterNumber $subjectName'을 삭제할까요?",
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontWeight = FontWeight.Bold,
                         color = Gray950,
@@ -1151,7 +1153,7 @@ private fun DeleteSubjectDialog(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "'$subjectName' 과목을 삭제할까요?\n삭제한 과목은 복구할 수 없어요.",
+                    text = "챕터가 영구적으로 삭제돼요.",
                     style = MaterialTheme.typography.bodySmall.copy(color = Gray700),
                 )
                 Spacer(modifier = Modifier.height(24.dp))
@@ -1167,7 +1169,7 @@ private fun DeleteSubjectDialog(
                         border = BorderStroke(2.dp, Brown950),
                     ) {
                         Text(
-                            "취소", style = MaterialTheme.typography.bodyMedium.copy(
+                            "닫기", style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.SemiBold),
                             color = Brown950
                         )
@@ -1181,7 +1183,7 @@ private fun DeleteSubjectDialog(
                             contentColor = White,
                         ),
                     ) {
-                        Text("삭제", style = MaterialTheme.typography.bodyMedium.copy(
+                        Text("삭제하기", style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.SemiBold))
                     }
                 }
@@ -1206,11 +1208,12 @@ private fun AddTestCalendarDialogPreview() {
     }
 }
 
-@Preview(showBackground = true, name = "과목 삭제 다이얼로그")
+@Preview(showBackground = true, name = "챕터 삭제 다이얼로그")
 @Composable
 private fun DeleteSubjectDialogPreview() {
     QuiketTheme {
         DeleteSubjectDialog(
+            chapterNumber = 3,
             subjectName = "SQLD",
             onDismiss = {},
             onConfirm = {},
