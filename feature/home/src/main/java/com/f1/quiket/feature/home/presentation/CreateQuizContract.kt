@@ -22,6 +22,7 @@ data class CreateQuizState(
     val customQuestionCountText: String = "",
     val selectedDifficulty: QuizDifficultyOption? = null,
     val isCreatingQuiz: Boolean = false,
+    val canBrowseDuringGeneration: Boolean = false,
     val generationProgress: Float = 0f,
     val generationFailureMessage: String? = null,
     val rewardCount: Int = 10,

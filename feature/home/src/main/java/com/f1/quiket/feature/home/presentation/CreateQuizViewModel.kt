@@ -263,21 +263,28 @@ class CreateQuizViewModel @Inject constructor(
         launch {
             updateState {
                 copy(
-                    currentStep = CreateQuizStep.Loading,
-                    isCreatingQuiz = true,
-                    generationProgress = 0.05f,
-                    generationFailureMessage = null,
+                        currentStep = CreateQuizStep.Loading,
+                        isCreatingQuiz = true,
+                        canBrowseDuringGeneration = false,
+                        generationProgress = 0.05f,
+                        generationFailureMessage = null,
                 )
             }
             sendEffect(CreateQuizEffect.QuizGenerationStarted)
 
             when (val result = quizGenerationRepository.createQuizSession(request)) {
                 is NetworkResult.Success -> {
-                    updateState { copy(generationProgress = 0.1f) }
+                    updateState {
+                        copy(
+                            generationProgress = 0.1f,
+                            canBrowseDuringGeneration = true,
+                        )
+                    }
                     if (result.data.status == QuizGenerationStatus.Completed) {
                         updateState {
                             copy(
                                 isCreatingQuiz = false,
+                                canBrowseDuringGeneration = false,
                                 generationProgress = 1f,
                             )
                         }
@@ -292,6 +299,7 @@ class CreateQuizViewModel @Inject constructor(
                         copy(
                             currentStep = CreateQuizStep.Options,
                             isCreatingQuiz = false,
+                            canBrowseDuringGeneration = false,
                             generationProgress = 0f,
                         )
                     }
@@ -341,6 +349,7 @@ class CreateQuizViewModel @Inject constructor(
                             updateState {
                                 copy(
                                     isCreatingQuiz = false,
+                                    canBrowseDuringGeneration = false,
                                     generationProgress = 1f,
                                 )
                             }
@@ -354,6 +363,7 @@ class CreateQuizViewModel @Inject constructor(
                                 copy(
                                     currentStep = CreateQuizStep.Options,
                                     isCreatingQuiz = false,
+                                    canBrowseDuringGeneration = false,
                                     generationFailureMessage = failMessage,
                                 )
                             }
@@ -375,6 +385,7 @@ class CreateQuizViewModel @Inject constructor(
                         copy(
                             currentStep = CreateQuizStep.Options,
                             isCreatingQuiz = false,
+                            canBrowseDuringGeneration = false,
                             generationFailureMessage = failMessage,
                         )
                     }
@@ -390,6 +401,7 @@ class CreateQuizViewModel @Inject constructor(
             copy(
                 currentStep = CreateQuizStep.Options,
                 isCreatingQuiz = false,
+                canBrowseDuringGeneration = false,
                 generationFailureMessage = timeoutMessage,
             )
         }

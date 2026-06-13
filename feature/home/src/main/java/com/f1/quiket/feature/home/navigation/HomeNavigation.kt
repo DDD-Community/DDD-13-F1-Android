@@ -9,10 +9,10 @@ import com.f1.quiket.feature.floating.presentation.navigation.AddSubjectDestinat
 import com.f1.quiket.feature.floating.presentation.navigation.CreateQuizDestination
 import com.f1.quiket.feature.floating.presentation.navigation.ScheduleExamDestination
 import com.f1.quiket.feature.floating.presentation.navigation.UploadDestination
-import com.f1.quiket.feature.floating.presentation.screen.ScheduleExamScreen
 import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
 import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectScreen
 import com.f1.quiket.feature.home.domain.model.QuizPlayMode
+import com.f1.quiket.feature.home.domain.model.QuizPlayType
 import com.f1.quiket.feature.home.domain.model.QuizTimerScope
 import com.f1.quiket.feature.home.presentation.CreateQuizRoute
 import com.f1.quiket.feature.home.presentation.ExamScheduleRoute
@@ -40,6 +40,7 @@ fun NavGraphBuilder.homeGraph(
         HomeRoute(
             isQuizGenerating = isQuizGenerating,
             activeQuizSessionId = activeQuizSessionId,
+            onQuizGenerationFinished = onQuizGenerationFinished,
             navigateToQuizStart = navigateToQuizStart,
             navigateToQuizResult = { resultId ->
                 navController.navigate(QuizResultDestination.createRoute(resultId))
@@ -62,15 +63,19 @@ fun NavGraphBuilder.homeGraph(
     }
 
     composable(ScheduleExamDestination.route) {
-        ScheduleExamScreen()
+        ExamScheduleRoute(
+            onBackClick = { navController.popBackStack() },
+            onQuizClick = { navController.navigate(CreateQuizDestination.route) },
+        )
     }
-    composable(CreateQuizDestination.route) {
+    composable(CreateQuizDestination.route) { backStackEntry ->
         CreateQuizRoute(
             onBackClick = { navController.popBackStack() },
             onAddSubjectClick = { navController.navigate(AddSubjectDestination.route) },
             onQuizGenerationStarted = onQuizGenerationStarted,
             onQuizGenerationFinished = onQuizGenerationFinished,
             onQuizCreated = onQuizCreated,
+            createQuizBackStackEntry = backStackEntry,
         )
     }
     composable(
@@ -124,6 +129,18 @@ fun NavGraphBuilder.homeGraph(
                 type = NavType.IntType
                 defaultValue = -1
             },
+            navArgument(QuizPlayAllDestination.ARG_CLIENT_SESSION_ID) {
+                type = NavType.StringType
+                defaultValue = ""
+            },
+            navArgument(QuizPlayAllDestination.ARG_PLAY_SESSION_ID) {
+                type = NavType.StringType
+                defaultValue = ""
+            },
+            navArgument(QuizPlayAllDestination.ARG_PLAY_TYPE) {
+                type = NavType.StringType
+                defaultValue = QuizPlayType.First.wireValue
+            },
         ),
     ) { backStackEntry ->
         val quizSessionId = backStackEntry.arguments
@@ -141,12 +158,24 @@ fun NavGraphBuilder.homeGraph(
         val timerSeconds = backStackEntry.arguments
             ?.getInt(QuizPlayAllDestination.ARG_TIMER_SECONDS)
             ?.takeIf { seconds -> seconds > 0 }
+        val clientSessionId = backStackEntry.arguments
+            ?.getString(QuizPlayAllDestination.ARG_CLIENT_SESSION_ID)
+            ?.takeIf { it.isNotBlank() }
+        val playSessionId = backStackEntry.arguments
+            ?.getString(QuizPlayAllDestination.ARG_PLAY_SESSION_ID)
+            ?.takeIf { it.isNotBlank() }
+        val playType = backStackEntry.arguments
+            ?.getString(QuizPlayAllDestination.ARG_PLAY_TYPE)
+            .toQuizPlayType()
         QuizPlayAllRoute(
             quizSessionId = quizSessionId,
             playMode = playMode,
             timerEnabled = timerEnabled,
             timerScope = timerScope,
             timerSeconds = timerSeconds,
+            clientSessionId = clientSessionId,
+            playSessionId = playSessionId,
+            playType = playType,
             onCloseClick = { navController.popBackStack() },
             onResultReady = { resultId ->
                 onQuizPlayCompleted()
@@ -172,6 +201,20 @@ fun NavGraphBuilder.homeGraph(
             onBackClick = {
                 navController.popBackStack()
             },
+            onRetryReady = { config ->
+                navController.navigate(
+                    QuizPlayAllDestination.createRoute(
+                        quizSessionId = config.quizSessionId,
+                        playMode = config.playMode,
+                        timerEnabled = config.timerEnabled,
+                        timerScope = config.timerScope,
+                        timerSeconds = config.timerSeconds,
+                        clientSessionId = config.clientSessionId,
+                        playSessionId = config.playSessionId,
+                        playType = config.playType,
+                    ),
+                )
+            },
         )
     }
     composable(UploadDestination.route) {
@@ -184,6 +227,11 @@ fun NavGraphBuilder.homeGraph(
         AddSubjectScreen(
             onDismiss = { navController.popBackStack() },
             onFinish = {
+                runCatching {
+                    navController.getBackStackEntry(CreateQuizDestination.route)
+                        .savedStateHandle
+                        .set("subject_created", true)
+                }
                 runCatching {
                     navController.getBackStackEntry(HomeDestination.route)
                         .savedStateHandle
@@ -201,3 +249,7 @@ private fun String?.toQuizPlayMode(): QuizPlayMode =
 
 private fun String?.toQuizTimerScope(): QuizTimerScope? =
     QuizTimerScope.entries.firstOrNull { scope -> scope.wireValue == this }
+
+private fun String?.toQuizPlayType(): QuizPlayType =
+    QuizPlayType.entries.firstOrNull { type -> type.wireValue == this }
+        ?: QuizPlayType.First

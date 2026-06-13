@@ -60,6 +60,14 @@ data class QuizPlayStartRequest(
 )
 
 @Serializable
+data class QuizRetryRequest(
+    val clientSessionId: String,
+    val questionShuffled: Boolean = false,
+    val optionShuffled: Boolean = false,
+    val shuffleSeed: String? = null,
+)
+
+@Serializable
 data class QuizResultSubmitRequest(
     val clientSessionId: String,
     val quizSessionId: String,

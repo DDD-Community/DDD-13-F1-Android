@@ -15,6 +15,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import com.f1.quiket.feature.home.model.FabAction
+import kotlinx.coroutines.delay
 
 private const val MAX_EXAM_COUNT = 5
 private const val EXAM_LIMIT_MESSAGE = "시험은 최대 5개까지 등록할 수 있어요. 기존 일정을 삭제 후 등록해주세요"
@@ -24,6 +25,7 @@ fun HomeRoute(
     viewModel: HomeViewModel = hiltViewModel(),
     isQuizGenerating: Boolean,
     activeQuizSessionId: String?,
+    onQuizGenerationFinished: () -> Unit,
     navigateToQuizStart: (String?) -> Unit,
     navigateToQuizResult: (String) -> Unit,
     navigateToScheduleExam: () -> Unit,
@@ -67,6 +69,17 @@ fun HomeRoute(
         ?.quizSessionId
     val effectiveActiveQuizSessionId = serverActiveQuizSessionId ?: activeQuizSessionId
     val isWaitingQuizGeneration = isQuizGenerating && effectiveActiveQuizSessionId == null
+
+    LaunchedEffect(isWaitingQuizGeneration) {
+        if (!isWaitingQuizGeneration) return@LaunchedEffect
+        repeat(HOME_GENERATION_POLL_MAX_ATTEMPTS) {
+            delay(HOME_GENERATION_POLL_INTERVAL_MILLIS)
+            viewModel.onIntent(HomeIntent.LoadHomeData)
+        }
+        if (isWaitingQuizGeneration) {
+            onQuizGenerationFinished()
+        }
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { effect ->
@@ -124,3 +137,6 @@ fun HomeRoute(
         onExamCardClick = navigateToExamScheduleList,
     )
 }
+
+private const val HOME_GENERATION_POLL_INTERVAL_MILLIS = 3_000L
+private const val HOME_GENERATION_POLL_MAX_ATTEMPTS = 120

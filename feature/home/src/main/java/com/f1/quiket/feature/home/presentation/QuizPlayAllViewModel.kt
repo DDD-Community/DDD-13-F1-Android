@@ -35,7 +35,7 @@ class QuizPlayAllViewModel @Inject constructor(
     override fun handleIntent(intent: QuizPlayAllIntent) {
         when (intent) {
             is QuizPlayAllIntent.ConfigurePlay -> configurePlay(intent)
-            is QuizPlayAllIntent.LoadQuizSession -> loadQuizSession(intent.quizSessionId)
+            is QuizPlayAllIntent.LoadQuizSession -> loadQuizSession(intent)
             QuizPlayAllIntent.RetryLoadQuizSession -> retryLoadQuizSession()
             is QuizPlayAllIntent.SelectOption -> selectOption(intent.optionId)
             QuizPlayAllIntent.MovePrevious -> movePrevious()
@@ -76,9 +76,12 @@ class QuizPlayAllViewModel @Inject constructor(
         startTimerIfNeeded()
     }
 
-    private fun loadQuizSession(quizSessionId: String) {
+    private fun loadQuizSession(intent: QuizPlayAllIntent.LoadQuizSession) {
+        val quizSessionId = intent.quizSessionId
         if (
             currentState.quizSessionId == quizSessionId &&
+            currentState.clientSessionId == intent.clientSessionId &&
+            currentState.playSessionId == intent.playSessionId &&
             currentState.questions.isNotEmpty() &&
             currentState.errorMessage == null
         ) {
@@ -90,8 +93,9 @@ class QuizPlayAllViewModel @Inject constructor(
             updateState {
                 copy(
                     quizSessionId = quizSessionId,
-                    clientSessionId = null,
-                    playSessionId = null,
+                    clientSessionId = intent.clientSessionId,
+                    playSessionId = intent.playSessionId,
+                    playType = intent.playType,
                     isLoading = true,
                     isSubmitting = false,
                     errorMessage = null,
@@ -151,7 +155,9 @@ class QuizPlayAllViewModel @Inject constructor(
                         )
                     }
                     startTimerIfNeeded()
-                    startPlaySession(quizSession)
+                    if (intent.clientSessionId.isNullOrBlank() || intent.playSessionId.isNullOrBlank()) {
+                        startPlaySession(quizSession)
+                    }
                 }
 
                 is NetworkResult.Failure -> {
@@ -168,7 +174,7 @@ class QuizPlayAllViewModel @Inject constructor(
 
     private fun retryLoadQuizSession() {
         val quizSessionId = currentState.quizSessionId ?: return
-        loadQuizSession(quizSessionId)
+        loadQuizSession(QuizPlayAllIntent.LoadQuizSession(quizSessionId))
     }
 
     private fun String.toQuizLoadErrorMessage(): String =
@@ -193,6 +199,7 @@ class QuizPlayAllViewModel @Inject constructor(
                     copy(
                         clientSessionId = result.data.clientSessionId,
                         playSessionId = result.data.playSessionId,
+                        playType = QuizPlayType.First,
                         errorMessage = null,
                     )
                 }
@@ -313,7 +320,7 @@ class QuizPlayAllViewModel @Inject constructor(
             val request = QuizResultSubmit(
                 clientSessionId = clientSessionId,
                 quizSessionId = quizSessionId,
-                playType = QuizPlayType.First,
+                playType = state.playType,
                 elapsedMs = 0,
                 questionShuffled = false,
                 optionShuffled = false,

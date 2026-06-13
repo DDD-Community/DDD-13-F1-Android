@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -43,6 +44,7 @@ import com.f1.quiket.feature.home.R
 fun CreateQuizLoadingScreen(
     progress: Float,
     rewardCount: Int,
+    browseEnabled: Boolean,
     onBrowseClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -113,6 +115,7 @@ fun CreateQuizLoadingScreen(
                 .padding(bottom = 36.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .clickable(
+                    enabled = browseEnabled,
                     role = Role.Button,
                     onClick = onBrowseClick,
                 )
@@ -121,8 +124,8 @@ fun CreateQuizLoadingScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "잠시 딴짓하러 가기",
-                color = Brown950,
+                text = if (browseEnabled) "잠시 딴짓하러 가기" else "퀴즈 생성 요청 중이에요",
+                color = if (browseEnabled) Brown950 else Gray700,
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 16.sp,
                     lineHeight = 24.sp,
@@ -131,6 +134,7 @@ fun CreateQuizLoadingScreen(
             )
             LoadingChevronRight(
                 modifier = Modifier.size(20.dp),
+                color = if (browseEnabled) Brown950 else Gray700,
             )
         }
     }
@@ -225,18 +229,19 @@ private fun RewardComment(
 @Composable
 private fun LoadingChevronRight(
     modifier: Modifier = Modifier,
+    color: Color = Brown950,
 ) {
     Canvas(modifier = modifier) {
         val strokeWidth = 3.dp.toPx()
         drawLine(
-            color = Brown950,
+            color = color,
             start = Offset(size.width * 0.36f, size.height * 0.18f),
             end = Offset(size.width * 0.66f, size.height * 0.5f),
             strokeWidth = strokeWidth,
             cap = StrokeCap.Round,
         )
         drawLine(
-            color = Brown950,
+            color = color,
             start = Offset(size.width * 0.66f, size.height * 0.5f),
             end = Offset(size.width * 0.36f, size.height * 0.82f),
             strokeWidth = strokeWidth,
@@ -252,6 +257,7 @@ private fun CreateQuizLoadingScreenPreview() {
         CreateQuizLoadingScreen(
             progress = 0.4f,
             rewardCount = 10,
+            browseEnabled = true,
             onBrowseClick = {},
         )
     }

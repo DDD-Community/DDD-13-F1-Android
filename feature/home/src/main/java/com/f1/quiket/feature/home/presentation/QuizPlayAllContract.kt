@@ -4,6 +4,7 @@ import com.f1.quiket.core.common.mvi.UiEffect
 import com.f1.quiket.core.common.mvi.UiIntent
 import com.f1.quiket.core.common.mvi.UiState
 import com.f1.quiket.feature.home.domain.model.QuizPlayMode
+import com.f1.quiket.feature.home.domain.model.QuizPlayType
 import com.f1.quiket.feature.home.domain.model.QuizTimerScope
 import com.f1.quiket.feature.home.domain.model.ServerQuizType
 
@@ -12,6 +13,7 @@ data class QuizPlayAllState(
     val quizSessionId: String? = null,
     val clientSessionId: String? = null,
     val playSessionId: String? = null,
+    val playType: QuizPlayType = QuizPlayType.First,
     val playMode: QuizPlayMode = QuizPlayMode.AllAtOnce,
     val timerEnabled: Boolean = false,
     val timerScope: QuizTimerScope? = null,
@@ -121,7 +123,12 @@ sealed interface QuizPlayAllIntent : UiIntent {
         val timerScope: QuizTimerScope?,
         val timerSeconds: Int?,
     ) : QuizPlayAllIntent
-    data class LoadQuizSession(val quizSessionId: String) : QuizPlayAllIntent
+    data class LoadQuizSession(
+        val quizSessionId: String,
+        val clientSessionId: String? = null,
+        val playSessionId: String? = null,
+        val playType: QuizPlayType = QuizPlayType.First,
+    ) : QuizPlayAllIntent
     data object RetryLoadQuizSession : QuizPlayAllIntent
     data class SelectOption(val optionId: String) : QuizPlayAllIntent
     data object MovePrevious : QuizPlayAllIntent
