@@ -6,6 +6,7 @@ import com.f1.quiket.feature.home.data.remote.QuestionResponse
 import com.f1.quiket.feature.home.data.remote.QuizAnswerSubmitItemRequest
 import com.f1.quiket.feature.home.data.remote.QuizPlaySessionDataResponse
 import com.f1.quiket.feature.home.data.remote.QuizPlayStartRequest
+import com.f1.quiket.feature.home.data.remote.QuizRetryRequest
 import com.f1.quiket.feature.home.data.remote.QuizResultDataResponse
 import com.f1.quiket.feature.home.data.remote.QuizResultSubmitRequest
 import com.f1.quiket.feature.home.data.remote.QuizReviewItemResponse
@@ -25,6 +26,7 @@ import com.f1.quiket.feature.home.domain.model.QuizPlaySession
 import com.f1.quiket.feature.home.domain.model.QuizPlaySessionStatus
 import com.f1.quiket.feature.home.domain.model.QuizPlayStart
 import com.f1.quiket.feature.home.domain.model.QuizPlayType
+import com.f1.quiket.feature.home.domain.model.QuizRetry
 import com.f1.quiket.feature.home.domain.model.QuizResult
 import com.f1.quiket.feature.home.domain.model.QuizResultSubmit
 import com.f1.quiket.feature.home.domain.model.QuizReviewItem
@@ -80,6 +82,13 @@ fun QuizPlayStart.toRequest(): QuizPlayStartRequest = QuizPlayStartRequest(
     clientSessionId = clientSessionId,
     playType = playType.wireValue,
     parentPlaySessionId = parentPlaySessionId,
+    questionShuffled = questionShuffled,
+    optionShuffled = optionShuffled,
+    shuffleSeed = shuffleSeed,
+)
+
+fun QuizRetry.toRequest(): QuizRetryRequest = QuizRetryRequest(
+    clientSessionId = clientSessionId,
     questionShuffled = questionShuffled,
     optionShuffled = optionShuffled,
     shuffleSeed = shuffleSeed,

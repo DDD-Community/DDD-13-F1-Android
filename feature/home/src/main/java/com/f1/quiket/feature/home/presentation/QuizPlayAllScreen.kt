@@ -41,6 +41,7 @@ import com.f1.quiket.core.designsystem.theme.Gray950
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
 import com.f1.quiket.feature.home.domain.model.QuizPlayMode
+import com.f1.quiket.feature.home.domain.model.QuizPlayType
 import com.f1.quiket.feature.home.domain.model.QuizTimerScope
 import com.f1.quiket.feature.home.domain.model.ServerQuizType
 
@@ -51,6 +52,9 @@ fun QuizPlayAllRoute(
     timerEnabled: Boolean = false,
     timerScope: QuizTimerScope? = null,
     timerSeconds: Int? = null,
+    clientSessionId: String? = null,
+    playSessionId: String? = null,
+    playType: QuizPlayType = QuizPlayType.First,
     onCloseClick: () -> Unit,
     onResultReady: (String) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -58,17 +62,36 @@ fun QuizPlayAllRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    LaunchedEffect(quizSessionId, playMode, timerEnabled, timerScope, timerSeconds) {
-        viewModel.onIntent(
-            QuizPlayAllIntent.ConfigurePlay(
-                playMode = playMode,
-                timerEnabled = timerEnabled,
-                timerScope = timerScope,
-                timerSeconds = timerSeconds,
-            ),
-        )
+    LaunchedEffect(
+        quizSessionId,
+        playMode,
+        timerEnabled,
+        timerScope,
+        timerSeconds,
+        clientSessionId,
+        playSessionId,
+        playType,
+    ) {
+        val hasExistingPlaySession = !clientSessionId.isNullOrBlank() && !playSessionId.isNullOrBlank()
+        if (!hasExistingPlaySession) {
+            viewModel.onIntent(
+                QuizPlayAllIntent.ConfigurePlay(
+                    playMode = playMode,
+                    timerEnabled = timerEnabled,
+                    timerScope = timerScope,
+                    timerSeconds = timerSeconds,
+                ),
+            )
+        }
         if (!quizSessionId.isNullOrBlank()) {
-            viewModel.onIntent(QuizPlayAllIntent.LoadQuizSession(quizSessionId))
+            viewModel.onIntent(
+                QuizPlayAllIntent.LoadQuizSession(
+                    quizSessionId = quizSessionId,
+                    clientSessionId = clientSessionId,
+                    playSessionId = playSessionId,
+                    playType = playType,
+                ),
+            )
         }
     }
 
