@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.collectLatest
 fun MyPageSettingRoute(
     onNavigateBack: () -> Unit,
     onLogout: () -> Unit,
+    onNavigateToAccountSetting: () -> Unit,
+    onNavigateToAlarmSetting: () -> Unit,
+    onNavigateToInquiry: () -> Unit,
     viewModel: MyPageSettingViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(Unit) {
@@ -16,12 +19,12 @@ fun MyPageSettingRoute(
             when (effect) {
                 MyPageSettingEffect.GoBack -> onNavigateBack()
                 MyPageSettingEffect.GoToLogin -> onLogout()
-                MyPageSettingEffect.GoToAccountSetting -> { /* TODO */ }
-                MyPageSettingEffect.GoToAlarmSetting -> { /* TODO */ }
-                MyPageSettingEffect.GoToInquiry -> { /* TODO */ }
-                MyPageSettingEffect.GoToTerms -> { /* TODO */ }
-                MyPageSettingEffect.GoToPrivacyPolicy -> { /* TODO */ }
-                MyPageSettingEffect.GoToAppInfo -> { /* TODO */ }
+                MyPageSettingEffect.GoToAccountSetting -> onNavigateToAccountSetting()
+                MyPageSettingEffect.GoToAlarmSetting -> onNavigateToAlarmSetting()
+                MyPageSettingEffect.GoToInquiry -> onNavigateToInquiry()
+                MyPageSettingEffect.GoToTerms -> { /* TODO: 웹뷰 또는 외부 링크 */ }
+                MyPageSettingEffect.GoToPrivacyPolicy -> { /* TODO: 웹뷰 또는 외부 링크 */ }
+                MyPageSettingEffect.GoToAppInfo -> { /* TODO: 앱 정보 화면 */ }
             }
         }
     }

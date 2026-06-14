@@ -65,20 +65,22 @@ fun MainScreen(onLogout: () -> Unit) {
     )
     val showBottomBar = currentRoute !in floatingRoutes
 
+    val scaffoldContainerColor = when (currentRoute) {
+        HistoryDestination.route, ReviewDestination.route -> Brown50
+        else -> White
+    }
+
     val view = LocalView.current
     if (!view.isInEditMode) {
-        val statusBarColor = when (currentRoute) {
-            HistoryDestination.route, ReviewDestination.route -> Brown50
-            else -> White
-        }
         SideEffect {
             val window = (view.context as android.app.Activity).window
-            window.statusBarColor = statusBarColor.toArgb()
+            window.statusBarColor = scaffoldContainerColor.toArgb()
             WindowInsetsControllerCompat(window, view).isAppearanceLightStatusBars = true
         }
     }
 
     Scaffold(
+        containerColor = scaffoldContainerColor,
         //topBar = { QuiketTopBar(title = currentTab.label) },
         bottomBar = {
             if (!showBottomBar) return@Scaffold
