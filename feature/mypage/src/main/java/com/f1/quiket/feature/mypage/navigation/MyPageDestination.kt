@@ -9,3 +9,15 @@ data object MyPageDestination : QuiketDestination {
 data object MyPageSettingDestination : QuiketDestination {
     override val route: String = "main/mypage/setting"
 }
+
+data object AccountSettingDestination : QuiketDestination {
+    override val route: String = "main/mypage/setting/account"
+}
+
+data object AlarmSettingDestination : QuiketDestination {
+    override val route: String = "main/mypage/setting/alarm"
+}
+
+data object InquiryDestination : QuiketDestination {
+    override val route: String = "main/mypage/setting/inquiry"
+}

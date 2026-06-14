@@ -1,9 +1,11 @@
 package com.f1.quiket.feature.mypage.navigation
 
-import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.f1.quiket.feature.mypage.presentation.AccountSettingRoute
+import com.f1.quiket.feature.mypage.presentation.AlarmSettingRoute
+import com.f1.quiket.feature.mypage.presentation.InquiryRoute
 import com.f1.quiket.feature.mypage.presentation.MyPageRoute
 import com.f1.quiket.feature.mypage.presentation.MyPageSettingRoute
 
@@ -22,6 +24,25 @@ fun NavGraphBuilder.myPageGraph(
         MyPageSettingRoute(
             onNavigateBack = { navController.popBackStack() },
             onLogout = onLogout,
+            onNavigateToAccountSetting = { navController.navigate(AccountSettingDestination.route) },
+            onNavigateToAlarmSetting = { navController.navigate(AlarmSettingDestination.route) },
+            onNavigateToInquiry = { navController.navigate(InquiryDestination.route) },
+        )
+    }
+    composable(route = AccountSettingDestination.route) {
+        AccountSettingRoute(
+            onNavigateBack = { navController.popBackStack() },
+            onAccountDeleted = onLogout,
+        )
+    }
+    composable(route = AlarmSettingDestination.route) {
+        AlarmSettingRoute(
+            onNavigateBack = { navController.popBackStack() },
+        )
+    }
+    composable(route = InquiryDestination.route) {
+        InquiryRoute(
+            onNavigateBack = { navController.popBackStack() },
         )
     }
 }
