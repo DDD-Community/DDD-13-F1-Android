@@ -102,8 +102,13 @@ fun ActiveSubjectContent(
                 .padding(vertical = 12.dp, horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // starred 과목 가나다 순 → 나머지 원래 순서
+            val sortedSubjects = remember(subjects) {
+                subjects.filter { it.isStarred }.sortedBy { it.title } +
+                    subjects.filter { !it.isStarred }
+            }
             // index 0 = AddSubjectCard, index 1..N = subjects
-            val totalCount = subjects.size + 1
+            val totalCount = sortedSubjects.size + 1
             (0 until totalCount).chunked(2).forEach { rowIndices ->
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -117,15 +122,15 @@ fun ActiveSubjectContent(
                                 modifier = Modifier.weight(1f),
                             )
                         } else {
-                            val subject = subjects[idx - 1]
+                            val subject = sortedSubjects[idx - 1]
                             SubjectShortCard(
                                 title = subject.title,
                                 chapter = subject.chapter,
                                 isStarred = subject.isStarred,
                                 modifier = Modifier.weight(1f),
                                 onStarToggle = {
-                                    onSubjectsChange(subjects.mapIndexed { i, item ->
-                                        if (i == idx - 1) item.copy(isStarred = !item.isStarred)
+                                    onSubjectsChange(subjects.map { item ->
+                                        if (item.id == subject.id) item.copy(isStarred = !item.isStarred)
                                         else item
                                     })
                                 },

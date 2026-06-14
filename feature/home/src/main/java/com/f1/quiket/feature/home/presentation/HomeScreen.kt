@@ -200,11 +200,18 @@ fun HomeScreen(
             SubjectDetailScreen(
                 subjectId = selectedSubject?.id ?: "",
                 subjectName = selectedSubject?.title ?: "",
+                initialIsStarred = selectedSubject?.isStarred ?: false,
                 refreshTrigger = subjectDetailRefreshTrigger,
                 onBackClick = { depth = 0; onHomeRefresh() },
                 onExamScheduleSaved = onHomeRefresh,
                 onUploadClick = { count -> nextChapterNumber = count + 1; depth = 3 },
                 onChapterAddClick = { count -> nextChapterNumber = count + 1; depth = 3 },
+                onStarToggle = { starred ->
+                    subjects = subjects.map { s ->
+                        if (s.id == selectedSubject?.id) s.copy(isStarred = starred) else s
+                    }
+                    selectedSubject = selectedSubject?.copy(isStarred = starred)
+                },
                 onEditSubjectType = { detail ->
                     val purpose = when (detail?.purpose?.lowercase()) {
                         "exam" -> StudyPurpose.EXAM
@@ -353,7 +360,15 @@ fun HomeScreen(
                     selectedLectureCategory = category
                     depth = 6
                 },
-                onAddSubjectClick = { onFabItemClick(FabAction.AddSubject) },
+                onAddSubjectClick = { depth = 9 },
+            )
+            return
+        }
+
+        9 -> {
+            AddSubjectScreen(
+                onFinish = { depth = 5 },
+                onDismiss = { depth = 5 },
             )
             return
         }
@@ -804,26 +819,60 @@ private fun HomeData?.toHomeSubjects(): List<Subject> =
         )
     }
 
-private fun HomeData?.toHomeExams(): List<Exam> =
-    this?.subjects.orEmpty()
-        .mapNotNull { it.examSchedule }
-        .filter { (it.dDay ?: 0) >= 0 }             // 지난 시험(D+N) 미노출
+private fun calcDDayInt(dateStr: String): Int =
+    runCatching {
+        val parts = dateStr.take(10).split(".", "-")
+        val exam = java.util.Calendar.getInstance().apply {
+            set(parts[0].toInt(), parts[1].toInt() - 1, parts[2].toInt(), 0, 0, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }
+        val today = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+        }
+        java.util.concurrent.TimeUnit.MILLISECONDS.toDays(exam.timeInMillis - today.timeInMillis).toInt()
+    }.getOrDefault(Int.MIN_VALUE)
+
+private fun dDayToString(d: Int): String = when {
+    d > 0 -> "D-$d"
+    d == 0 -> "D-Day"
+    else -> "D+${-d}"
+}
+
+private fun HomeData?.toHomeExams(): List<Exam> {
+    // dDayCards + subjects[n].examSchedule 를 합쳐서 id 기준 중복 제거
+    val cardExams = this?.dDayCards.orEmpty()
+    val subjectExams = this?.subjects.orEmpty().mapNotNull { it.examSchedule }
+    val allExams = (cardExams + subjectExams).distinctBy { it.id }
+
+    return allExams
+        .map { schedule -> schedule to (schedule.dDay ?: calcDDayInt(schedule.examDate)) }
+        .filter { (_, d) -> d >= -7 }               // D+7(7일 전)까지 표시, D+8 이상 지난 시험 미노출
         .withIndex()
         .sortedWith(
             Comparator { a, b ->
-                val dDayCmp = compareValuesBy(a.value, b.value) { it.dDay ?: Int.MAX_VALUE }
-                if (dDayCmp != 0) dDayCmp else b.index - a.index // 동일 날짜 → 최신 등록 순
+                val (_, da) = a.value
+                val (_, db) = b.value
+                // D- 먼저(가까운 순), D+는 뒤에(D+1 → D+7 순)
+                val order = when {
+                    da >= 0 && db >= 0 -> da.compareTo(db)   // 둘 다 D-: 작은 수(가까운 날) 먼저
+                    da < 0 && db < 0 -> db.compareTo(da)    // 둘 다 D+: 덜 지난 것(D+1) 먼저
+                    da >= 0 -> -1                             // a가 D-, b가 D+: a 먼저
+                    else -> 1                                 // a가 D+, b가 D-: b 먼저
+                }
+                if (order != 0) order else b.index - a.index // 동일 날짜 → 최신 등록 순
             }
         )
         .map { it.value }
         .take(5)                                     // 최대 5개
-        .map { schedule ->
+        .map { (schedule, d) ->
             Exam(
                 name = schedule.examName,
                 date = schedule.examDate,
-                dDay = schedule.dDay?.let { "D-$it" }.orEmpty(),
+                dDay = dDayToString(d),
             )
         }
+}
 
 private fun HomeData?.toHomeActivities(): List<Activity> =
     this?.recentActivities.orEmpty().map { activity ->

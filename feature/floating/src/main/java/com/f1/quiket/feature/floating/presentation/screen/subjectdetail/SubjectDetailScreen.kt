@@ -51,6 +51,7 @@ import com.f1.quiket.feature.floating.presentation.viewmodel.SubjectDetailViewMo
 fun SubjectDetailScreen(
     subjectId: String = "",
     subjectName: String,
+    initialIsStarred: Boolean = false,
     studyPurposeLabel: String = "",
     examTypeLabel: String = "",
     refreshTrigger: Int = 0,
@@ -62,6 +63,7 @@ fun SubjectDetailScreen(
     onExamScheduleSaved: () -> Unit = {},
     onSubjectDeleted: () -> Unit = {},
     onCreateQuizClick: () -> Unit = {},
+    onStarToggle: (Boolean) -> Unit = {},
     viewModel: SubjectDetailViewModel = hiltViewModel(),
 ) {
     val subjectDetail by viewModel.subjectDetail.collectAsState()
@@ -105,7 +107,7 @@ fun SubjectDetailScreen(
     }
 
     var displaySubjectName by rememberSaveable { mutableStateOf(subjectName) }
-    var isStarred by rememberSaveable { mutableStateOf(false) }
+    var isStarred by rememberSaveable { mutableStateOf(initialIsStarred) }
     var showDropdownMenu by remember { mutableStateOf(false) }
     var showScheduleDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
@@ -152,7 +154,11 @@ fun SubjectDetailScreen(
                     isStarred = isStarred,
                     showMenu = showDropdownMenu,
                     onBackClick = onBackClick,
-                    onStarClick = { isStarred = !isStarred },
+                    onStarClick = {
+                        val newStarred = !isStarred
+                        isStarred = newStarred
+                        onStarToggle(newStarred)
+                    },
                     onMenuClick = { showDropdownMenu = true },
                     onMenuDismiss = { showDropdownMenu = false },
                     onEditSubjectName = { showEditSubjectNameDialog = true },
