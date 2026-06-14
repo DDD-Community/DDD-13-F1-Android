@@ -7,6 +7,7 @@ import com.f1.quiket.feature.floating.domain.model.SubjectDetail
 import com.f1.quiket.feature.floating.domain.model.SubjectExamSchedule
 import com.f1.quiket.feature.floating.domain.repository.SubjectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -27,6 +28,9 @@ class SubjectDetailViewModel @Inject constructor(
     private val _examSchedule = MutableStateFlow<SubjectExamSchedule?>(null)
     val examSchedule: StateFlow<SubjectExamSchedule?> = _examSchedule.asStateFlow()
 
+    private val _examScheduleUpdated = MutableSharedFlow<SubjectExamSchedule>(extraBufferCapacity = 1)
+    val examScheduleUpdated: SharedFlow<SubjectExamSchedule> = _examScheduleUpdated.asSharedFlow()
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
@@ -36,14 +40,19 @@ class SubjectDetailViewModel @Inject constructor(
     private val _deleteSubjectSuccess = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val deleteSubjectSuccess: SharedFlow<Unit> = _deleteSubjectSuccess.asSharedFlow()
 
+    private val _deleteChapterSuccess = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val deleteChapterSuccess: SharedFlow<String> = _deleteChapterSuccess.asSharedFlow()
+
     private var loadedSubjectId: String? = null
+    private var loadSubjectJob: Job? = null
 
     fun loadSubject(subjectId: String) {
+        loadSubjectJob?.cancel()
         if (loadedSubjectId != subjectId) {
             _subjectDetail.value = null
             _examSchedule.value = null
         }
-        viewModelScope.launch {
+        loadSubjectJob = viewModelScope.launch {
             _isLoading.value = true
             when (val result = subjectRepository.getSubject(subjectId)) {
                 is NetworkResult.Success -> {
@@ -85,6 +94,20 @@ class SubjectDetailViewModel @Inject constructor(
         }
     }
 
+    fun deleteChapter(chapterId: String) {
+        viewModelScope.launch {
+            when (subjectRepository.deleteChapter(chapterId)) {
+                is NetworkResult.Success -> {
+                    _subjectDetail.value = _subjectDetail.value?.let { detail ->
+                        detail.copy(chapters = detail.chapters.filter { it.id != chapterId })
+                    }
+                    _deleteChapterSuccess.emit(chapterId)
+                }
+                is NetworkResult.Failure -> {}
+            }
+        }
+    }
+
     fun deleteSubject(subjectId: String) {
         viewModelScope.launch {
             when (subjectRepository.deleteSubject(subjectId)) {
@@ -99,6 +122,7 @@ class SubjectDetailViewModel @Inject constructor(
             when (val result = subjectRepository.upsertExamSchedule(subjectId, examName, examDate)) {
                 is NetworkResult.Success -> {
                     _examSchedule.value = result.data
+                    _examScheduleUpdated.emit(result.data)
                     _examScheduleSaved.emit(Unit)
                 }
                 is NetworkResult.Failure -> {}

@@ -87,13 +87,13 @@ fun ActiveSubjectContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Spacer(modifier = Modifier.weight(1f))
-            Text("전체 보기", style = MaterialTheme.typography.labelSmall, color = Gray600)
-            Icon(
-                painter = painterResource(R.drawable.ic_home_subject_total),
-                contentDescription = null,
-                tint = Color.Unspecified,
-                modifier = Modifier.size(16.dp)
-            )
+//            Text("전체 보기", style = MaterialTheme.typography.labelSmall, color = Gray600)
+//            Icon(
+//                painter = painterResource(R.drawable.ic_home_subject_total),
+//                contentDescription = null,
+//                tint = Color.Unspecified,
+//                modifier = Modifier.size(16.dp)
+//            )
         }
 
         Column(
@@ -163,13 +163,13 @@ fun ActiveActivityContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Spacer(modifier = Modifier.weight(1f))
-            Text("전체 보기", style = MaterialTheme.typography.labelSmall, color = Gray600)
-            Icon(
-                painter = painterResource(R.drawable.ic_home_subject_total),
-                contentDescription = null,
-                tint = Color.Unspecified,
-                modifier = Modifier.size(16.dp)
-            )
+//            Text("전체 보기", style = MaterialTheme.typography.labelSmall, color = Gray600)
+//            Icon(
+//                painter = painterResource(R.drawable.ic_home_subject_total),
+//                contentDescription = null,
+//                tint = Color.Unspecified,
+//                modifier = Modifier.size(16.dp)
+//            )
         }
 
         Column(

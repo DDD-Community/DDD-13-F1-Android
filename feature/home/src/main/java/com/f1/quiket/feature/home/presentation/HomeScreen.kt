@@ -91,6 +91,7 @@ import com.f1.quiket.feature.floating.domain.model.SubjectDetail
 import com.f1.quiket.feature.floating.domain.model.UsagePurpose
 import com.f1.quiket.feature.floating.domain.model.examTypeFromBackendValue
 import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
+import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectScreen
 import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectStep2Screen
 import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectStep3Screen
 import com.f1.quiket.feature.floating.presentation.viewmodel.AddSubjectViewModel
@@ -137,6 +138,7 @@ fun HomeScreen(
     var editExamType by remember { mutableStateOf<ExamType?>(null) }
     var editStudyField by remember { mutableStateOf<StudyField?>(null) }
     var editUsagePurpose by remember { mutableStateOf<UsagePurpose?>(null) }
+    var subjectDetailRefreshTrigger by remember { mutableIntStateOf(0) }
     var depth by remember { mutableStateOf(0) }
     val homeData = uiState.homeData
     val serverSubjects = remember(homeData?.subjects) {
@@ -146,6 +148,12 @@ fun HomeScreen(
 
     LaunchedEffect(serverSubjects) {
         subjects = serverSubjects
+    }
+
+    LaunchedEffect(editSubjectViewModel) {
+        editSubjectViewModel.updateDetailsSuccess.collect {
+            subjectDetailRefreshTrigger++
+        }
     }
 
     // 강의 선택 후 UploadScreen에 넘길 정보
@@ -176,6 +184,7 @@ fun HomeScreen(
             4 -> depth = 2
             5 -> depth = 0  // 홈 업로드용 LectureSelect → 홈
             6 -> depth = 5  // 홈 업로드용 UploadScreen → LectureSelect
+            9 -> depth = 5  // LectureSelect에서 AddSubject → LectureSelect로
             7 -> depth = lectureViewBackDepth
             8 -> depth = lectureViewBackDepth  // MaterialCheckScreen → 이전 화면
             11 -> depth = 1  // 과목 유형 수정 Step2 → 과목 상세
@@ -191,6 +200,7 @@ fun HomeScreen(
             SubjectDetailScreen(
                 subjectId = selectedSubject?.id ?: "",
                 subjectName = selectedSubject?.title ?: "",
+                refreshTrigger = subjectDetailRefreshTrigger,
                 onBackClick = { depth = 0; onHomeRefresh() },
                 onExamScheduleSaved = onHomeRefresh,
                 onUploadClick = { count -> nextChapterNumber = count + 1; depth = 3 },
@@ -255,7 +265,17 @@ fun HomeScreen(
                 studyField = editStudyField,
                 usagePurpose = editUsagePurpose,
                 onBackClick = { depth = 11 },
-                onSkipClick = { depth = 1 },
+                onSkipClick = {
+                    val skipState = AddSubjectState(
+                        subjectName = selectedSubject?.title ?: "",
+                        studyPurpose = editPurpose,
+                        examType = editExamType,
+                        studyField = editStudyField,
+                        usagePurpose = editUsagePurpose,
+                    )
+                    editSubjectViewModel.updateSubjectDetails(editSubjectId, skipState)
+                    depth = 1
+                },
                 onCreateClick = { _, stateTransformer ->
                     val initState = AddSubjectState(
                         subjectName = selectedSubject?.title ?: "",
@@ -764,6 +784,7 @@ fun HomeScreen(
             NoSubjectPopup(
                 onAddSubject = {
                     showNoSubjectPopup = false
+                    depth = 5
                     onFabItemClick(FabAction.AddSubject)
                 },
                 onDismiss = { showNoSubjectPopup = false },

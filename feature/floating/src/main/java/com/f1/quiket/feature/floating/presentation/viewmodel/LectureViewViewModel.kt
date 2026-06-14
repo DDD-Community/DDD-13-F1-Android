@@ -53,7 +53,7 @@ class LectureViewViewModel @Inject constructor(
                             number = chapter.displayOrder,
                             title = chapter.name,
                             parts = chapter.parts.map { part ->
-                                TocPart(id = part.id, title = part.name)
+                                TocPart(id = part.id, partNumber = part.partNumber, title = part.name)
                             },
                         )
                     }

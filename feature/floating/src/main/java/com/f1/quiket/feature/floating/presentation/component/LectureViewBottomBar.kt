@@ -53,14 +53,14 @@ fun LectureViewBottomBar(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(if (currentIndex > 0) Gray100 else Gray100.copy(alpha = 0.4f))
+                .background(if (currentIndex > 0) Brown950 else Gray100)
                 .clickable(enabled = currentIndex > 0, onClick = onPrevious),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                 contentDescription = "이전 파트",
-                tint = if (currentIndex > 0) Gray950 else Gray300,
+                tint = White,
                 modifier = Modifier.size(24.dp),
             )
         }
@@ -84,14 +84,14 @@ fun LectureViewBottomBar(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(if (currentIndex < totalCount - 1) Brown950 else Gray100.copy(alpha = 0.4f))
+                .background(if (currentIndex < totalCount - 1) Brown950 else Gray100)
                 .clickable(enabled = currentIndex < totalCount - 1, onClick = onNext),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "다음 파트",
-                tint = if (currentIndex < totalCount - 1) White else Gray300,
+                tint =White,
                 modifier = Modifier.size(24.dp),
             )
         }

@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.f1.quiket.core.network.model.NetworkResult
 import com.f1.quiket.feature.floating.domain.model.AddSubjectState
 import com.f1.quiket.feature.floating.domain.model.ChineseTestType
+import com.f1.quiket.feature.floating.domain.model.CourseType
+import com.f1.quiket.feature.floating.domain.model.ExamType
 import com.f1.quiket.feature.floating.domain.model.EnglishTestType
 import com.f1.quiket.feature.floating.domain.model.JapaneseTestType
 import com.f1.quiket.feature.floating.domain.model.LanguageType
@@ -42,6 +44,21 @@ class AddSubjectViewModel @Inject constructor(
     private val _createdSubjectId = MutableStateFlow<String?>(null)
     val createdSubjectId: StateFlow<String?> = _createdSubjectId.asStateFlow()
 
+    private val _updateDetailsSuccess = Channel<Unit>(Channel.BUFFERED)
+    val updateDetailsSuccess = _updateDetailsSuccess.receiveAsFlow()
+
+    private val _existingSubjectNames = MutableStateFlow<List<String>>(emptyList())
+    val existingSubjectNames: StateFlow<List<String>> = _existingSubjectNames.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            when (val result = subjectRepository.getSubjects()) {
+                is NetworkResult.Success -> _existingSubjectNames.value = result.data.map { it.name }
+                is NetworkResult.Failure -> {}
+            }
+        }
+    }
+
     fun handleIntent(intent: AddSubjectContract.Intent) {
         when (intent) {
             is AddSubjectContract.Intent.UpdateSubjectName ->
@@ -73,6 +90,10 @@ class AddSubjectViewModel @Inject constructor(
         }
     }
 
+    fun resetForNewSubject() {
+        _createdSubjectId.value = null
+    }
+
     fun createSubject(addSubjectState: AddSubjectState) {
         viewModelScope.launch {
             val request = addSubjectState.toSubjectCreate()
@@ -89,6 +110,7 @@ class AddSubjectViewModel @Inject constructor(
         viewModelScope.launch {
             val request = addSubjectState.toSubjectCreate()
             subjectRepository.updateSubjectDetails(subjectId, request)
+            _updateDetailsSuccess.send(Unit)
         }
     }
 }
@@ -96,17 +118,29 @@ class AddSubjectViewModel @Inject constructor(
 private fun AddSubjectState.toSubjectCreate(): SubjectCreate {
     val purposeKey = when (studyPurpose) {
         StudyPurpose.EXAM -> "exam"
-        StudyPurpose.SELF_STUDY -> "self_study"
+        StudyPurpose.SELF_STUDY -> "review"
         StudyPurpose.OTHER -> "other"
         null -> "other"
     }
 
     val examDetail = if (studyPurpose == StudyPurpose.EXAM) {
         SubjectExamDetail(
-            examType = examType?.name?.lowercase() ?: "other",
+            examType = when (examType) {
+                ExamType.UNIVERSITY -> "university"
+                ExamType.MIDDLE_HIGH -> "middle_high"
+                ExamType.CERTIFICATE -> "certificate"
+                ExamType.CIVIL_SERVICE -> "civil_service"
+                ExamType.LANGUAGE -> "language"
+                ExamType.OTHER_EXAM -> "other_exam"
+                null -> "other_exam"
+            },
             univMajorField = majorCategory?.name?.lowercase(),
             univMajorName = majorName.ifBlank { null },
-            univCourseType = courseType?.name?.lowercase(),
+            univCourseType = when (courseType) {
+                CourseType.MAJOR -> "major"
+                CourseType.LIBERAL -> "liberal_arts"
+                null -> null
+            },
             mhGrade = curriculum?.name?.lowercase(),
             mhSubjectType = if (subjectType == MiddleHighSubjectType.CUSTOM) {
                 customSubjectType.ifBlank { null }

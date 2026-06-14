@@ -1,5 +1,6 @@
 package com.f1.quiket.feature.floating.presentation.screen.addsubject
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +24,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -49,13 +52,15 @@ fun AddSubjectStep2Screen(
     onSkipClick: () -> Unit = {},
     onNextClick: (selection: Any) -> Unit = {},
 ) {
+    val focusManager = LocalFocusManager.current
     var showSkipSheet by remember { mutableStateOf(false) }
 
     Scaffold(containerColor = White, contentWindowInsets = WindowInsets(0)) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } },
         ) {
             AddSubjectTopBar(onBackClick = onBackClick)
             Spacer(modifier = Modifier.height(4.dp))
@@ -109,8 +114,8 @@ private val examTypeItems = listOf(
     ExamTypeItem(ExamType.MIDDLE_HIGH, R.drawable.ic_addsubject_school),
     ExamTypeItem(ExamType.CERTIFICATE, R.drawable.ic_addsubject_certify),
     ExamTypeItem(ExamType.LANGUAGE, R.drawable.ic_addsubject_language),
-    ExamTypeItem(ExamType.CIVIL_SERVANT, R.drawable.ic_addsubject_civil),
-    ExamTypeItem(ExamType.OTHER, R.drawable.ic_addsubject_other),
+    ExamTypeItem(ExamType.CIVIL_SERVICE, R.drawable.ic_addsubject_civil),
+    ExamTypeItem(ExamType.OTHER_EXAM, R.drawable.ic_addsubject_other),
 )
 
 @Composable

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,12 +40,12 @@ fun QuiketToast(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .defaultMinSize(minHeight = 56.dp)
             .background(
                 color = Tutorial,
                 shape = RoundedCornerShape(12.dp)
             )
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -66,7 +67,7 @@ fun QuiketToast(
         Text(
             text = message,
             color = Color.White,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
     }

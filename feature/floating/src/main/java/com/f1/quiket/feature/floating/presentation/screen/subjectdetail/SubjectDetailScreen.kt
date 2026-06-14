@@ -1,188 +1,51 @@
 package com.f1.quiket.feature.floating.presentation.screen.subjectdetail
 
-import androidx.compose.foundation.BorderStroke
+import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import android.app.Activity
-import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.core.view.WindowInsetsControllerCompat
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.f1.quiket.feature.floating.presentation.viewmodel.SubjectDetailViewModel
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import com.f1.quiket.core.designsystem.component.AddSubjectCard
-import com.f1.quiket.core.designsystem.component.BaseTextField
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.f1.quiket.core.designsystem.component.HomeActionButton
 import com.f1.quiket.core.designsystem.component.HomeEmptyExamCard
 import com.f1.quiket.core.designsystem.component.HomeExamCard
-import com.f1.quiket.core.designsystem.component.SubjectLongCard
 import com.f1.quiket.core.designsystem.theme.Brown50
-import com.f1.quiket.core.designsystem.theme.Brown950
 import com.f1.quiket.core.designsystem.theme.Gray100
-import com.f1.quiket.core.designsystem.theme.Gray300
-import com.f1.quiket.core.designsystem.theme.Gray400
-import com.f1.quiket.core.designsystem.theme.Gray500
-import com.f1.quiket.core.designsystem.theme.Gray700
-import com.f1.quiket.core.designsystem.theme.Gray950
 import com.f1.quiket.core.designsystem.theme.Green800
-import com.f1.quiket.core.designsystem.theme.Negative
 import com.f1.quiket.core.designsystem.theme.Orange500
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
-import com.f1.quiket.feature.floating.R
-import com.f1.quiket.feature.floating.domain.model.*
+import com.f1.quiket.feature.floating.domain.model.Chapter
+import com.f1.quiket.feature.floating.domain.model.SubjectDetail
 import com.f1.quiket.feature.floating.presentation.component.SubjectDetailTopBar
 import com.f1.quiket.feature.floating.presentation.screen.lectureview.LectureViewScreen
-import java.util.Calendar
-import java.util.concurrent.TimeUnit
-
-private fun calcDDay(dateStr: String): String {
-    return runCatching {
-        val parts = dateStr.split(".")
-        val exam = Calendar.getInstance().apply {
-            set(parts[0].toInt(), parts[1].toInt() - 1, parts[2].toInt(), 0, 0, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        val today = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-        }
-        val diff = TimeUnit.MILLISECONDS.toDays(exam.timeInMillis - today.timeInMillis)
-        when {
-            diff > 0L -> "D-$diff"
-            diff == 0L -> "D-Day"
-            else -> "D+${-diff}"
-        }
-    }.getOrDefault("D-?")
-}
-
-private fun purposeToKorean(purpose: String): String = when (purpose.lowercase()) {
-    "exam" -> StudyPurpose.EXAM.title
-    "review", "self_study" -> StudyPurpose.SELF_STUDY.title
-    "other" -> StudyPurpose.OTHER.title
-    else -> StudyPurpose.entries.find { it.name.equals(purpose, ignoreCase = true) }?.title ?: purpose
-}
-
-private data class SubjectLabels(val h1: String, val h2: String, val h3: String)
-
-private fun <T : Enum<T>> Iterable<T>.findByName(value: String): T? =
-    find { it.name.equals(value, ignoreCase = true) }
-
-private fun SubjectDetail.toLabels(): SubjectLabels {
-    val h1 = purposeToKorean(purpose)
-    return when (purpose.lowercase()) {
-        "exam" -> {
-            val e = examDetail
-            val examType = e?.examType?.let { examTypeFromBackendValue(it) }
-            val h2 = examType?.label ?: ""
-            val h3: String = if (e == null) "" else when (examType) {
-                ExamType.UNIVERSITY -> listOfNotNull(
-                    e.univMajorField?.let { UniversityMajorCategory.entries.findByName(it)?.label },
-                    e.univMajorName,
-                    e.univCourseType?.let { CourseType.entries.findByName(it)?.label },
-                ).joinToString(" · ")
-
-                ExamType.MIDDLE_HIGH -> listOfNotNull(
-                    e.mhGrade?.let { MiddleHighCurriculum.entries.findByName(it)?.label ?: it },
-                    e.mhSubjectType?.let { s ->
-                        MiddleHighSubjectType.entries.findByName(s)?.label?.takeIf { it != "직접 입력" }
-                            ?: s
-                    },
-                ).joinToString(" · ")
-
-                ExamType.CERTIFICATE -> e.certificateName ?: ""
-
-                ExamType.CIVIL_SERVANT -> listOfNotNull(
-                    e.civilSeries?.let { CivilServantSeries.entries.findByName(it)?.label ?: it },
-                    e.civilRank?.let { CivilServantGrade.entries.findByName(it)?.label ?: it },
-                ).joinToString(" · ")
-
-                ExamType.LANGUAGE -> listOfNotNull(
-                    e.langType?.let { LanguageType.entries.findByName(it)?.label ?: it },
-                    e.langExamName?.let { name ->
-                        val lower = name.lowercase()
-                        (EnglishTestType.entries.find { it.name.lowercase() == lower }?.label
-                            ?: JapaneseTestType.entries.find { it.name.lowercase() == lower }?.label
-                            ?: ChineseTestType.entries.find { it.name.lowercase() == lower }?.label
-                            ?: name).takeIf { it != "직접 입력" }
-                    },
-                ).joinToString(" · ")
-
-                ExamType.OTHER -> e.otherExamName ?: ""
-                null -> ""
-            }
-            SubjectLabels(h1, h2, h3)
-        }
-
-        "review", "self_study" -> {
-            val r = reviewDetail
-            SubjectLabels(
-                h1 = h1,
-                h2 = r?.field?.let { StudyField.entries.findByName(it)?.label ?: it } ?: "",
-                h3 = r?.studyLevel?.let { FamiliarityLevel.entries.findByName(it)?.label ?: it } ?: "",
-            )
-        }
-
-        "other" -> SubjectLabels(
-            h1 = h1,
-            h2 = otherDetail?.usagePurpose?.let { UsagePurpose.entries.findByName(it)?.title ?: it } ?: "",
-            h3 = otherDetail?.description ?: "",
-        )
-
-        else -> SubjectLabels(h1, "", "")
-    }
-}
+import com.f1.quiket.feature.floating.presentation.viewmodel.SubjectDetailViewModel
 
 @Composable
 fun SubjectDetailScreen(
@@ -190,7 +53,7 @@ fun SubjectDetailScreen(
     subjectName: String,
     studyPurposeLabel: String = "",
     examTypeLabel: String = "",
-    detailLabel: String = "",
+    refreshTrigger: Int = 0,
     onBackClick: () -> Unit = {},
     onChapterAddClick: (newChapterNumber: Int) -> Unit = {},
     onUploadClick: (newChapterNumber: Int) -> Unit = {},
@@ -203,16 +66,6 @@ fun SubjectDetailScreen(
 ) {
     val subjectDetail by viewModel.subjectDetail.collectAsState()
     val apiExamSchedule by viewModel.examSchedule.collectAsState()
-
-    LaunchedEffect(viewModel) {
-        viewModel.examScheduleSaved.collect { onExamScheduleSaved() }
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.deleteSubjectSuccess.collect { onSubjectDeleted() }
-    }
-
-    // API에서 받아온 값으로 헤더 정보 구성
     val apiSubjectName = subjectDetail?.name
     val apiLabels = remember(subjectDetail) { subjectDetail?.toLabels() }
 
@@ -233,12 +86,14 @@ fun SubjectDetailScreen(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = Green800.toArgb()
-            WindowInsetsControllerCompat(window, view).isAppearanceLightStatusBars = false
+            window.statusBarColor = White.toArgb()
+            WindowInsetsControllerCompat(window, view).isAppearanceLightStatusBars = true
         }
     }
 
-    // LectureView로 이동
+    LaunchedEffect(viewModel) { viewModel.examScheduleSaved.collect { onExamScheduleSaved() } }
+    LaunchedEffect(viewModel) { viewModel.deleteSubjectSuccess.collect { onSubjectDeleted() } }
+
     selectedChapter?.let { chapter ->
         BackHandler { selectedChapter = null }
         LectureViewScreen(
@@ -249,29 +104,30 @@ fun SubjectDetailScreen(
         return
     }
 
-    // Persistent state across recompositions
     var displaySubjectName by rememberSaveable { mutableStateOf(subjectName) }
     var isStarred by rememberSaveable { mutableStateOf(false) }
     var showDropdownMenu by remember { mutableStateOf(false) }
     var showScheduleDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var showEditSubjectNameDialog by remember { mutableStateOf(false) }
+    var isChapterEditMode by remember { mutableStateOf(false) }
+    var isChapterDeleteMode by remember { mutableStateOf(false) }
+    var editingChapter by remember { mutableStateOf<Chapter?>(null) }
+    var deletingChapter by remember { mutableStateOf<Chapter?>(null) }
     var confirmedExamName by rememberSaveable { mutableStateOf("") }
     var confirmedSchedule by rememberSaveable { mutableStateOf("") }
     var confirmedDDay by rememberSaveable { mutableStateOf<Int?>(null) }
 
-    // subjectId 변경 시 스테일 시험 데이터 즉시 초기화 후 로드
-    LaunchedEffect(subjectId) {
-        confirmedExamName = ""
-        confirmedSchedule = ""
-        confirmedDDay = null
+    LaunchedEffect(viewModel) {
+        viewModel.examScheduleUpdated.collect { schedule -> confirmedDDay = schedule.dDay }
+    }
+    LaunchedEffect(subjectId, refreshTrigger) {
+        confirmedExamName = ""; confirmedSchedule = ""; confirmedDDay = null
         if (subjectId.isNotEmpty()) viewModel.loadSubject(subjectId)
     }
-
-    // API 로드 완료 시 이름 동기화
     LaunchedEffect(apiSubjectName) {
         if (!apiSubjectName.isNullOrBlank()) displaySubjectName = apiSubjectName
     }
-
     LaunchedEffect(apiExamSchedule) {
         val schedule = apiExamSchedule
         if (schedule != null) {
@@ -279,14 +135,9 @@ fun SubjectDetailScreen(
             confirmedSchedule = schedule.examDate
             confirmedDDay = schedule.dDay
         } else {
-            confirmedExamName = ""
-            confirmedSchedule = ""
-            confirmedDDay = null
+            confirmedExamName = ""; confirmedSchedule = ""; confirmedDDay = null
         }
     }
-    var showEditSubjectNameDialog by remember { mutableStateOf(false) }
-    var isChapterEditMode by remember { mutableStateOf(false) }
-    var editingChapter by remember { mutableStateOf<Chapter?>(null) }
 
     Scaffold(containerColor = White) { innerPadding ->
         Column(
@@ -295,7 +146,6 @@ fun SubjectDetailScreen(
                 .padding(bottom = innerPadding.calculateBottomPadding())
                 .verticalScroll(rememberScrollState()),
         ) {
-
             Column(modifier = Modifier.background(Green800)) {
                 SubjectDetailTopBar(
                     title = displaySubjectName,
@@ -309,50 +159,39 @@ fun SubjectDetailScreen(
                     onEditSubjectType = { onEditSubjectType(subjectDetail) },
                     onEditChapterName = { isChapterEditMode = true },
                     onDeleteSubjectClick = { showDeleteConfirmDialog = true },
+                    onDeleteChapterClick = { isChapterDeleteMode = true },
                 )
                 SubjectHeaderSection(
                     modifier = Modifier.padding(horizontal = 8.dp),
-                    subjectName = displaySubjectName,
-                    studyPurposeLabel = apiLabels?.h1 ?: studyPurposeLabel,
-                    examTypeLabel = apiLabels?.h2 ?: examTypeLabel,
-                    detailLabel = apiLabels?.h3 ?: detailLabel,
+                    studyPurposeLabel = apiLabels?.h1?.takeIf { it.isNotBlank() } ?: studyPurposeLabel,
+                    examTypeLabel = apiLabels?.h2?.takeIf { it.isNotBlank() } ?: examTypeLabel,
                 )
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        color = White,
-                        shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)
-                    )
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                HomeActionButton(
-                    text = "자료 업로드",
-                    iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_upload,
-                    backgroundColor = Gray100,
-                    onClick = {
-                        onUploadClick(chapters.size)
-                    },
-                    modifier = Modifier
-                        .height(103.dp)
-                        .weight(1f)
-                )
-
-                HomeActionButton(
-                    text = "퀴즈 만들기",
-                    iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_make,
-                    backgroundColor = Orange500,
-                    onClick = onCreateQuizClick,
-                    modifier = Modifier
-                        .height(103.dp)
-                        .weight(1f)
-                )
-            }
             Box(modifier = Modifier.fillMaxWidth().background(Brown50)) {
                 Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(color = White, shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        HomeActionButton(
+                            text = "자료 업로드",
+                            iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_upload,
+                            backgroundColor = Gray100,
+                            onClick = { onUploadClick(chapters.size) },
+                            modifier = Modifier.height(103.dp).weight(1f),
+                        )
+                        HomeActionButton(
+                            text = "퀴즈 만들기",
+                            iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_make,
+                            backgroundColor = Orange500,
+                            onClick = onCreateQuizClick,
+                            modifier = Modifier.height(103.dp).weight(1f),
+                        )
+                    }
                     if (confirmedSchedule.isNotBlank()) {
                         val dDayText = confirmedDDay?.let { d ->
                             when {
@@ -369,25 +208,20 @@ fun SubjectDetailScreen(
                             modifier = Modifier.padding(16.dp),
                         )
                     } else {
-                        HomeEmptyExamCard(
-                            { showScheduleDialog = true },
-                            modifier = Modifier.padding(16.dp),
-                        )
+                        HomeEmptyExamCard({ showScheduleDialog = true }, modifier = Modifier.padding(16.dp))
                     }
                     Spacer(modifier = Modifier.height(8.dp))
+                    MySubjectSection(
+                        chapters = chapters,
+                        isEditMode = isChapterEditMode,
+                        isDeleteMode = isChapterDeleteMode,
+                        onChapterClick = { selectedChapter = it },
+                        onChapterEditClick = { chapter -> editingChapter = chapter },
+                        onChapterDeleteClick = { chapter -> deletingChapter = chapter },
+                        onChapterAddClick = { onChapterAddClick(chapters.size) },
+                    )
                 }
             }
-
-            // My Subject Section
-            MySubjectSection(
-                chapters = chapters,
-                isEditMode = isChapterEditMode,
-                onChapterClick = { selectedChapter = it },
-                onChapterEditClick = { chapter -> editingChapter = chapter },
-                onChapterAddClick = {
-                    onChapterAddClick(chapters.size)
-                },
-            )
         }
     }
 
@@ -399,20 +233,14 @@ fun SubjectDetailScreen(
             initialDate = confirmedSchedule,
             onDismiss = { showScheduleDialog = false },
             onApply = { name, date ->
-                confirmedExamName = name
-                confirmedSchedule = date
-                confirmedDDay = null  // API 응답 전까지 로컬 계산 사용
+                confirmedExamName = name; confirmedSchedule = date; confirmedDDay = null
                 if (subjectId.isNotEmpty()) viewModel.upsertExamSchedule(
-                    subjectId,
-                    name.ifBlank { displaySubjectName }.ifBlank { null },
-                    date
+                    subjectId, name.ifBlank { displaySubjectName }.ifBlank { null }, date,
                 )
                 showScheduleDialog = false
             },
             onDelete = {
-                confirmedExamName = ""
-                confirmedSchedule = ""
-                confirmedDDay = null
+                confirmedExamName = ""; confirmedSchedule = ""; confirmedDDay = null
                 if (subjectId.isNotEmpty()) viewModel.deleteExamSchedule(subjectId)
                 showScheduleDialog = false
             },
@@ -438,15 +266,13 @@ fun SubjectDetailScreen(
             onDismiss = { editingChapter = null; isChapterEditMode = false },
             onApply = { newName ->
                 if (chapter.id.isNotEmpty()) viewModel.updateChapterName(chapter.id, newName)
-                editingChapter = null
-                isChapterEditMode = false
+                editingChapter = null; isChapterEditMode = false
             },
         )
     }
 
     if (showDeleteConfirmDialog) {
         DeleteSubjectDialog(
-            chapterNumber = chapters.size,
             subjectName = displaySubjectName,
             onDismiss = { showDeleteConfirmDialog = false },
             onConfirm = {
@@ -455,768 +281,110 @@ fun SubjectDetailScreen(
             },
         )
     }
-}
 
-@Composable
-private fun SubjectHeaderSection(
-    modifier: Modifier,
-    subjectName: String,
-    studyPurposeLabel: String,
-    examTypeLabel: String,
-    detailLabel: String = "",
-) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Green800)
-            .padding(start = 20.dp, end = 20.dp, top = 4.dp),
-    ) {
-        Row {
-            Column {
-                Text(
-                    text = studyPurposeLabel.ifBlank { "학습 목적을 입력해주세요." },
-                    style = MaterialTheme.typography.labelSmall.copy(color = Gray400),
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = examTypeLabel.ifBlank { "분류를 입력해주세요." },
-                    style = MaterialTheme.typography.labelSmall.copy(color = Gray400),
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = detailLabel.ifBlank { "상세 정보를 입력해주세요." },
-                    style = MaterialTheme.typography.labelSmall.copy(color = Gray400),
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = subjectName,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = White,
-                    ),
-                )
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Icon(
-                painter = painterResource(R.drawable.ic_detail_quiket),
-                contentDescription = null,
-                tint = Color.Unspecified,
-                modifier = Modifier.width(190.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun MySubjectSection(
-    chapters: List<Chapter>,
-    isEditMode: Boolean = false,
-    onChapterClick: (Chapter) -> Unit,
-    onChapterEditClick: (Chapter) -> Unit = {},
-    onChapterAddClick: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(White, RoundedCornerShape(16.dp))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = if (isEditMode) "수정할 챕터를 선택해주세요" else "내 과목",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Gray950
-                ),
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            if (!isEditMode) {
-                Text(
-                    text = "퀴즈 전체 보기",
-                    style = MaterialTheme.typography.labelMedium.copy(color = Gray500),
-                    modifier = Modifier.clickable { },
-                )
-                Icon(
-                    painter = painterResource(R.drawable.ic_detail_quiz_all),
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = Color.Unspecified
-                )
-            }
-        }
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
-            colors = CardDefaults.cardColors(containerColor = White),
-        ) {
-            chapters.forEachIndexed { index, chapter ->
-
-                SubjectLongCard(
-                    title = chapter.name,
-                    chapter = "챕터 ${chapter.number}",
-                    part = "파트 ${chapter.partCount}개",
-                    onClick = {
-                        if (isEditMode) onChapterEditClick(chapter) else onChapterClick(
-                            chapter
-                        )
-                    },
-                    trailingIconRes = if (isEditMode) R.drawable.ic_detail_edit else com.f1.quiket.core.designsystem.R.drawable.ic_subject_card_next,
-                )
-
-                if (index < chapters.lastIndex) {
-                    HorizontalDivider(
-                        color = White,
-                        thickness = 16.dp
-                    )
-                }
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
-                .background(White)
-                .clickable { onChapterAddClick() }
-                .padding(vertical = 14.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AddSubjectCard(
-                title = "챕터 추가",
-                onClick = onChapterAddClick,
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-    }
-}
-
-@Composable
-private fun AddTestCalendarDialog(
-    subjectName: String,
-    hasExistingSchedule: Boolean = false,
-    initialExamName: String = "",
-    initialDate: String = "",
-    onDismiss: () -> Unit,
-    onApply: (examName: String, date: String) -> Unit,
-    onDelete: () -> Unit = {},
-) {
-    var examName by remember { mutableStateOf(initialExamName) }
-    var showCalendar by remember { mutableStateOf(false) }
-
-    val now = remember { Calendar.getInstance() }
-    val parsedDate = remember(initialDate) {
-        runCatching {
-            val parts = initialDate.split("-")
-            Triple(parts[0].toInt(), parts[1].toInt(), parts[2].toInt())
-        }.getOrNull()
-    } // Triple: (year, month, day)
-    var calYear by remember { mutableIntStateOf(parsedDate?.first ?: now.get(Calendar.YEAR)) }
-    var calMonth by remember {
-        mutableIntStateOf(
-            parsedDate?.second ?: (now.get(Calendar.MONTH) + 1)
+    deletingChapter?.let { chapter ->
+        DeleteChapterDialog(
+            chapterNumber = chapter.number,
+            chapterName = chapter.name,
+            onDismiss = { deletingChapter = null; isChapterDeleteMode = false },
+            onConfirm = {
+                if (chapter.id.isNotEmpty()) viewModel.deleteChapter(chapter.id)
+                deletingChapter = null; isChapterDeleteMode = false
+            },
         )
     }
-    var selectedDay by remember { mutableStateOf(parsedDate?.third) }
-    var confirmedDateStr by remember { mutableStateOf(initialDate) }
-
-    val isApplyEnabled = confirmedDateStr.isNotBlank()
-
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = White),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = "시험 일정 등록",
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Gray950,
-                    )
-                )
-                Spacer(modifier = Modifier.height(20.dp))
-
-                if (!showCalendar) {
-                    DialogFieldLabel(text = "과목명 *")
-                    Spacer(modifier = Modifier.height(6.dp))
-                    BaseTextField(
-                        value = subjectName,
-                        onValueChange = {},
-                        hint = "",
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    DialogFieldLabel(text = "시험명")
-                    Spacer(modifier = Modifier.height(6.dp))
-                    BaseTextField(
-                        value = examName,
-                        onValueChange = { examName = it },
-                        hint = "시험명을 입력해주세요",
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    DialogFieldLabel(text = "시험 날짜 *")
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        BaseTextField(
-                            value = confirmedDateStr,
-                            onValueChange = {},
-                            hint = "YYYY.MM.DD",
-                            readOnly = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            trailingIcon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_detail_date),
-                                    contentDescription = "캘린더",
-                                    tint = Color.Unspecified,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        )
-                        // BasicTextField가 터치를 소비하므로 투명 오버레이로 클릭 가로챔
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .clickable(
-                                    indication = null,
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    onClick = { showCalendar = true },
-                                )
-                        )
-                    }
-
-                    if (hasExistingSchedule) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        TextButton(
-                            onClick = onDelete,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(
-                                "일정 삭제",
-                                style = MaterialTheme.typography.bodySmall.copy(color = Negative),
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        OutlinedButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray700),
-                            border = BorderStroke(2.dp, Brown950),
-                        ) {
-                            Text(
-                                "취소", style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.SemiBold),
-                                color = Brown950
-                            )
-                        }
-                        Button(
-                            onClick = { onApply(examName, confirmedDateStr) },
-                            enabled = isApplyEnabled,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Brown950,
-                                contentColor = White,
-                                disabledContainerColor = Gray300,
-                                disabledContentColor = White
-                            )
-                        ) {
-                            Text("적용", style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.SemiBold))
-                        }
-                    }
-                } else {
-                    // ── Calendar mode ──
-                    CalendarView(
-                        year = calYear,
-                        month = calMonth,
-                        selectedDay = selectedDay,
-                        onPrevMonth = {
-                            if (calMonth == 1) {
-                                calYear--; calMonth = 12
-                            } else {
-                                calMonth--
-                            }
-                            selectedDay = null
-                        },
-                        onNextMonth = {
-                            if (calMonth == 12) {
-                                calYear++; calMonth = 1
-                            } else {
-                                calMonth++
-                            }
-                            selectedDay = null
-                        },
-                        onDaySelect = { selectedDay = it },
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        TextButton(
-                            onClick = { selectedDay = null },
-                        ) {
-                            Text(
-                                "초기화",
-                                style = MaterialTheme.typography.bodySmall.copy(color = Gray500),
-                            )
-                        }
-                        Spacer(modifier = Modifier.weight(1f))
-                        TextButton(onClick = { showCalendar = false }) {
-                            Text(
-                                "취소",
-                                style = MaterialTheme.typography.bodySmall.copy(color = Gray500),
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Button(
-                            onClick = {
-                                selectedDay?.let { day ->
-                                    confirmedDateStr = "%d-%02d-%02d".format(calYear, calMonth, day)
-                                }
-                                showCalendar = false
-                            },
-                            enabled = selectedDay != null,
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Brown950,
-                                contentColor = White,
-                                disabledContainerColor = Gray300,
-                                disabledContentColor = White,
-                            ),
-                        ) {
-                            Text("확인", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
+// ── Previews ──────────────────────────────────────────────────────────────────
+
+@Preview(showBackground = true, name = "SubjectDetailScreen - 시험 일정 있음")
 @Composable
-private fun DialogFieldLabel(text: String) {
-
-    val annotatedText = buildAnnotatedString {
-        append(text.replace("*", ""))
-
-        if (text.contains("*")) {
-            withStyle(
-                style = SpanStyle(
-                    color = Negative
-                )
-            ) {
-                append("*")
-            }
-        }
-    }
-
-    Text(
-        text = annotatedText,
-        style = MaterialTheme.typography.bodyLarge.copy(
-            fontWeight = FontWeight.Bold,
-            color = Brown950,
-        )
+private fun PreviewSubjectDetailScreenWithSchedule() {
+    val sampleChapters = listOf(
+        Chapter(id = "1", number = 1, name = "데이터 구조 기초", partCount = 3),
+        Chapter(id = "2", number = 2, name = "알고리즘 분석", partCount = 5),
+        Chapter(id = "3", number = 3, name = "정렬 알고리즘", partCount = 4),
     )
-}
-
-@Composable
-private fun EditSubjectNameDialog(
-    currentName: String,
-    onDismiss: () -> Unit,
-    onApply: (String) -> Unit,
-) {
-    var name by remember { mutableStateOf(currentName) }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = White),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = "과목명 수정",
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Gray950,
-                    ),
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                DialogFieldLabel(text = "과목명 *")
-                Spacer(modifier = Modifier.height(6.dp))
-                BaseTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    hint = "과목명을 입력해주세요",
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray700),
-                        border = BorderStroke(2.dp, Brown950),
-                    ) {
-                        Text(
-                            "취소", style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = Brown950
-                        )
-                    }
-                    Button(
-                        onClick = { onApply(name) },
-                        enabled = name.isNotBlank(),
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Brown950,
-                            contentColor = White,
-                            disabledContainerColor = Gray300,
-                            disabledContentColor = White,
-                        ),
-                    ) {
-                        Text(
-                            "적용", style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EditChapterNameDialog(
-    currentName: String,
-    onDismiss: () -> Unit,
-    onApply: (String) -> Unit,
-) {
-    var name by remember { mutableStateOf(currentName) }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = White),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = "챕터명 수정",
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Gray950,
-                    ),
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                DialogFieldLabel(text = "챕터명 *")
-                Spacer(modifier = Modifier.height(6.dp))
-                BaseTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    hint = "챕터명을 입력해주세요",
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray700),
-                        border = BorderStroke(2.dp, Brown950),
-                    ) {
-                        Text(
-                            "취소", style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = Brown950
-                        )
-                    }
-                    Button(
-                        onClick = { onApply(name) },
-                        enabled = name.isNotBlank(),
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Brown950,
-                            contentColor = White,
-                            disabledContainerColor = Gray300,
-                            disabledContentColor = White,
-                        ),
-                    ) {
-                        Text(
-                            "적용", style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CalendarView(
-    year: Int,
-    month: Int,
-    selectedDay: Int?,
-    onPrevMonth: () -> Unit,
-    onNextMonth: () -> Unit,
-    onDaySelect: (Int) -> Unit,
-) {
-    val now = remember { Calendar.getInstance() }
-    val todayYear = now.get(Calendar.YEAR)
-    val todayMonth = now.get(Calendar.MONTH) + 1
-    val todayDay = now.get(Calendar.DAY_OF_MONTH)
-
-    val cal = remember(year, month) {
-        Calendar.getInstance().apply { set(year, month - 1, 1) }
-    }
-    val totalDays = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
-    // 월요일 시작: 월=0 … 일=6
-    val offset = (cal.get(Calendar.DAY_OF_WEEK) - 2 + 7) % 7
-    val dayLabels = listOf("월", "화", "수", "목", "금", "토", "일")
-
-    Column {
-        // 월 네비게이션: 제목 왼쪽, 화살표 오른쪽
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "${year}년 ${month}월",
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                color = Gray950,
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    painter = painterResource(com.f1.quiket.core.designsystem.R.drawable.ic_common_back),
-                    contentDescription = "이전 달",
-                    tint = Color.Unspecified,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() },
-                        ) { onPrevMonth() },
-                )
-                Spacer(modifier = Modifier.width(20.dp))
-                Icon(
-                    painter = painterResource(com.f1.quiket.core.designsystem.R.drawable.ic_common_next),
-                    contentDescription = "다음 달",
-                    tint = Color.Unspecified,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() },
-                        ) { onNextMonth() },
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 요일 헤더 (월~일)
-        Row(modifier = Modifier.fillMaxWidth()) {
-            dayLabels.forEach { label ->
-                Text(
-                    text = label,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Gray400,
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // 날짜 그리드
-        val totalCells = ((offset + totalDays + 6) / 7) * 7
-        Column {
-            (0 until totalCells / 7).forEach { week ->
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    (0 until 7).forEach { col ->
-                        val day = week * 7 + col - offset + 1
-                        val isToday = day == todayDay && year == todayYear && month == todayMonth
-                        val isSelected = day == selectedDay
-
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(vertical = 4.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            if (day in 1..totalDays) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            when {
-                                                isSelected -> Brown950
-                                                isToday -> Brown50
-                                                else -> Color.Transparent
-                                            }
-                                        )
-                                        .clickable(
-                                            indication = null,
-                                            interactionSource = remember { MutableInteractionSource() },
-                                        ) { onDaySelect(day) },
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        text = day.toString(),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (isSelected) White else Gray950,
-                                        textAlign = TextAlign.Center,
-                                    )
-                                }
-                                Spacer(modifier = Modifier.size(6.dp))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DeleteSubjectDialog(
-    chapterNumber: Int,
-    subjectName: String,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = White),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = "'챕터 $chapterNumber $subjectName'을 삭제할까요?",
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Gray950,
-                    ),
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "챕터가 영구적으로 삭제돼요.",
-                    style = MaterialTheme.typography.bodySmall.copy(color = Gray700),
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray700),
-                        border = BorderStroke(2.dp, Brown950),
-                    ) {
-                        Text(
-                            "닫기", style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.SemiBold),
-                            color = Brown950
-                        )
-                    }
-                    Button(
-                        onClick = onConfirm,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Negative,
-                            contentColor = White,
-                        ),
-                    ) {
-                        Text("삭제하기", style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.SemiBold))
-                    }
-                }
-            }
-        }
-    }
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// Previews
-// ────────────────────────────────────────────────────────────────────────────
-
-@Preview(showBackground = true)
-@Composable
-private fun AddTestCalendarDialogPreview() {
     QuiketTheme {
-        AddTestCalendarDialog(
-            subjectName = "SQLD",
-            onDismiss = {},
-            onApply = { _, _ -> },
-        )
+        Scaffold(containerColor = White) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = innerPadding.calculateBottomPadding())
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                Column(modifier = Modifier.background(Green800)) {
+                    SubjectDetailTopBar(
+                        title = "자료구조", isStarred = true, showMenu = false,
+                        onBackClick = {}, onStarClick = {}, onMenuClick = {}, onMenuDismiss = {},
+                        onEditSubjectName = {}, onEditSubjectType = {}, onEditChapterName = {}, onDeleteSubjectClick = {},
+                    )
+                    SubjectHeaderSection(
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        studyPurposeLabel = "시험 준비",
+                        examTypeLabel = "대학교",
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(color = White, shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    HomeActionButton(text = "자료 업로드", iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_upload, backgroundColor = Gray100, onClick = {}, modifier = Modifier.height(103.dp).weight(1f))
+                    HomeActionButton(text = "퀴즈 만들기", iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_make, backgroundColor = Orange500, onClick = {}, modifier = Modifier.height(103.dp).weight(1f))
+                }
+                Box(modifier = Modifier.fillMaxWidth().background(Brown50)) {
+                    HomeExamCard(examName = "기말고사", date = "2026.06.30", dDay = "D-16", onClick = {}, modifier = Modifier.padding(16.dp))
+                }
+                MySubjectSection(chapters = sampleChapters, onChapterClick = {}, onChapterAddClick = {})
+            }
+        }
     }
 }
 
-@Preview(showBackground = true, name = "챕터 삭제 다이얼로그")
+@Preview(showBackground = true, name = "SubjectDetailScreen - 시험 일정 없음")
 @Composable
-private fun DeleteSubjectDialogPreview() {
+private fun PreviewSubjectDetailScreenEmpty() {
     QuiketTheme {
-        DeleteSubjectDialog(
-            chapterNumber = 3,
-            subjectName = "SQLD",
-            onDismiss = {},
-            onConfirm = {},
-        )
+        Scaffold(containerColor = White) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = innerPadding.calculateBottomPadding())
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                Column(modifier = Modifier.background(Green800)) {
+                    SubjectDetailTopBar(
+                        title = "영어 회화", isStarred = false, showMenu = false,
+                        onBackClick = {}, onStarClick = {}, onMenuClick = {}, onMenuDismiss = {},
+                        onEditSubjectName = {}, onEditSubjectType = {}, onEditChapterName = {}, onDeleteSubjectClick = {},
+                    )
+                    SubjectHeaderSection(
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        studyPurposeLabel = "자기 개발",
+                        examTypeLabel = "어학",
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(color = White, shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    HomeActionButton(text = "자료 업로드", iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_upload, backgroundColor = Gray100, onClick = {}, modifier = Modifier.height(103.dp).weight(1f))
+                    HomeActionButton(text = "퀴즈 만들기", iconRes = com.f1.quiket.core.designsystem.R.drawable.ic_home_make, backgroundColor = Orange500, onClick = {}, modifier = Modifier.height(103.dp).weight(1f))
+                }
+                Box(modifier = Modifier.fillMaxWidth().background(Brown50)) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        HomeEmptyExamCard(onClick = {}, modifier = Modifier.padding(16.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+                MySubjectSection(chapters = emptyList(), onChapterClick = {}, onChapterAddClick = {})
+            }
+        }
     }
 }

@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -97,7 +98,7 @@ fun LectureViewScreen(
         else listOf(LectureItem(id = 1, number = "", title = name, content = content))
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(White)) {
         Scaffold(
             containerColor = Gray100,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
@@ -127,6 +128,7 @@ fun LectureViewScreen(
             LectureList(
                 items = displayItems,
                 chapterNumber = chapter.number,
+                partNumber = currentPartIndex + 1,
                 partTitle = currentPartName ?: "",
                 modifier = Modifier
                     .fillMaxSize()
@@ -185,6 +187,7 @@ fun LectureViewScreen(
 private fun LectureList(
     items: List<LectureItem>,
     chapterNumber: Int,
+    partNumber: Int,
     partTitle: String,
     modifier: Modifier = Modifier,
 ) {
@@ -212,11 +215,21 @@ private fun LectureList(
                 color = Gray500,
             )
             Text(
+                text = "파트 $partNumber",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = Gray500,
+            )
+            Text(
                 text = partTitle,
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontWeight = FontWeight.Medium
                 ),
                 color = Gray500,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
         }
 
