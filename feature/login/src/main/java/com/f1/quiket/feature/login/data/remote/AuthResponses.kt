@@ -15,10 +15,10 @@ data class AuthTokenDataResponse(
 @Serializable
 data class AuthUserResponse(
     val id: String,
-    val email: String,
+    val email: String? = null,
     val nickname: String,
     val dotoriBalance: Int,
-    val emailVerified: Boolean,
+    val emailVerified: Boolean = false,
     val status: String,
     val providers: List<String>,
 )

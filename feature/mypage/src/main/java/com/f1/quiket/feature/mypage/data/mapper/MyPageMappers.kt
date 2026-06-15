@@ -38,7 +38,7 @@ fun GamificationDataResponse.toDomain(): Gamification = Gamification(
 
 fun MyProfileDataResponse.toDomain(): MyProfile = MyProfile(
     id = id,
-    email = email,
+    email = email.orEmpty(),
     nickname = nickname,
     dotoriBalance = dotoriBalance,
     emailVerified = emailVerified,

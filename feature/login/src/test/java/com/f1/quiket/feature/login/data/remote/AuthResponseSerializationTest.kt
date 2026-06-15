@@ -1,6 +1,7 @@
 package com.f1.quiket.feature.login.data.remote
 
 import com.f1.quiket.core.network.model.ApiResponse
+import com.f1.quiket.feature.login.data.mapper.toDomain
 import com.google.common.truth.Truth.assertThat
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
@@ -38,6 +39,40 @@ class AuthResponseSerializationTest {
 
         assertThat(response.data?.accessToken).isEqualTo("access-token")
         assertThat(response.data?.user?.providers).containsExactly("local", "kakao").inOrder()
+    }
+
+    @Test
+    fun authTokenResponse_withoutEmail_deserializesForKakaoOnlyUser() {
+        val response = decode(
+            """
+            {
+              "success": true,
+              "code": "AUTH_LOGIN_SUCCESS",
+              "message": "Kakao login complete.",
+              "data": {
+                "accessToken": "access-token",
+                "refreshToken": "refresh-token",
+                "tokenType": "Bearer",
+                "accessTokenExpiresIn": 3600,
+                "refreshTokenExpiresIn": 1209600,
+                "user": {
+                  "id": "018f8c2e-5f73-7b6a-b9f0-3f55e7f7c901",
+                  "nickname": "tester",
+                  "dotoriBalance": 0,
+                  "status": "active",
+                  "providers": ["kakao"]
+                }
+              }
+            }
+            """.trimIndent(),
+            AuthTokenDataResponse.serializer(),
+        )
+
+        val user = response.data?.toDomain()?.user
+
+        assertThat(user?.email).isEmpty()
+        assertThat(user?.emailVerified).isFalse()
+        assertThat(user?.providers?.map { it.name }).containsExactly("Kakao")
     }
 
     @Test

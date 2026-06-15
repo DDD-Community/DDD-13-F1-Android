@@ -19,10 +19,10 @@ data class GamificationDataResponse(
 @Serializable
 data class MyProfileDataResponse(
     val id: String,
-    val email: String,
+    val email: String? = null,
     val nickname: String,
     val dotoriBalance: Int,
-    val emailVerified: Boolean,
+    val emailVerified: Boolean = false,
     val status: String,
     val providers: List<String> = emptyList(),
     val xpTotal: Int? = null,

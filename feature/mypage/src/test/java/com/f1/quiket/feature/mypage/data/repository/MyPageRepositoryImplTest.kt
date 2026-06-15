@@ -35,6 +35,31 @@ class MyPageRepositoryImplTest {
     private val dispatcher: TestDispatcher = UnconfinedTestDispatcher()
 
     @Test
+    fun getMyProfile_withoutEmail_mapsEmptyEmail() = runTest {
+        val api = FakeMyPageApi()
+        val repository = repository(api)
+
+        api.getMyProfileHandler = {
+            successResponse(
+                code = "MY_PROFILE_SUCCESS",
+                data = profileResponse(
+                    nickname = "카카오사용자",
+                    email = null,
+                    emailVerified = false,
+                    providers = listOf("kakao"),
+                ),
+            )
+        }
+
+        val result = repository.getMyProfile()
+
+        val profile = (result as NetworkResult.Success).data
+        assertThat(profile.email).isEmpty()
+        assertThat(profile.emailVerified).isFalse()
+        assertThat(profile.providers).containsExactly("kakao")
+    }
+
+    @Test
     fun updateMyNickname_success_mapsRequestBody() = runTest {
         val api = FakeMyPageApi()
         val repository = repository(api)
@@ -178,12 +203,15 @@ class MyPageRepositoryImplTest {
         var createFeedbackHandler:
             suspend (FeedbackCreateRequest) -> Response<ApiResponse<FeedbackDataResponse>> =
             { unhandled("createFeedback") }
+        var getMyProfileHandler:
+            suspend () -> Response<ApiResponse<MyProfileDataResponse>> =
+            { unhandled("getMyProfile") }
 
         override suspend fun getMyGamification(): Response<ApiResponse<GamificationDataResponse>> =
             unhandled("getMyGamification")
 
         override suspend fun getMyProfile(): Response<ApiResponse<MyProfileDataResponse>> =
-            unhandled("getMyProfile")
+            getMyProfileHandler()
 
         override suspend fun updateMyNickname(
             request: NicknameUpdateRequest,
@@ -233,15 +261,17 @@ class MyPageRepositoryImplTest {
 
         fun profileResponse(
             nickname: String,
-            email: String = "user@example.com",
+            email: String? = "user@example.com",
+            emailVerified: Boolean = true,
+            providers: List<String> = listOf("local"),
         ): MyProfileDataResponse = MyProfileDataResponse(
             id = "user-1",
             email = email,
             nickname = nickname,
             dotoriBalance = 20,
-            emailVerified = true,
+            emailVerified = emailVerified,
             status = "active",
-            providers = listOf("local"),
+            providers = providers,
             xpTotal = 100,
             currentLevel = 2,
             createdAt = "2026-05-20T00:00:00Z",
