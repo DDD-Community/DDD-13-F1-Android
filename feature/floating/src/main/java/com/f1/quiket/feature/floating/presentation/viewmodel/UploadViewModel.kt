@@ -183,6 +183,13 @@ class UploadViewModel @Inject constructor(
         }
     }
 
+    fun resetSuccess() {
+        _isSuccess.value = false
+        _uploadedLectureUploadId.value = null
+        _uploadedChapterId.value = null
+        _progress.value = 0f
+    }
+
     fun cancelUpload() {
         pollingJob?.cancel()
         pollingJob = null

@@ -3,6 +3,7 @@ package com.f1.quiket.feature.floating.presentation.screen.addsubject
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -90,13 +93,15 @@ fun AddSubjectStep3Screen(
     onSkipClick: () -> Unit = {},
     onCreateClick: (String, (AddSubjectState) -> AddSubjectState) -> Unit = { _, _ -> },
 ) {
+    val focusManager = LocalFocusManager.current
     var showSkipSheet by remember { mutableStateOf(false) }
 
     Scaffold(containerColor = White, contentWindowInsets = WindowInsets(0)) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } },
         ) {
             AddSubjectTopBar(onBackClick = onBackClick)
             Spacer(modifier = Modifier.height(4.dp))
@@ -126,11 +131,11 @@ fun AddSubjectStep3Screen(
                             onSkipClick = { showSkipSheet = true },
                             onCreateClick = onCreateClick,
                         )
-                        ExamType.CIVIL_SERVANT -> CivilServantSection(
+                        ExamType.CIVIL_SERVICE -> CivilServantSection(
                             onSkipClick = { showSkipSheet = true },
                             onCreateClick = onCreateClick,
                         )
-                        ExamType.OTHER, null -> ExamOtherSection(
+                        ExamType.OTHER_EXAM, null -> ExamOtherSection(
                             onSkipClick = { showSkipSheet = true },
                             onCreateClick = onCreateClick,
                         )
@@ -171,7 +176,7 @@ private fun UniversitySection(
     var majorName by remember { mutableStateOf("") }
     var selectedCourseType by remember { mutableStateOf<CourseType?>(null) }
 
-    val isEnabled = selectedMajor != null && majorName.isNotBlank() && selectedCourseType != null
+    val isEnabled = true
 
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -215,10 +220,14 @@ private fun UniversitySection(
             isEnabled = isEnabled,
             onSkipClick = onSkipClick,
             onNextClick = {
-                val label = "${selectedMajor?.label} · $majorName · ${selectedCourseType?.label}"
                 val major = selectedMajor
                 val course = selectedCourseType
                 val name = majorName
+                val label = listOfNotNull(
+                    major?.label,
+                    name.ifBlank { null },
+                    course?.label,
+                ).joinToString(" · ")
                 onCreateClick(label) { state ->
                     state.copy(majorCategory = major, majorName = name, courseType = course)
                 }
@@ -761,7 +770,7 @@ private fun AdditionalDescriptionSection(
     onCreateClick: (String, (AddSubjectState) -> AddSubjectState) -> Unit,
 ) {
     var text by remember { mutableStateOf("") }
-    val isEnabled = text.isNotBlank()
+    val isEnabled = true
 
     Column(modifier = Modifier.fillMaxSize()) {
         Column(

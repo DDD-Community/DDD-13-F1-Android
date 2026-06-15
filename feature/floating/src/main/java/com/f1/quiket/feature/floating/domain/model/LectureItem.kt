@@ -17,6 +17,7 @@ data class TocChapter(
 
 data class TocPart(
     val id: String,
+    val partNumber: Int,
     val title: String,
     val isSelected: Boolean = false,
 )

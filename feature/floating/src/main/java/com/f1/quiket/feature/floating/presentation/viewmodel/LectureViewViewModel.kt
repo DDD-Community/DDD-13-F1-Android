@@ -53,7 +53,7 @@ class LectureViewViewModel @Inject constructor(
                             number = chapter.displayOrder,
                             title = chapter.name,
                             parts = chapter.parts.map { part ->
-                                TocPart(id = part.id, title = part.name)
+                                TocPart(id = part.id, partNumber = part.partNumber, title = part.name)
                             },
                         )
                     }
@@ -106,6 +106,18 @@ class LectureViewViewModel @Inject constructor(
                             }
                         )
                     }
+                }
+                is NetworkResult.Failure -> {}
+            }
+        }
+    }
+
+    fun updatePartContent(partId: String, content: String) {
+        viewModelScope.launch {
+            val name = _currentPartName.value ?: ""
+            when (val result = subjectRepository.updatePart(partId, name, content)) {
+                is NetworkResult.Success -> {
+                    _currentPartContent.value = result.data.content
                 }
                 is NetworkResult.Failure -> {}
             }

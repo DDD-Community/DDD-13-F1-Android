@@ -110,6 +110,11 @@ class SubjectRepositoryImpl @Inject constructor(
             )
         }
 
+    override suspend fun deleteChapter(chapterId: String): NetworkResult<Unit> =
+        withContext(dispatchers.io) {
+            responseHandler.executeEmpty { api.deleteChapter(chapterId = chapterId) }
+        }
+
     override suspend fun updateChapterName(
         chapterId: String,
         name: String,

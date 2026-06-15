@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.f1.quiket.core.designsystem.theme.Gray700
@@ -73,6 +74,8 @@ fun LectureViewTopBar(
                 fontWeight = FontWeight.Medium,
                 color = Gray950,
             ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
 
         // 목차 토글 (햄버거)

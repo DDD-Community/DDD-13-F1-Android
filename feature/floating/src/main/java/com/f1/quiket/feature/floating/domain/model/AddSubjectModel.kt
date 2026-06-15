@@ -17,8 +17,8 @@ enum class ExamType(val label: String) {
     MIDDLE_HIGH("중고등시험"),
     CERTIFICATE("자격증"),
     LANGUAGE("어학"),
-    CIVIL_SERVANT("공무원 시험"),
-    OTHER("기타"),
+    CIVIL_SERVICE("공무원 시험"),
+    OTHER_EXAM("기타"),
 }
 
 // 2depth - 분야 (SELF_STUDY) 12개
@@ -145,12 +145,12 @@ enum class CivilServantSeries(val label: String) {
     OTHER("기타"),
 }
 
-// 3depth - 자기계발 숙련도 4개
+// 3depth - 자기계발 숙련도 4개 (name = 백엔드 study_level 값과 일치)
 enum class FamiliarityLevel(val label: String, val description: String) {
     BEGINNER("입문자", "처음 배우는 단계예요"),
-    BASIC("초급자", "기초 개념은 알고 있어요"),
-    INTERMEDIATE("중급자", "어느 정도 익숙해요"),
-    ADVANCED("고급자", "심화 내용도 다뤄요"),
+    CASUAL("초급자", "기초 개념은 알고 있어요"),
+    REGULAR("중급자", "어느 정도 익숙해요"),
+    EXPERT("고급자", "심화 내용도 다뤄요"),
 }
 
 // ────────────────────────────────────────────
@@ -162,8 +162,8 @@ fun examTypeFromBackendValue(value: String): ExamType? = when (value.lowercase()
     "middle_high" -> ExamType.MIDDLE_HIGH
     "certificate" -> ExamType.CERTIFICATE
     "language" -> ExamType.LANGUAGE
-    "civil_service", "civil_servant" -> ExamType.CIVIL_SERVANT
-    "other_exam", "other" -> ExamType.OTHER
+    "civil_service", "civil_servant" -> ExamType.CIVIL_SERVICE
+    "other_exam", "other" -> ExamType.OTHER_EXAM
     else -> null
 }
 

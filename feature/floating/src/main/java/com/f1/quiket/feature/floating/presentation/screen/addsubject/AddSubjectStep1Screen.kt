@@ -1,5 +1,6 @@
 package com.f1.quiket.feature.floating.presentation.screen.addsubject
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +22,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -40,22 +43,27 @@ import com.f1.quiket.feature.floating.presentation.component.SkipBottomSheet
 @Composable
 fun AddSubjectStep1Screen(
     initialSubjectName: String = "",
+    existingSubjectNames: List<String> = emptyList(),
     onBackClick: () -> Unit = {},
     onSkipClick: (subjectName: String) -> Unit = {},
     onNextClick: (subjectName: String, purpose: StudyPurpose) -> Unit = { _, _ -> },
 ) {
+    val focusManager = LocalFocusManager.current
     var subjectName by remember { mutableStateOf(initialSubjectName) }
     var selectedPurpose by remember { mutableStateOf<StudyPurpose?>(null) }
     var showSkipSheet by remember { mutableStateOf(false) }
     var showRequiredNameDialog by remember { mutableStateOf(false) }
 
-    val isNextEnabled = subjectName.isNotBlank() && selectedPurpose != null
+    val isDuplicate = subjectName.isNotBlank() &&
+        existingSubjectNames.any { it.equals(subjectName.trim(), ignoreCase = true) }
+    val isNextEnabled = subjectName.isNotBlank() && selectedPurpose != null && !isDuplicate
 
     Scaffold(containerColor = White, contentWindowInsets = WindowInsets(0)) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } },
         ) {
             // ── TopBar ──────────────────────────────────────
             AddSubjectTopBar(
@@ -99,14 +107,18 @@ fun AddSubjectStep1Screen(
                     onValueChange = { subjectName = it },
                     hint = "과목명을 입력해주세요",
                     modifier = Modifier.fillMaxWidth(),
+                    isError = isDuplicate,
+                    errorMessage = if (isDuplicate) "이미 있는 과목명입니다." else null,
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                Text(
-                    text = "과목명은 나중에 수정할 수 있어요",
-                    style = MaterialTheme.typography.labelSmall.copy(color = Gray500),
-                )
+                if (!isDuplicate) {
+                    Text(
+                        text = "과목명은 나중에 수정할 수 있어요",
+                        style = MaterialTheme.typography.labelSmall.copy(color = Gray500),
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(28.dp))
 

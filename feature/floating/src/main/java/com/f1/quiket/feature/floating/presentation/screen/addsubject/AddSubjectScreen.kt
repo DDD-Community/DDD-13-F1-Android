@@ -2,8 +2,10 @@ package com.f1.quiket.feature.floating.presentation.screen.addsubject
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -15,6 +17,7 @@ import com.f1.quiket.feature.floating.domain.model.StudyPurpose
 import com.f1.quiket.feature.floating.domain.model.UsagePurpose
 import com.f1.quiket.feature.floating.domain.model.Chapter
 import com.f1.quiket.feature.floating.presentation.screen.UploadScreen
+
 import com.f1.quiket.feature.floating.presentation.screen.lectureview.LectureViewScreen
 import com.f1.quiket.feature.floating.presentation.screen.materialcheck.MaterialCheckScreen
 import com.f1.quiket.feature.floating.presentation.screen.subjectdetail.SubjectDetailScreen
@@ -27,10 +30,12 @@ fun AddSubjectScreen(
     viewModel: AddSubjectViewModel = hiltViewModel(),
 ) {
     val createdSubjectId by viewModel.createdSubjectId.collectAsState()
+    val existingSubjectNames by viewModel.existingSubjectNames.collectAsState()
     var state by remember { mutableStateOf(AddSubjectState()) }
     var depth by remember { mutableStateOf(1) }
     var skippedFromStep by remember { mutableStateOf(0) }
     var nextChapterNumber by remember { mutableStateOf(1) }
+    var subjectDetailRefreshTrigger by remember { mutableIntStateOf(0) }
 
     // 업로드 성공 후 MaterialCheckScreen/LectureViewScreen에 넘길 정보
     var uploadedLectureUploadId by remember { mutableStateOf("") }
@@ -39,10 +44,18 @@ fun AddSubjectScreen(
     var uploadedChapterNumber by remember { mutableStateOf(1) }
     var uploadedPartCount by remember { mutableStateOf(0) }
 
+
+    LaunchedEffect(viewModel) {
+        viewModel.updateDetailsSuccess.collect {
+            subjectDetailRefreshTrigger++
+        }
+    }
+
     // depth=4(SubjectDetailScreen)에서 시스템 백버튼도 onFinish로 처리
     BackHandler(enabled = depth == 4) { onFinish() }
     // depth=7(LectureViewScreen)에서 시스템 백버튼 → SubjectDetail로
     BackHandler(enabled = depth == 7) { depth = 4 }
+
 
     fun goToSubjectDetail(currentState: AddSubjectState) {
         val existingId = createdSubjectId
@@ -57,6 +70,7 @@ fun AddSubjectScreen(
     when (depth) {
         1 -> AddSubjectStep1Screen(
             initialSubjectName = state.subjectName,
+            existingSubjectNames = existingSubjectNames,
             onBackClick = onDismiss,
             onSkipClick = { name ->
                 state = state.copy(subjectName = name)
@@ -106,9 +120,9 @@ fun AddSubjectScreen(
         4 -> SubjectDetailScreen(
             subjectId = createdSubjectId ?: "",
             subjectName = state.subjectName.ifBlank { "새 과목" },
+            refreshTrigger = subjectDetailRefreshTrigger,
             studyPurposeLabel = state.studyPurpose?.title ?: "",
             examTypeLabel = state.examType?.label ?: state.studyField?.label ?: state.usagePurpose?.title ?: "",
-            detailLabel = state.step3Label,
             onBackClick = onFinish,
             onChapterAddClick = { n -> nextChapterNumber = n; depth = 5 },
             onUploadClick = { n -> nextChapterNumber = n; depth = 5 },

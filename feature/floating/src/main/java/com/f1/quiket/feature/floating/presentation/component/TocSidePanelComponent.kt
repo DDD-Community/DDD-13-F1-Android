@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.f1.quiket.core.designsystem.theme.Brown950
@@ -142,11 +143,13 @@ fun TocSidePanel(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = "· ${part.title}",
+                                text = "파트 ${part.partNumber}  ${part.title}",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     color = if (isSelected) Brown950 else Gray700,
                                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                                 ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
@@ -165,9 +168,9 @@ private fun TocSidePanelPreview() {
             number = 1,
             title = "SQLD 기본",
             parts = listOf(
-                TocPart("1", "파트 1 — 데이터베이스 개념"),
-                TocPart("2", "파트 2 — 데이터 모델링"),
-                TocPart("3", "파트 3 — 정규화"),
+                TocPart("1", 1, "데이터베이스 개념"),
+                TocPart("2", 2, "데이터 모델링"),
+                TocPart("3", 3, "정규화"),
             ),
         ),
         TocChapter(
@@ -175,10 +178,10 @@ private fun TocSidePanelPreview() {
             number = 2,
             title = "데이터 모델",
             parts = listOf(
-                TocPart("4", "파트 1 — 엔터티"),
-                TocPart("5", "파트 2 — 속성"),
-                TocPart("6", "파트 3 — 관계"),
-                TocPart("7", "파트 4 — 식별자"),
+                TocPart("4", 1, "엔터티"),
+                TocPart("5", 2, "속성"),
+                TocPart("6", 3, "관계"),
+                TocPart("7", 4, "식별자"),
             ),
         ),
     )

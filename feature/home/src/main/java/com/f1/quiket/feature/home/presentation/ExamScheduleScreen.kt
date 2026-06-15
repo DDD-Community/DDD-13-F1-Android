@@ -513,8 +513,28 @@ private fun ExamScheduleListItem(
         }.getOrElse { exam.examDate }
     }
 
-    val dDayText = exam.dDay?.let { d -> if (d >= 0) "D-$d" else "D+${-d}" }.orEmpty()
-    val isUrgent = (exam.dDay ?: Int.MAX_VALUE) in 0..7
+    val dDayInt = remember(exam.dDay, exam.examDate) {
+        exam.dDay ?: runCatching {
+            val (y, m, d) = parseExamDate(exam.examDate)!!
+            val exam2 = Calendar.getInstance().apply {
+                set(y, m - 1, d, 0, 0, 0); set(Calendar.MILLISECOND, 0)
+            }
+            val today = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+            }
+            java.util.concurrent.TimeUnit.MILLISECONDS
+                .toDays(exam2.timeInMillis - today.timeInMillis).toInt()
+        }.getOrNull()
+    }
+    val dDayText = dDayInt?.let { d ->
+        when {
+            d > 0 -> "D-$d"
+            d == 0 -> "D-Day"
+            else -> "D+${-d}"
+        }
+    }.orEmpty()
+    val isUrgent = (dDayInt ?: Int.MAX_VALUE) in 0..7
 
     Box(
         modifier = modifier

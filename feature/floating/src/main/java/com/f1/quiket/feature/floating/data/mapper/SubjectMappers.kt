@@ -31,12 +31,16 @@ import com.f1.quiket.feature.floating.domain.model.SubjectReviewDetail
 import com.f1.quiket.feature.floating.domain.model.SubjectSummary
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 
 private val detailJson = Json { ignoreUnknownKeys = true }
 
-private fun JsonElement.toExamDetail(): SubjectExamDetail? =
-    runCatching { detailJson.decodeFromJsonElement<SubjectExamDetailResponse>(this) }.getOrNull()
+private fun JsonElement.toExamDetail(): SubjectExamDetail? {
+    if (this == JsonNull) return null
+    return runCatching { detailJson.decodeFromJsonElement<SubjectExamDetailResponse>(this) }.getOrNull()
+        ?.takeIf { r -> r.examType.isNotBlank() }
         ?.let { r ->
             SubjectExamDetail(
                 examType = r.examType,
@@ -54,14 +58,19 @@ private fun JsonElement.toExamDetail(): SubjectExamDetail? =
                 otherExamName = r.otherExamName,
             )
         }
+}
 
-private fun JsonElement.toReviewDetail(): SubjectReviewDetail? =
-    runCatching { detailJson.decodeFromJsonElement<SubjectReviewDetailResponse>(this) }.getOrNull()
+private fun JsonElement.toReviewDetail(): SubjectReviewDetail? {
+    if (this == JsonNull) return null
+    return runCatching { detailJson.decodeFromJsonElement<SubjectReviewDetailResponse>(this) }.getOrNull()
         ?.let { r -> SubjectReviewDetail(field = r.field, studyLevel = r.studyLevel) }
+}
 
-private fun JsonElement.toOtherDetail(): SubjectOtherDetail? =
-    runCatching { detailJson.decodeFromJsonElement<SubjectOtherDetailResponse>(this) }.getOrNull()
+private fun JsonElement.toOtherDetail(): SubjectOtherDetail? {
+    if (this == JsonNull) return null
+    return runCatching { detailJson.decodeFromJsonElement<SubjectOtherDetailResponse>(this) }.getOrNull()
         ?.let { r -> SubjectOtherDetail(usagePurpose = r.usagePurpose, description = r.description) }
+}
 
 fun SubjectSummaryResponse.toDomain(): SubjectSummary = SubjectSummary(
     id = id,
@@ -79,9 +88,22 @@ fun SubjectResponse.toDomain(): Subject = Subject(
 )
 
 fun SubjectDetailResponse.toDomain(): SubjectDetail {
-    val examDetail = if (purpose.lowercase() == "exam") detail?.toExamDetail() else null
-    val reviewDetail = if (purpose.lowercase() == "self_study") detail?.toReviewDetail() else null
-    val otherDetail = if (purpose.lowercase() == "other") detail?.toOtherDetail() else null
+    val purposeLower = purpose.lowercase()
+    // 실제 서버 구조: "detail": { "examDetail": {...}, "reviewDetail": {...}, ... }
+    val safeDetail = detail?.takeIf { it != JsonNull }
+    val detailWrapper = safeDetail as? JsonObject
+    val examDetailJson = examDetail?.takeIf { it != JsonNull }          // top-level fallback
+        ?: detailWrapper?.get("examDetail")?.takeIf { it != JsonNull }  // detail.examDetail (실제 구조)
+        ?: safeDetail                                                    // detail 자체 fallback
+    val reviewDetailJson = reviewDetail?.takeIf { it != JsonNull }
+        ?: detailWrapper?.get("reviewDetail")?.takeIf { it != JsonNull }
+        ?: safeDetail
+    val otherDetailJson = otherDetail?.takeIf { it != JsonNull }
+        ?: detailWrapper?.get("otherDetail")?.takeIf { it != JsonNull }
+        ?: safeDetail
+    val mappedExamDetail = if (purposeLower == "exam") examDetailJson?.toExamDetail() else null
+    val mappedReviewDetail = if (purposeLower in setOf("review", "self_study")) reviewDetailJson?.toReviewDetail() else null
+    val mappedOtherDetail = if (purposeLower == "other") otherDetailJson?.toOtherDetail() else null
     return SubjectDetail(
         id = id,
         name = name,
@@ -89,9 +111,9 @@ fun SubjectDetailResponse.toDomain(): SubjectDetail {
         createdAt = createdAt,
         chapters = chapters.map { chapter -> chapter.toDomain() },
         examSchedule = examSchedule?.toDomain(),
-        examDetail = examDetail,
-        reviewDetail = reviewDetail,
-        otherDetail = otherDetail,
+        examDetail = mappedExamDetail,
+        reviewDetail = mappedReviewDetail,
+        otherDetail = mappedOtherDetail,
     )
 }
 

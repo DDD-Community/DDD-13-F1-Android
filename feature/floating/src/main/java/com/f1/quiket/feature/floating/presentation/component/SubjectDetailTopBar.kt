@@ -47,6 +47,7 @@ fun SubjectDetailTopBar(
     onEditSubjectName: () -> Unit = {},
     onEditChapterName: () -> Unit = {},
     onDeleteSubjectClick: () -> Unit = {},
+    onDeleteChapterClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -169,6 +170,23 @@ fun SubjectDetailTopBar(
                         )
                     },
                     onClick = { onMenuDismiss(); onDeleteSubjectClick() },
+                )
+                DropdownMenuItem(
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_detail_remove),
+                            contentDescription = null,
+                            tint = Color.Unspecified,
+                        )
+                    },
+                    text = {
+                        Text(
+                            "챕터 삭제",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Negative
+                        )
+                    },
+                    onClick = { onMenuDismiss(); onDeleteChapterClick() },
                 )
             }
         }

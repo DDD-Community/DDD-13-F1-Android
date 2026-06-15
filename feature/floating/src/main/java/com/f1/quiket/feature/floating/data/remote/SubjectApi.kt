@@ -71,6 +71,12 @@ interface SubjectApi {
     suspend fun getCertificates(): Response<ApiResponse<List<CertificateResponse>>>
 
     @Headers(AuthenticatedRequest.HEADER)
+    @DELETE("chapters/{chapterId}")
+    suspend fun deleteChapter(
+        @Path("chapterId") chapterId: String,
+    ): Response<ApiResponse<Unit>>
+
+    @Headers(AuthenticatedRequest.HEADER)
     @PATCH("chapters/{chapterId}/name")
     suspend fun updateChapterName(
         @Path("chapterId") chapterId: String,

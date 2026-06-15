@@ -19,7 +19,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -28,6 +30,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,12 +84,17 @@ fun LectureViewScreen(
 
     var showTocSidebar by remember { mutableStateOf(false) }
     var showEditPartNameDialog by remember { mutableStateOf(false) }
+    var isEditMode by remember { mutableStateOf(false) }
+    var editedContent by remember { mutableStateOf("") }
 
     LaunchedEffect(subjectId, chapter.id) {
         if (subjectId.isNotEmpty() && chapter.id.isNotEmpty()) {
             viewModel.loadSubject(subjectId, chapter.id)
         }
     }
+
+    // 파트 전환 시 편집 모드 해제
+    LaunchedEffect(currentPartId) { isEditMode = false }
 
     val currentPartIndex = remember(currentPartId, allPartIds) {
         allPartIds.indexOfFirst { it == currentPartId }.coerceAtLeast(0)
@@ -97,7 +107,7 @@ fun LectureViewScreen(
         else listOf(LectureItem(id = 1, number = "", title = name, content = content))
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(White)) {
         Scaffold(
             containerColor = Gray100,
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
@@ -107,7 +117,10 @@ fun LectureViewScreen(
                     onBackClick = onBackClick,
                     onTocClick = { showTocSidebar = true },
                     onEditPartNameClick = { showEditPartNameDialog = true },
-                    onEditClick = {},
+                    onEditClick = {
+                        editedContent = currentPartContent ?: ""
+                        isEditMode = true
+                    },
                     onDeletePartClick = {},
                 )
             },
@@ -121,13 +134,27 @@ fun LectureViewScreen(
                     onNext = {
                         if (currentPartIndex < allPartIds.size - 1) viewModel.selectPart(allPartIds[currentPartIndex + 1])
                     },
+                    isEditMode = isEditMode,
+                    onCancelEdit = {
+                        isEditMode = false
+                        editedContent = ""
+                    },
+                    onSaveEdit = {
+                        val partId = currentPartId
+                        if (partId != null) viewModel.updatePartContent(partId, editedContent)
+                        isEditMode = false
+                    },
                 )
             },
         ) { innerPadding ->
             LectureList(
                 items = displayItems,
                 chapterNumber = chapter.number,
+                partNumber = currentPartIndex + 1,
                 partTitle = currentPartName ?: "",
+                isEditMode = isEditMode,
+                editedContent = editedContent,
+                onContentChange = { editedContent = it },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
@@ -185,8 +212,12 @@ fun LectureViewScreen(
 private fun LectureList(
     items: List<LectureItem>,
     chapterNumber: Int,
+    partNumber: Int,
     partTitle: String,
     modifier: Modifier = Modifier,
+    isEditMode: Boolean = false,
+    editedContent: String = "",
+    onContentChange: (String) -> Unit = {},
 ) {
     Column(modifier = modifier) {
         Row(
@@ -199,39 +230,59 @@ private fun LectureList(
         ) {
             Text(
                 text = "챕터 $chapterNumber",
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontWeight = FontWeight.Medium
-                ),
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                 color = Gray500,
             )
+            Text(text = ">", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium), color = Gray500)
             Text(
-                text = ">",
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontWeight = FontWeight.Medium
-                ),
+                text = "파트 $partNumber",
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                 color = Gray500,
             )
             Text(
                 text = partTitle,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontWeight = FontWeight.Medium
-                ),
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                 color = Gray500,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
         }
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Brown50)
-                .padding(horizontal = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            item { Spacer(modifier = Modifier.height(12.dp)) }
-            items(items, key = { it.id }) { item ->
-                LectureTextItem(item = item)
+        if (isEditMode) {
+            TextField(
+                value = editedContent,
+                onValueChange = onContentChange,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Brown50)
+                    .verticalScroll(rememberScrollState()),
+                textStyle = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    color = Gray950,
+                    lineHeight = 20.sp,
+                ),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Brown50,
+                    unfocusedContainerColor = Brown50,
+                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                ),
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Brown50)
+                    .padding(horizontal = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                item { Spacer(modifier = Modifier.height(12.dp)) }
+                items(items, key = { it.id }) { item ->
+                    LectureTextItem(item = item)
+                }
+                item { Spacer(modifier = Modifier.height(16.dp)) }
             }
-            item { Spacer(modifier = Modifier.height(16.dp)) }
         }
     }
 }

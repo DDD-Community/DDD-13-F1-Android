@@ -33,6 +33,8 @@ interface SubjectRepository {
 
     suspend fun getCertificates(): NetworkResult<List<Certificate>>
 
+    suspend fun deleteChapter(chapterId: String): NetworkResult<Unit>
+
     suspend fun updateChapterName(chapterId: String, name: String): NetworkResult<SubjectChapter>
 
     suspend fun getPart(partId: String): NetworkResult<Part>

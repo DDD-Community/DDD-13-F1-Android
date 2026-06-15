@@ -41,8 +41,11 @@ fun HomeExamCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val dDayNum = dDay.substringAfter("D-").toIntOrNull() ?: Int.MAX_VALUE
-    val isUrgent = dDayNum in 0..7
+    val isUrgent = when {
+        dDay == "D-Day" -> true
+        dDay.startsWith("D-") -> dDay.removePrefix("D-").toIntOrNull()?.let { it in 0..7 } ?: false
+        else -> false
+    }
 
     Row(
         modifier = modifier

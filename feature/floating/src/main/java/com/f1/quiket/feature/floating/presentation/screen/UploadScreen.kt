@@ -61,6 +61,7 @@ fun UploadScreen(
     LaunchedEffect(isSuccess) {
         if (isSuccess) {
             val luid = uploadedLectureUploadId
+            viewModel.resetSuccess()
             if (subjectId != null && luid != null) {
                 onUploadSuccess(luid, (chapterCount ?: 0) + 1)
             } else {
