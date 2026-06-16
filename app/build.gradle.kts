@@ -41,6 +41,17 @@ val kakaoNativeAppKey = localProperty(
     name = "kakao.native.app.key",
     defaultValue = "",
 )
+val releaseSigningStoreFile = localProperties.getProperty("storeFile")?.takeIf(String::isNotBlank)
+val releaseSigningStorePassword = localProperties.getProperty("storePassword")?.takeIf(String::isNotBlank)
+val releaseSigningKeyAlias = localProperties.getProperty("keyAlias")?.takeIf(String::isNotBlank)
+val releaseSigningKeyPassword = localProperties.getProperty("keyPassword")?.takeIf(String::isNotBlank)
+val hasReleaseSigningConfig = listOf(
+    releaseSigningStoreFile,
+    releaseSigningStorePassword,
+    releaseSigningKeyAlias,
+    releaseSigningKeyPassword,
+).all { it != null }
+val isReleaseBuild = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
 
 android {
     namespace = "com.f1.quiket"
@@ -55,9 +66,26 @@ android {
         manifestPlaceholders["kakaoRedirectScheme"] = "kakao$kakaoNativeAppKey"
     }
 
+    signingConfigs {
+        create("release") {
+            if (hasReleaseSigningConfig) {
+                storeFile = file(releaseSigningStoreFile!!)
+                storePassword = releaseSigningStorePassword
+                keyAlias = releaseSigningKeyAlias
+                keyPassword = releaseSigningKeyPassword
+            } else if (isReleaseBuild) {
+                throw GradleException(
+                    "Missing release signing properties in local.properties: " +
+                        "storeFile, storePassword, keyAlias, keyPassword",
+                )
+            }
+        }
+    }
+
     buildTypes {
         release {
             buildConfigField("String", "QUIKET_API_BASE_URL", releaseQuiketApiBaseUrl.asBuildConfigString())
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
