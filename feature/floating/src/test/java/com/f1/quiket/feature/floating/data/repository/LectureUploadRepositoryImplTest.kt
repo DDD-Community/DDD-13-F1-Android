@@ -90,7 +90,7 @@ class LectureUploadRepositoryImplTest {
 
         api.createFileLectureUploadHandler = { subjectId, chapterName, uploadType, splitMethod, plansJson, files ->
             assertThat(subjectId.readUtf8()).isEqualTo("subject-1")
-            assertThat(chapterName.readUtf8()).isEqualTo("운영체제 입문")
+            assertThat(chapterName?.readUtf8()).isEqualTo("운영체제 입문")
             assertThat(uploadType.readUtf8()).isEqualTo("pdf")
             assertThat(splitMethod.readUtf8()).isEqualTo("auto")
             assertThat(plansJson).isNull()
@@ -273,7 +273,7 @@ class LectureUploadRepositoryImplTest {
             suspend (LectureTextUploadRequest) -> Response<ApiResponse<LectureUploadAcceptedDataResponse>> =
             { unhandled("createTextLectureUpload") }
         var createFileLectureUploadHandler:
-            suspend (RequestBody, RequestBody, RequestBody, RequestBody, RequestBody?, List<MultipartBody.Part>) ->
+            suspend (RequestBody, RequestBody?, RequestBody, RequestBody, RequestBody?, List<MultipartBody.Part>) ->
                 Response<ApiResponse<LectureUploadAcceptedDataResponse>> =
             { _, _, _, _, _, _ -> unhandled("createFileLectureUpload") }
         var addTextPartToChapterHandler:
@@ -294,7 +294,7 @@ class LectureUploadRepositoryImplTest {
 
         override suspend fun createFileLectureUpload(
             subjectId: RequestBody,
-            chapterName: RequestBody,
+            chapterName: RequestBody?,
             uploadType: RequestBody,
             partSplitMethod: RequestBody,
             partSplitPlansJson: RequestBody?,

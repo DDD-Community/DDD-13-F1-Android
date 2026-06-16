@@ -19,7 +19,6 @@ import com.f1.quiket.feature.floating.domain.model.SubjectReviewDetail
 import com.f1.quiket.feature.floating.domain.repository.SubjectRepository
 import com.f1.quiket.feature.floating.presentation.contract.AddSubjectContract
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +26,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -46,6 +44,15 @@ class AddSubjectViewModel @Inject constructor(
 
     private val _updateDetailsSuccess = Channel<Unit>(Channel.BUFFERED)
     val updateDetailsSuccess = _updateDetailsSuccess.receiveAsFlow()
+
+    private val _subjectDetailReady = Channel<Unit>(Channel.BUFFERED)
+    val subjectDetailReady = _subjectDetailReady.receiveAsFlow()
+
+    private val _isSavingSubject = MutableStateFlow(false)
+    val isSavingSubject: StateFlow<Boolean> = _isSavingSubject.asStateFlow()
+
+    private val _subjectSaveErrorMessage = MutableStateFlow<String?>(null)
+    val subjectSaveErrorMessage: StateFlow<String?> = _subjectSaveErrorMessage.asStateFlow()
 
     private val _existingSubjectNames = MutableStateFlow<List<String>>(emptyList())
     val existingSubjectNames: StateFlow<List<String>> = _existingSubjectNames.asStateFlow()
@@ -92,26 +99,62 @@ class AddSubjectViewModel @Inject constructor(
 
     fun resetForNewSubject() {
         _createdSubjectId.value = null
+        _subjectSaveErrorMessage.value = null
+        _isSavingSubject.value = false
     }
 
     fun createSubject(addSubjectState: AddSubjectState) {
+        if (_isSavingSubject.value) return
+
+        _isSavingSubject.value = true
+        _subjectSaveErrorMessage.value = null
         viewModelScope.launch {
-            val request = addSubjectState.toSubjectCreate()
-            withContext(NonCancellable) {
+            try {
+                val request = addSubjectState.toSubjectCreate()
                 when (val result = subjectRepository.createSubject(request)) {
-                    is NetworkResult.Success -> _createdSubjectId.value = result.data.id
-                    is NetworkResult.Failure -> {}
+                    is NetworkResult.Success -> {
+                        _createdSubjectId.value = result.data.id
+                        _subjectDetailReady.send(Unit)
+                    }
+
+                    is NetworkResult.Failure -> {
+                        _subjectSaveErrorMessage.value =
+                            result.message.ifBlank { "과목을 만들지 못했어요." }
+                    }
                 }
+            } finally {
+                _isSavingSubject.value = false
             }
         }
     }
 
     fun updateSubjectDetails(subjectId: String, addSubjectState: AddSubjectState) {
+        if (_isSavingSubject.value) return
+
+        _isSavingSubject.value = true
+        _subjectSaveErrorMessage.value = null
         viewModelScope.launch {
-            val request = addSubjectState.toSubjectCreate()
-            subjectRepository.updateSubjectDetails(subjectId, request)
-            _updateDetailsSuccess.send(Unit)
+            try {
+                val request = addSubjectState.toSubjectCreate()
+                when (val result = subjectRepository.updateSubjectDetails(subjectId, request)) {
+                    is NetworkResult.Success -> {
+                        _updateDetailsSuccess.send(Unit)
+                        _subjectDetailReady.send(Unit)
+                    }
+
+                    is NetworkResult.Failure -> {
+                        _subjectSaveErrorMessage.value =
+                            result.message.ifBlank { "과목 정보를 저장하지 못했어요." }
+                    }
+                }
+            } finally {
+                _isSavingSubject.value = false
+            }
         }
+    }
+
+    fun clearSubjectSaveError() {
+        _subjectSaveErrorMessage.value = null
     }
 }
 

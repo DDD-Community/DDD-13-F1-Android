@@ -6,6 +6,8 @@ plugins {
     id("quiket.android.application")
     id("quiket.android.compose")
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
 }
@@ -39,23 +41,51 @@ val kakaoNativeAppKey = localProperty(
     name = "kakao.native.app.key",
     defaultValue = "",
 )
+val releaseSigningStoreFile = localProperties.getProperty("storeFile")?.takeIf(String::isNotBlank)
+val releaseSigningStorePassword = localProperties.getProperty("storePassword")?.takeIf(String::isNotBlank)
+val releaseSigningKeyAlias = localProperties.getProperty("keyAlias")?.takeIf(String::isNotBlank)
+val releaseSigningKeyPassword = localProperties.getProperty("keyPassword")?.takeIf(String::isNotBlank)
+val hasReleaseSigningConfig = listOf(
+    releaseSigningStoreFile,
+    releaseSigningStorePassword,
+    releaseSigningKeyAlias,
+    releaseSigningKeyPassword,
+).all { it != null }
+val isReleaseBuild = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
 
 android {
     namespace = "com.f1.quiket"
 
     defaultConfig {
         applicationId = "com.f1.quiket"
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         buildConfigField("String", "QUIKET_API_BASE_URL", quiketApiBaseUrl.asBuildConfigString())
         buildConfigField("String", "KAKAO_NATIVE_APP_KEY", kakaoNativeAppKey.asBuildConfigString())
         manifestPlaceholders["kakaoRedirectScheme"] = "kakao$kakaoNativeAppKey"
     }
 
+    signingConfigs {
+        create("release") {
+            if (hasReleaseSigningConfig) {
+                storeFile = file(releaseSigningStoreFile!!)
+                storePassword = releaseSigningStorePassword
+                keyAlias = releaseSigningKeyAlias
+                keyPassword = releaseSigningKeyPassword
+            } else if (isReleaseBuild) {
+                throw GradleException(
+                    "Missing release signing properties in local.properties: " +
+                        "storeFile, storePassword, keyAlias, keyPassword",
+                )
+            }
+        }
+    }
+
     buildTypes {
         release {
             buildConfigField("String", "QUIKET_API_BASE_URL", releaseQuiketApiBaseUrl.asBuildConfigString())
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -69,6 +99,7 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:navigation"))
     implementation(project(":core:network"))
+    implementation(project(":core:session"))
     implementation(project(":feature:login"))
     implementation(project(":feature:main"))
     implementation(project(":feature:onboarding"))
@@ -84,6 +115,9 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
     implementation(libs.hilt.android)
     implementation(libs.kakao.v2.user)
     implementation(libs.timber)

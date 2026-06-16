@@ -97,6 +97,28 @@ class QuizStartViewModelTest {
         assertThat(viewModel.state.value.isLoading).isFalse()
     }
 
+    @Test
+    fun load_failureAfterSuccess_clearsSummaryAndSanitizesTimeout() = runTest {
+        val repository = FakeQuizPlayRepository()
+        repository.quizSessionResult = NetworkResult.Success(quizSession())
+        val viewModel = QuizStartViewModel(repository)
+
+        viewModel.onIntent(QuizStartIntent.Load("session-1"))
+        advanceUntilIdle()
+
+        repository.quizSessionResult = NetworkResult.Failure(
+            code = "TIMEOUT",
+            message = "timeout",
+        )
+        viewModel.onIntent(QuizStartIntent.Load("session-1"))
+        advanceUntilIdle()
+
+        assertThat(viewModel.state.value.summary).isNull()
+        assertThat(viewModel.state.value.errorMessage)
+            .isEqualTo("퀴즈 정보를 불러올 수 없어요. 잠시 후 다시 시도해 주세요.")
+        assertThat(viewModel.state.value.isLoading).isFalse()
+    }
+
     private class FakeQuizPlayRepository : QuizPlayRepository {
         var loadedQuizSessionId: String? = null
         var quizSessionResult: NetworkResult<QuizSession> =

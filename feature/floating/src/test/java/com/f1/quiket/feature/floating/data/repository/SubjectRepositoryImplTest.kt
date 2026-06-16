@@ -191,6 +191,10 @@ class SubjectRepositoryImplTest {
         override suspend fun getCertificates(): Response<ApiResponse<List<CertificateResponse>>> =
             unhandled("getCertificates")
 
+        override suspend fun deleteChapter(
+            chapterId: String,
+        ): Response<ApiResponse<Unit>> = unhandled("deleteChapter")
+
         override suspend fun updateChapterName(
             chapterId: String,
             request: ChapterNameUpdateRequest,

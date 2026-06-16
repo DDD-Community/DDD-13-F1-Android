@@ -28,10 +28,15 @@ class AuthHeaderInterceptor @Inject constructor(
             }
             .build()
 
-        return chain.proceed(authenticatedRequest)
+        val response = chain.proceed(authenticatedRequest)
+        if (response.code == HTTP_UNAUTHORIZED) {
+            runBlocking { tokenStore.clear() }
+        }
+        return response
     }
 
     private companion object {
         const val AUTHORIZATION_HEADER = "Authorization"
+        const val HTTP_UNAUTHORIZED = 401
     }
 }

@@ -31,7 +31,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class UploadViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val lectureUploadRepository: LectureUploadRepository,
 ) : ViewModel() {
 
@@ -146,10 +146,13 @@ class UploadViewModel @Inject constructor(
     private fun startPolling(lectureUploadId: String) {
         pollingJob?.cancel()
         pollingJob = viewModelScope.launch {
+            var consecutivePollingFailureCount = 0
+
             while (true) {
-                delay(2_000L)
+                delay(PollingIntervalMillis)
                 when (val result = lectureUploadRepository.getUploadStatus(lectureUploadId)) {
                     is NetworkResult.Success -> {
+                        consecutivePollingFailureCount = 0
                         val statusData = result.data
                         _progress.value = (statusData.progressPct ?: 0) / 100f
                         when (statusData.status) {
@@ -160,15 +163,12 @@ class UploadViewModel @Inject constructor(
                                 return@launch
                             }
                             LectureUploadStatus.Failed -> {
-                                // chapterId가 있으면 챕터는 생성됐으므로 임시로 성공 처리
                                 if (statusData.chapterId.isNotBlank()) {
                                     _uploadedChapterId.value = statusData.chapterId
-                                    _progress.value = 1f
-                                    _isSuccess.value = true
-                                } else {
-                                    _errorMessage.value = statusData.failReason ?: "업로드에 실패했어요"
-                                    _isFailed.value = true
                                 }
+                                _errorMessage.value = statusData.failReason ?: "업로드에 실패했어요"
+                                _isSuccess.value = false
+                                _isFailed.value = true
                                 _isLoading.value = false
                                 return@launch
                             }
@@ -176,7 +176,14 @@ class UploadViewModel @Inject constructor(
                         }
                     }
                     is NetworkResult.Failure -> {
-                        // keep polling on transient errors
+                        consecutivePollingFailureCount += 1
+                        if (consecutivePollingFailureCount >= MaxConsecutivePollingFailures) {
+                            _errorMessage.value = PollingFailureMessage
+                            _isSuccess.value = false
+                            _isFailed.value = true
+                            _isLoading.value = false
+                            return@launch
+                        }
                     }
                 }
             }
@@ -213,5 +220,11 @@ class UploadViewModel @Inject constructor(
             val requestBody = bytes.toRequestBody(mediaType.toMediaType())
             MultipartBody.Part.createFormData("files", fileName, requestBody)
         }.getOrNull()
+    }
+
+    private companion object {
+        const val PollingIntervalMillis = 2_000L
+        const val MaxConsecutivePollingFailures = 3
+        const val PollingFailureMessage = "업로드 상태를 확인하지 못했어요. 네트워크 상태를 확인한 뒤 다시 시도해주세요."
     }
 }

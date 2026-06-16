@@ -1,42 +1,40 @@
 package com.f1.quiket
 
 import androidx.lifecycle.ViewModel
-import com.f1.quiket.core.network.auth.AuthTokenStore
-import com.f1.quiket.feature.login.domain.model.AuthResult
-import com.f1.quiket.feature.login.domain.repository.AuthRepository
+import androidx.lifecycle.viewModelScope
+import com.f1.quiket.core.session.SessionRepository
+import com.f1.quiket.core.session.UserSessionStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+
+enum class AppSessionState {
+    Checking,
+    SignedIn,
+    SignedOut,
+}
 
 @HiltViewModel
 class AppSessionViewModel @Inject constructor(
-    private val authTokenStore: AuthTokenStore,
-    private val authRepository: AuthRepository,
+    private val sessionRepository: SessionRepository,
 ) : ViewModel() {
-    suspend fun hasValidSession(): Boolean {
-        authTokenStore.getTokenPair() ?: return false
-
-        return when (val result = authRepository.getMe()) {
-            is AuthResult.Success -> true
-            is AuthResult.Failure -> {
-                if (result.isUnauthorized()) {
-                    authTokenStore.clear()
-                }
-                false
+    val sessionState: StateFlow<AppSessionState> = sessionRepository.observeSessionStatus()
+        .map { status ->
+            when (status) {
+                UserSessionStatus.SignedIn -> AppSessionState.SignedIn
+                UserSessionStatus.SignedOut -> AppSessionState.SignedOut
             }
         }
-    }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = AppSessionState.Checking,
+        )
 
-    suspend fun logout() {
-        val result = authRepository.logout()
-        if (result is AuthResult.Failure) {
-            authTokenStore.clear()
-        }
-    }
+    suspend fun hasValidSession(): Boolean = sessionRepository.hasValidSession()
 
-    private fun AuthResult.Failure.isUnauthorized(): Boolean =
-        httpCode == HTTP_UNAUTHORIZED || code.contains("UNAUTHORIZED", ignoreCase = true)
-
-    private companion object {
-        const val HTTP_UNAUTHORIZED = 401
-    }
+    suspend fun logout() = sessionRepository.logout()
 }
