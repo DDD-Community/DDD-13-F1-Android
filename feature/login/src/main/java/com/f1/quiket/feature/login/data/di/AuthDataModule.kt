@@ -1,9 +1,11 @@
 package com.f1.quiket.feature.login.data.di
 
+import com.f1.quiket.core.session.SessionRepository
 import com.f1.quiket.feature.login.data.kakao.KakaoLoginClient
 import com.f1.quiket.feature.login.data.kakao.KakaoLoginClientImpl
 import com.f1.quiket.feature.login.data.remote.AuthApi
 import com.f1.quiket.feature.login.data.repository.AuthRepositoryImpl
+import com.f1.quiket.feature.login.data.session.AuthSessionRepository
 import com.f1.quiket.feature.login.domain.repository.AuthRepository
 import dagger.Binds
 import dagger.Module
@@ -21,6 +23,12 @@ abstract class AuthRepositoryModule {
     abstract fun bindAuthRepository(
         repository: AuthRepositoryImpl,
     ): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSessionRepository(
+        repository: AuthSessionRepository,
+    ): SessionRepository
 
     @Binds
     @Singleton

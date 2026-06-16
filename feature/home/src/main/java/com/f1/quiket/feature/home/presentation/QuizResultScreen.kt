@@ -147,7 +147,6 @@ fun QuizResultScreen(
                 selectedReviewIndex = selectedReviewIndex,
                 onReviewModeChange = { mode -> reviewMode = mode },
                 onReviewIndexChange = { index -> selectedReviewIndex = index },
-                isRetrying = state.isRetrying,
             )
 
             else -> QuizResultMessageScaffold(
@@ -168,7 +167,6 @@ private fun QuizResultContent(
     selectedReviewIndex: Int,
     onReviewModeChange: (QuizResultReviewMode) -> Unit,
     onReviewIndexChange: (Int) -> Unit,
-    isRetrying: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val allReviewItems = result.reviewItems.sortedBy { item -> item.displayOrder }
@@ -224,7 +222,6 @@ private fun QuizResultContent(
                         )
                         QuizResultRetrySection(
                             result = result,
-                            isRetrying = isRetrying,
                             onRetryAllClick = onRetryAllClick,
                             onRetryWrongClick = onRetryWrongClick,
                         )
@@ -1054,16 +1051,13 @@ private fun QuizResultReviewDetailBottomBar(
 @Composable
 private fun QuizResultRetrySection(
     result: QuizResult,
-    isRetrying: Boolean,
     onRetryAllClick: () -> Unit,
     onRetryWrongClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val retryWrongCount = result.retryAvailable?.wrongCount ?: result.wrongCount
-    val retryAllEnabled = !isRetrying && result.retryAvailable?.retryAll != false
-    val retryWrongEnabled = !isRetrying &&
-        retryWrongCount > 0 &&
-        result.retryAvailable?.retryWrong != false
+    val retryAllEnabled = result.totalCount > 0
+    val retryWrongEnabled = retryWrongCount > 0
 
     Column(
         modifier = modifier.fillMaxWidth(),

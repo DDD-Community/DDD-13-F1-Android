@@ -37,6 +37,7 @@ class QuizStartViewModel @Inject constructor(
             updateState {
                 copy(
                     isLoading = true,
+                    summary = null,
                     errorMessage = null,
                 )
             }
@@ -56,12 +57,24 @@ class QuizStartViewModel @Inject constructor(
                     updateState {
                         copy(
                             isLoading = false,
-                            errorMessage = result.message,
+                            summary = null,
+                            errorMessage = result.toQuizStartErrorMessage(),
                         )
                     }
                 }
             }
         }
+    }
+}
+
+private const val QuizStartLoadFailureMessage = "퀴즈 정보를 불러올 수 없어요. 잠시 후 다시 시도해 주세요."
+
+private fun NetworkResult.Failure.toQuizStartErrorMessage(): String {
+    val normalizedMessage = message.trim()
+    return when {
+        normalizedMessage.isBlank() -> QuizStartLoadFailureMessage
+        normalizedMessage.equals("timeout", ignoreCase = true) -> QuizStartLoadFailureMessage
+        else -> normalizedMessage
     }
 }
 

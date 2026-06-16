@@ -1,222 +1,106 @@
 package com.f1.quiket
 
-import com.f1.quiket.core.network.auth.AuthTokenStore
-import com.f1.quiket.core.network.auth.TokenPair
-import com.f1.quiket.feature.login.domain.model.AuthProvider
-import com.f1.quiket.feature.login.domain.model.AuthResult
-import com.f1.quiket.feature.login.domain.model.AuthTokenData
-import com.f1.quiket.feature.login.domain.model.AuthUser
-import com.f1.quiket.feature.login.domain.model.EmailAvailability
-import com.f1.quiket.feature.login.domain.model.EmailVerificationSent
-import com.f1.quiket.feature.login.domain.model.KakaoLoginResult
-import com.f1.quiket.feature.login.domain.model.PasswordResetRequested
-import com.f1.quiket.feature.login.domain.model.SignupData
-import com.f1.quiket.feature.login.domain.model.UserStatus
-import com.f1.quiket.feature.login.domain.repository.AuthRepository
+import com.f1.quiket.core.session.SessionRepository
+import com.f1.quiket.core.session.UserSessionStatus
+import com.f1.quiket.core.testing.MainDispatcherRule
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AppSessionViewModelTest {
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     @Test
-    fun hasValidSession_whenTokenIsMissing_returnsFalseWithoutCallingMe() = runTest {
-        val authRepository = FakeAuthRepository()
+    fun sessionState_whenSessionRepositoryEmitsSignedOut_mapsSignedOut() = runTest {
         val viewModel = AppSessionViewModel(
-            authTokenStore = FakeAuthTokenStore(),
-            authRepository = authRepository,
+            sessionRepository = FakeSessionRepository(),
         )
+        val states = mutableListOf<AppSessionState>()
 
-        val result = viewModel.hasValidSession()
+        backgroundScope.launch {
+            viewModel.sessionState.toList(states)
+        }
+        runCurrent()
 
-        assertThat(result).isFalse()
-        assertThat(authRepository.getMeCallCount).isEqualTo(0)
+        assertThat(states).containsExactly(
+            AppSessionState.Checking,
+            AppSessionState.SignedOut,
+        ).inOrder()
     }
 
     @Test
-    fun hasValidSession_whenMeSucceeds_returnsTrue() = runTest {
-        val tokenStore = FakeAuthTokenStore(tokenPair())
-        val authRepository = FakeAuthRepository(
-            getMeResult = AuthResult.Success(authUser()),
-        )
-        val viewModel = AppSessionViewModel(
-            authTokenStore = tokenStore,
-            authRepository = authRepository,
-        )
+    fun sessionState_whenSessionRepositoryChanges_mapsLatestState() = runTest {
+        val sessionRepository = FakeSessionRepository(UserSessionStatus.SignedIn)
+        val viewModel = AppSessionViewModel(sessionRepository)
+        val states = mutableListOf<AppSessionState>()
+
+        backgroundScope.launch {
+            viewModel.sessionState.toList(states)
+        }
+        runCurrent()
+        sessionRepository.emit(UserSessionStatus.SignedOut)
+        runCurrent()
+
+        assertThat(states).containsExactly(
+            AppSessionState.Checking,
+            AppSessionState.SignedIn,
+            AppSessionState.SignedOut,
+        ).inOrder()
+    }
+
+    @Test
+    fun hasValidSession_delegatesToSessionRepository() = runTest {
+        val sessionRepository = FakeSessionRepository(hasValidSessionResult = true)
+        val viewModel = AppSessionViewModel(sessionRepository)
 
         val result = viewModel.hasValidSession()
 
         assertThat(result).isTrue()
-        assertThat(authRepository.getMeCallCount).isEqualTo(1)
-        assertThat(tokenStore.getTokenPair()).isNotNull()
+        assertThat(sessionRepository.hasValidSessionCallCount).isEqualTo(1)
     }
 
     @Test
-    fun hasValidSession_whenMeFails_clearsTokenAndReturnsFalse() = runTest {
-        val tokenStore = FakeAuthTokenStore(tokenPair())
-        val authRepository = FakeAuthRepository(
-            getMeResult = AuthResult.Failure(
-                code = "COMMON_UNAUTHORIZED",
-                message = "인증이 필요합니다.",
-                httpCode = 401,
-            ),
-        )
-        val viewModel = AppSessionViewModel(
-            authTokenStore = tokenStore,
-            authRepository = authRepository,
-        )
+    fun logout_delegatesToSessionRepository() = runTest {
+        val sessionRepository = FakeSessionRepository()
+        val viewModel = AppSessionViewModel(sessionRepository)
 
-        val result = viewModel.hasValidSession()
+        viewModel.logout()
 
-        assertThat(result).isFalse()
-        assertThat(authRepository.getMeCallCount).isEqualTo(1)
-        assertThat(tokenStore.getTokenPair()).isNull()
+        assertThat(sessionRepository.logoutCallCount).isEqualTo(1)
     }
 
-    @Test
-    fun hasValidSession_whenMeFailsWithTransientError_keepsTokenAndReturnsFalse() = runTest {
-        val tokenStore = FakeAuthTokenStore(tokenPair())
-        val authRepository = FakeAuthRepository(
-            getMeResult = AuthResult.Failure(
-                code = "NETWORK_ERROR",
-                message = "네트워크 오류",
-            ),
-        )
-        val viewModel = AppSessionViewModel(
-            authTokenStore = tokenStore,
-            authRepository = authRepository,
-        )
-
-        val result = viewModel.hasValidSession()
-
-        assertThat(result).isFalse()
-        assertThat(authRepository.getMeCallCount).isEqualTo(1)
-        assertThat(tokenStore.getTokenPair()).isNotNull()
-    }
-
-    private class FakeAuthTokenStore(
-        initialTokenPair: TokenPair? = null,
-    ) : AuthTokenStore {
-        private val tokenPair = MutableStateFlow(initialTokenPair)
-
-        override fun observeTokenPair(): Flow<TokenPair?> = tokenPair
-
-        override suspend fun getTokenPair(): TokenPair? = tokenPair.value
-
-        override suspend fun saveTokenPair(tokenPair: TokenPair) {
-            this.tokenPair.value = tokenPair
-        }
-
-        override suspend fun clear() {
-            tokenPair.value = null
-        }
-    }
-
-    private class FakeAuthRepository(
-        private val getMeResult: AuthResult<AuthUser> = AuthResult.Failure(
-            code = "UNHANDLED",
-            message = "Unhandled",
-        ),
-    ) : AuthRepository {
-        var getMeCallCount = 0
+    private class FakeSessionRepository(
+        initialStatus: UserSessionStatus = UserSessionStatus.SignedOut,
+        private val hasValidSessionResult: Boolean = false,
+    ) : SessionRepository {
+        private val status = MutableStateFlow(initialStatus)
+        var hasValidSessionCallCount = 0
+            private set
+        var logoutCallCount = 0
             private set
 
-        override suspend fun getMe(): AuthResult<AuthUser> {
-            getMeCallCount += 1
-            return getMeResult
+        override fun observeSessionStatus(): Flow<UserSessionStatus> = status
+
+        override suspend fun hasValidSession(): Boolean {
+            hasValidSessionCallCount += 1
+            return hasValidSessionResult
         }
 
-        override suspend fun signup(
-            email: String,
-            password: String,
-            passwordConfirm: String,
-            nickname: String,
-        ): AuthResult<SignupData> = unhandled()
+        override suspend fun logout() {
+            logoutCallCount += 1
+        }
 
-        override suspend fun checkEmailAvailability(email: String): AuthResult<EmailAvailability> = unhandled()
-
-        override suspend fun resendEmailVerification(email: String): AuthResult<EmailVerificationSent> = unhandled()
-
-        override suspend fun confirmEmailVerification(
-            email: String,
-            verificationCode: String?,
-            verificationToken: String?,
-            deviceId: String?,
-            deviceName: String?,
-        ): AuthResult<AuthTokenData> = unhandled()
-
-        override suspend fun login(
-            email: String,
-            password: String,
-            deviceId: String?,
-            deviceName: String?,
-        ): AuthResult<AuthTokenData> = unhandled()
-
-        override suspend fun refreshToken(
-            refreshToken: String,
-            deviceId: String?,
-            deviceName: String?,
-        ): AuthResult<AuthTokenData> = unhandled()
-
-        override suspend fun logout(refreshToken: String?): AuthResult<Unit> = AuthResult.Success(Unit)
-
-        override suspend fun requestPasswordReset(email: String): AuthResult<PasswordResetRequested> = unhandled()
-
-        override suspend fun confirmPasswordReset(
-            email: String,
-            newPassword: String,
-            newPasswordConfirm: String,
-            resetToken: String?,
-            verificationCode: String?,
-        ): AuthResult<Unit> = unhandled()
-
-        override suspend fun kakaoLogin(
-            kakaoAccessToken: String,
-            agreedToTerms: Boolean,
-            deviceId: String?,
-            deviceName: String?,
-        ): KakaoLoginResult = KakaoLoginResult.Failure(unhandledFailure())
-
-        override suspend fun linkKakaoAccount(
-            linkToken: String,
-            email: String,
-            password: String,
-            agreedToLink: Boolean,
-            deviceId: String?,
-            deviceName: String?,
-        ): AuthResult<AuthTokenData> = unhandled()
-
-        override suspend fun completeKakaoNickname(
-            signupToken: String,
-            nickname: String,
-            deviceId: String?,
-            deviceName: String?,
-        ): AuthResult<AuthTokenData> = unhandled()
-
-        private fun <T> unhandled(): AuthResult<T> = unhandledFailure()
-
-        private fun unhandledFailure() = AuthResult.Failure(
-            code = "UNHANDLED",
-            message = "Unhandled",
-        )
+        fun emit(nextStatus: UserSessionStatus) {
+            status.value = nextStatus
+        }
     }
-
-    private fun tokenPair() = TokenPair(
-        accessToken = "access-token",
-        refreshToken = "refresh-token",
-        tokenType = "Bearer",
-        accessTokenExpiresIn = 1_800,
-        refreshTokenExpiresIn = 2_592_000,
-    )
-
-    private fun authUser() = AuthUser(
-        id = "user-1",
-        email = "user@example.com",
-        nickname = "재훈",
-        dotoriBalance = 0,
-        emailVerified = true,
-        status = UserStatus.Active,
-        providers = listOf(AuthProvider.Local),
-    )
 }

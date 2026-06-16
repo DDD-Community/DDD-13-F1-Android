@@ -2,12 +2,16 @@ package com.f1.quiket
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.feature.login.navigation.LoginDestination
@@ -37,6 +41,18 @@ fun QuiketApp() {
         val navController = rememberNavController()
         val coroutineScope = rememberCoroutineScope()
         val appSessionViewModel: AppSessionViewModel = hiltViewModel()
+        val sessionState by appSessionViewModel.sessionState.collectAsStateWithLifecycle()
+        val backStackEntry by navController.currentBackStackEntryAsState()
+        val currentRootRoute = backStackEntry?.destination?.route
+
+        LaunchedEffect(sessionState, currentRootRoute) {
+            if (
+                sessionState == AppSessionState.SignedOut &&
+                currentRootRoute == MainDestination.route
+            ) {
+                navigateToRoot(navController, LoginDestination.route, MainDestination.route)
+            }
+        }
 
         NavHost(
             navController = navController,
@@ -134,6 +150,8 @@ private fun navigateToRoot(
     route: String,
     popUpToRoute: String,
 ) {
+    if (navController.currentDestination?.route == route) return
+
     navController.navigate(route) {
         popUpTo(popUpToRoute) {
             inclusive = true

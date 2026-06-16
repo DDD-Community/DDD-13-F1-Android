@@ -17,13 +17,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +31,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.f1.quiket.core.designsystem.theme.Brown950
 import com.f1.quiket.core.designsystem.theme.Gray100
 import com.f1.quiket.core.designsystem.theme.Gray700
@@ -38,7 +42,8 @@ import com.f1.quiket.core.designsystem.theme.Gray900
 import com.f1.quiket.core.designsystem.theme.Gray950
 import com.f1.quiket.core.designsystem.theme.QuiketTheme
 import com.f1.quiket.core.designsystem.theme.White
-import com.f1.quiket.feature.home.R
+
+private const val QUIZ_LOADING_FULL_ASSET = "lottie/quiz_loading_full.json"
 
 @Composable
 fun CreateQuizLoadingScreen(
@@ -49,6 +54,9 @@ fun CreateQuizLoadingScreen(
     modifier: Modifier = Modifier,
 ) {
     val progressPercent = (progress.coerceIn(0f, 1f) * 100).toInt()
+    val composition by rememberLottieComposition(
+        spec = LottieCompositionSpec.Asset(QUIZ_LOADING_FULL_ASSET),
+    )
 
     Box(
         modifier = modifier
@@ -62,10 +70,9 @@ fun CreateQuizLoadingScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Image(
-                painter = painterResource(R.drawable.illust_quiz_making),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
+            LottieAnimation(
+                composition = composition,
+                iterations = LottieConstants.IterateForever,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(350.dp),

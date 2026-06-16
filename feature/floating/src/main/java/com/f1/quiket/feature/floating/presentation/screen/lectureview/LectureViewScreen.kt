@@ -49,7 +49,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.f1.quiket.core.designsystem.R as DesignSystemR
 import com.f1.quiket.core.designsystem.component.BaseTextField
+import com.f1.quiket.core.designsystem.component.QuiketToast
 import com.f1.quiket.core.designsystem.theme.Brown50
 import com.f1.quiket.core.designsystem.theme.Brown950
 import com.f1.quiket.core.designsystem.theme.Dimmed
@@ -66,7 +68,9 @@ import com.f1.quiket.feature.floating.domain.model.LectureItem
 import com.f1.quiket.feature.floating.presentation.component.LectureViewBottomBar
 import com.f1.quiket.feature.floating.presentation.component.LectureViewTopBar
 import com.f1.quiket.feature.floating.presentation.component.TocSidePanel
+import com.f1.quiket.feature.floating.presentation.viewmodel.LectureViewEvent
 import com.f1.quiket.feature.floating.presentation.viewmodel.LectureViewViewModel
+import kotlinx.coroutines.delay
 
 
 @Composable
@@ -81,11 +85,14 @@ fun LectureViewScreen(
     val currentPartId by viewModel.currentPartId.collectAsStateWithLifecycle()
     val currentPartName by viewModel.currentPartName.collectAsStateWithLifecycle()
     val currentPartContent by viewModel.currentPartContent.collectAsStateWithLifecycle()
+    val isUpdatingPartName by viewModel.isUpdatingPartName.collectAsStateWithLifecycle()
 
     var showTocSidebar by remember { mutableStateOf(false) }
     var showEditPartNameDialog by remember { mutableStateOf(false) }
     var isEditMode by remember { mutableStateOf(false) }
     var editedContent by remember { mutableStateOf("") }
+    var visibleToastMessage by remember { mutableStateOf<String?>(null) }
+    var visibleToastIcon by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(subjectId, chapter.id) {
         if (subjectId.isNotEmpty() && chapter.id.isNotEmpty()) {
@@ -95,6 +102,25 @@ fun LectureViewScreen(
 
     // 파트 전환 시 편집 모드 해제
     LaunchedEffect(currentPartId) { isEditMode = false }
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is LectureViewEvent.PartNameUpdated -> {
+                    showEditPartNameDialog = false
+                    visibleToastMessage = "파트명이 수정됐어요."
+                    visibleToastIcon = DesignSystemR.drawable.ic_upload_ok
+                }
+                is LectureViewEvent.ShowMessage -> {
+                    visibleToastMessage = event.message
+                    visibleToastIcon = DesignSystemR.drawable.ic_upload_fail
+                }
+            }
+            delay(LECTURE_VIEW_TOAST_DURATION_MILLIS)
+            visibleToastMessage = null
+            visibleToastIcon = null
+        }
+    }
 
     val currentPartIndex = remember(currentPartId, allPartIds) {
         allPartIds.indexOfFirst { it == currentPartId }.coerceAtLeast(0)
@@ -194,6 +220,17 @@ fun LectureViewScreen(
                 onClose = { showTocSidebar = false },
             )
         }
+
+        visibleToastMessage?.let { message ->
+            QuiketToast(
+                message = message,
+                icon = visibleToastIcon,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 20.dp, vertical = 24.dp)
+                    .zIndex(3f),
+            )
+        }
     }
 
     if (showEditPartNameDialog) {
@@ -202,8 +239,8 @@ fun LectureViewScreen(
             onDismiss = { showEditPartNameDialog = false },
             onApply = { newName ->
                 currentPartId?.let { viewModel.updatePartName(it, newName) }
-                showEditPartNameDialog = false
             },
+            isApplying = isUpdatingPartName,
         )
     }
 }
@@ -311,10 +348,11 @@ private fun EditPartNameDialog(
     currentName: String,
     onDismiss: () -> Unit,
     onApply: (String) -> Unit,
+    isApplying: Boolean = false,
 ) {
     var name by remember { mutableStateOf(currentName) }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = { if (!isApplying) onDismiss() }) {
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = White),
@@ -352,6 +390,7 @@ private fun EditPartNameDialog(
                 ) {
                     OutlinedButton(
                         onClick = onDismiss,
+                        enabled = !isApplying,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray700),
@@ -363,8 +402,8 @@ private fun EditPartNameDialog(
                         )
                     }
                     Button(
-                        onClick = { onApply(name) },
-                        enabled = name.isNotBlank(),
+                        onClick = { onApply(name.trim()) },
+                        enabled = name.trim().isNotBlank() && !isApplying,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
@@ -381,6 +420,8 @@ private fun EditPartNameDialog(
         }
     }
 }
+
+private const val LECTURE_VIEW_TOAST_DURATION_MILLIS = 2_500L
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

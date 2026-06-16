@@ -1,5 +1,6 @@
 package com.f1.quiket.feature.floating.presentation.navigation
 
+import android.net.Uri
 import com.f1.quiket.core.navigation.QuiketDestination
 import com.f1.quiket.feature.floating.domain.model.ExamType
 import com.f1.quiket.feature.floating.domain.model.StudyField
@@ -82,7 +83,7 @@ data object LectureViewDestination : QuiketDestination {
         chapterNumber: Int,
         chapterName: String,
         partCount: Int,
-    ) = "lecture_view/$subjectId/$chapterId/$chapterNumber/${chapterName.ifBlank { "-" }}/$partCount"
+    ) = "lecture_view/${routeArg(subjectId)}/${routeArg(chapterId)}/$chapterNumber/${routeArg(chapterName)}/$partCount"
 }
 
 /**
@@ -97,7 +98,7 @@ data object MaterialCheckDestination : QuiketDestination {
         "material_check/{$ARG_LECTURE_UPLOAD_ID}/{$ARG_CHAPTER_NUMBER}"
 
     fun createRoute(lectureUploadId: String, chapterNumber: Int) =
-        "material_check/$lectureUploadId/$chapterNumber"
+        "material_check/${routeArg(lectureUploadId)}/$chapterNumber"
 }
 
 /**
@@ -123,5 +124,8 @@ data object LectureUploadFileDestination : QuiketDestination {
         lectureTitle: String,
         chapterCount: Int,
         category: String,
-    ) = "lecture_upload_file/$lectureId/$lectureTitle/$chapterCount/${category.ifBlank { "-" }}"
+    ) = "lecture_upload_file/${routeArg(lectureId)}/${routeArg(lectureTitle)}/$chapterCount/${routeArg(category)}"
 }
+
+private fun routeArg(value: String, fallback: String = "-"): String =
+    Uri.encode(value.ifBlank { fallback })

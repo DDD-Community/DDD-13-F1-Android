@@ -18,6 +18,7 @@ import com.f1.quiket.feature.home.domain.model.RecentActivity
 import com.f1.quiket.feature.home.domain.model.ServerQuizType
 import com.f1.quiket.feature.home.domain.repository.HomeRepository
 import com.f1.quiket.feature.home.domain.repository.QuizGenerationRepository
+import com.f1.quiket.feature.home.domain.usecase.BuildQuizCreateUseCase
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.take
@@ -337,6 +338,7 @@ class CreateQuizViewModelTest {
     ): CreateQuizViewModel = CreateQuizViewModel(
         homeRepository = homeRepository,
         quizGenerationRepository = quizGenerationRepository,
+        buildQuizCreate = BuildQuizCreateUseCase(),
     )
 
     private class FakeHomeRepository : HomeRepository {

@@ -2,15 +2,15 @@ package com.f1.quiket.feature.home.presentation
 
 import com.f1.quiket.core.common.mvi.MviViewModel
 import com.f1.quiket.core.network.model.NetworkResult
-import com.f1.quiket.feature.home.domain.model.QuizCreate
 import com.f1.quiket.feature.home.domain.model.QuizDifficulty
 import com.f1.quiket.feature.home.domain.model.QuizGenerationStatus
-import com.f1.quiket.feature.home.domain.model.QuizPlayMode
 import com.f1.quiket.feature.home.domain.model.QuizScope
 import com.f1.quiket.feature.home.domain.model.QuizSubjectSummary
 import com.f1.quiket.feature.home.domain.model.ServerQuizType
 import com.f1.quiket.feature.home.domain.repository.HomeRepository
 import com.f1.quiket.feature.home.domain.repository.QuizGenerationRepository
+import com.f1.quiket.feature.home.domain.usecase.BuildQuizCreateUseCase
+import com.f1.quiket.feature.home.domain.usecase.QuizCreateDraft
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.delay
@@ -19,6 +19,7 @@ import kotlinx.coroutines.delay
 class CreateQuizViewModel @Inject constructor(
     private val homeRepository: HomeRepository,
     private val quizGenerationRepository: QuizGenerationRepository,
+    private val buildQuizCreate: BuildQuizCreateUseCase,
 ) : MviViewModel<CreateQuizState, CreateQuizIntent, CreateQuizEffect>(
     initialState = CreateQuizState(),
 ) {
@@ -253,7 +254,7 @@ class CreateQuizViewModel @Inject constructor(
 
     private fun createQuiz() {
         if (currentState.isCreatingQuiz) return
-        val request = currentState.toQuizCreateOrNull()
+        val request = buildQuizCreate(currentState.toQuizCreateDraft())
 
         if (request == null) {
             launch { sendEffect(CreateQuizEffect.ShowMessage(currentState.createValidationMessage())) }
@@ -440,26 +441,14 @@ class CreateQuizViewModel @Inject constructor(
     }
 }
 
-private fun CreateQuizState.toQuizCreateOrNull(): QuizCreate? {
-    val subject = selectedSubject ?: return null
-    val quizType = selectedQuizType?.toServerQuizTypeOrNull() ?: return null
-    val questionCount = selectedQuestionCountOption.toQuestionCount(customQuestionCount) ?: return null
-    val difficulty = selectedDifficulty?.toDomain() ?: return null
-    if (selectedPartIds.isEmpty()) return null
-
-    return QuizCreate(
-        subjectId = subject.id,
+private fun CreateQuizState.toQuizCreateDraft(): QuizCreateDraft {
+    return QuizCreateDraft(
+        subjectId = selectedSubject?.id,
         partIds = selectedPartIds,
-        quizType = quizType,
-        choiceCount = if (quizType == ServerQuizType.MultipleChoice) {
-            selectedChoiceCount ?: 4
-        } else {
-            null
-        },
-        questionCount = questionCount.coerceIn(1, 100),
-        playMode = QuizPlayMode.AllAtOnce,
-        timerEnabled = false,
-        difficulty = difficulty,
+        quizType = selectedQuizType?.toServerQuizTypeOrNull(),
+        choiceCount = selectedChoiceCount,
+        questionCount = selectedQuestionCountOption.toQuestionCount(customQuestionCount),
+        difficulty = selectedDifficulty?.toDomain(),
     )
 }
 

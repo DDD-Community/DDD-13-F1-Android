@@ -117,35 +117,42 @@ fun QuizStartScreen(
     var timerDialogMode by rememberSaveable { mutableStateOf(QuizStartTimerDialogMode.PerQuestion) }
     var timerDialogValue by rememberSaveable { mutableStateOf(QuizStartTimerDialogMode.PerQuestion.defaultValue) }
     var timerDialogUnit by rememberSaveable { mutableStateOf(QuiketTimerInputUnit.Seconds) }
-    var timerDialogSource by rememberSaveable { mutableStateOf(QuizStartTimerDialogSource.TimerOption) }
     var timerOptionBeforeDialog by rememberSaveable { mutableStateOf(QuizStartTimerOption.None) }
-    var playModeTimerSeconds by rememberSaveable { mutableStateOf<Int?>(null) }
     var timerOptionSeconds by rememberSaveable { mutableStateOf<Int?>(null) }
     var timerOptionScopeValue by rememberSaveable { mutableStateOf<String?>(null) }
     var playModeSectionOffset by remember { mutableStateOf(Offset.Zero) }
     val density = LocalDensity.current
+    val canConfigureQuiz = state.summary != null && !state.isLoading && state.errorMessage == null
 
-    fun openTimerDialog(
-        mode: QuizStartTimerDialogMode,
-        source: QuizStartTimerDialogSource,
-    ) {
+    fun resetTimerOption() {
+        selectedTimerOption = QuizStartTimerOption.None
+        timerOptionSeconds = null
+        timerOptionScopeValue = null
+        timerDialogVisible = false
+    }
+
+    fun openTimerDialog(mode: QuizStartTimerDialogMode) {
         playModeTooltipVisible = false
         timerDialogMode = mode
         timerDialogValue = mode.defaultValue
         timerDialogUnit = mode.defaultUnit
-        timerDialogSource = source
         timerDialogVisible = true
     }
 
     fun dismissTimerDialog() {
-        if (timerDialogSource == QuizStartTimerDialogSource.TimerOption) {
-            selectedTimerOption = timerOptionBeforeDialog
-        }
+        selectedTimerOption = timerOptionBeforeDialog
         timerDialogVisible = false
     }
 
     BackHandler(enabled = playModeTooltipVisible) {
         playModeTooltipVisible = false
+    }
+
+    LaunchedEffect(canConfigureQuiz) {
+        if (!canConfigureQuiz) {
+            playModeTooltipVisible = false
+            resetTimerOption()
+        }
     }
 
     Box(
@@ -175,47 +182,41 @@ fun QuizStartScreen(
                     errorMessage = state.errorMessage,
                 )
 
-                PlayModeSection(
-                    selectedPlayMode = selectedPlayMode,
-                    onInfoClick = { playModeTooltipVisible = true },
-                    onPlayModeClick = { playMode ->
-                        selectedPlayMode = playMode
-                        if (playMode == QuizStartPlayMode.AllAtOnce) {
-                            openTimerDialog(
-                                mode = QuizStartTimerDialogMode.PerQuestion,
-                                source = QuizStartTimerDialogSource.PlayMode,
-                            )
-                        }
-                    },
-                    modifier = Modifier.onGloballyPositioned { coordinates ->
-                        playModeSectionOffset = coordinates.positionInRoot()
-                    },
-                )
+                if (canConfigureQuiz) {
+                    PlayModeSection(
+                        selectedPlayMode = selectedPlayMode,
+                        onInfoClick = { playModeTooltipVisible = true },
+                        onPlayModeClick = { playMode ->
+                            if (selectedPlayMode != playMode) {
+                                selectedPlayMode = playMode
+                                resetTimerOption()
+                            }
+                        },
+                        modifier = Modifier.onGloballyPositioned { coordinates ->
+                            playModeSectionOffset = coordinates.positionInRoot()
+                        },
+                    )
 
-                TimerSection(
-                    selectedTimerOption = selectedTimerOption,
-                    onTimerOptionClick = { timerOption ->
-                        when (timerOption) {
-                            QuizStartTimerOption.None -> {
-                                selectedTimerOption = QuizStartTimerOption.None
-                                timerOptionSeconds = null
-                                timerOptionScopeValue = null
+                    TimerSection(
+                        selectedTimerOption = selectedTimerOption,
+                        onTimerOptionClick = { timerOption ->
+                            when (timerOption) {
+                                QuizStartTimerOption.None -> resetTimerOption()
+                                QuizStartTimerOption.Custom -> {
+                                    timerOptionBeforeDialog = selectedTimerOption
+                                    selectedTimerOption = QuizStartTimerOption.Custom
+                                    openTimerDialog(
+                                        mode = if (selectedPlayMode == QuizStartPlayMode.AllAtOnce) {
+                                            QuizStartTimerDialogMode.Total
+                                        } else {
+                                            QuizStartTimerDialogMode.PerQuestion
+                                        },
+                                    )
+                                }
                             }
-                            QuizStartTimerOption.Custom -> {
-                                timerOptionBeforeDialog = selectedTimerOption
-                                selectedTimerOption = QuizStartTimerOption.Custom
-                                openTimerDialog(
-                                    mode = if (selectedPlayMode == QuizStartPlayMode.AllAtOnce) {
-                                        QuizStartTimerDialogMode.Total
-                                    } else {
-                                        QuizStartTimerDialogMode.PerQuestion
-                                    },
-                                    source = QuizStartTimerDialogSource.TimerOption,
-                                )
-                            }
-                        }
-                    },
-                )
+                        },
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(108.dp))
             }
@@ -223,24 +224,18 @@ fun QuizStartScreen(
 
         QuiketPrimaryButton(
             text = "퀴즈 시작하기",
-            enabled = state.summary != null && !state.isLoading && state.errorMessage == null,
+            enabled = canConfigureQuiz,
             onClick = {
                 val timerScope = timerOptionScopeValue.toQuizTimerScope()
-                val playModeTimerScope = QuizTimerScope.PerQuestion
-                val effectiveTimerSeconds = when {
-                    selectedTimerOption == QuizStartTimerOption.Custom -> timerOptionSeconds
-                    selectedPlayMode == QuizStartPlayMode.AllAtOnce -> playModeTimerSeconds
-                    else -> null
-                }
+                val effectiveTimerSeconds = timerOptionSeconds
+                    .takeIf { selectedTimerOption == QuizStartTimerOption.Custom }
                 onStartClick(
                     QuizStartConfig(
                         playMode = selectedPlayMode.toDomain(),
                         timerEnabled = effectiveTimerSeconds != null,
-                        timerScope = when {
-                            selectedTimerOption == QuizStartTimerOption.Custom -> timerScope
-                            selectedPlayMode == QuizStartPlayMode.AllAtOnce &&
-                                playModeTimerSeconds != null -> playModeTimerScope
-                            else -> null
+                        timerScope = timerScope.takeIf {
+                            selectedTimerOption == QuizStartTimerOption.Custom &&
+                                effectiveTimerSeconds != null
                         },
                         timerSeconds = effectiveTimerSeconds,
                     ),
@@ -276,13 +271,9 @@ fun QuizStartScreen(
                 onDismiss = ::dismissTimerDialog,
                 onApply = {
                     val appliedSeconds = timerDialogValue.toTimerSeconds(timerDialogUnit)
-                    if (timerDialogSource == QuizStartTimerDialogSource.TimerOption) {
-                        selectedTimerOption = QuizStartTimerOption.Custom
-                        timerOptionSeconds = appliedSeconds
-                        timerOptionScopeValue = timerDialogMode.timerScope.wireValue
-                    } else {
-                        playModeTimerSeconds = appliedSeconds
-                    }
+                    selectedTimerOption = QuizStartTimerOption.Custom
+                    timerOptionSeconds = appliedSeconds
+                    timerOptionScopeValue = timerDialogMode.timerScope.wireValue
                     timerDialogVisible = false
                 },
             )
@@ -297,8 +288,6 @@ private fun QuizStartOverview(
     errorMessage: String?,
     modifier: Modifier = Modifier,
 ) {
-    val displaySummary = summary ?: quizStartPreviewSummary()
-
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -321,47 +310,47 @@ private fun QuizStartOverview(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = displaySummary.title,
-                    color = Gray950,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 24.sp,
-                        lineHeight = 34.sp,
-                        fontWeight = FontWeight.Bold,
-                    ),
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+            if (summary != null) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    QuizStartDescriptionText(text = displaySummary.quizTypeLabel)
-                    displaySummary.choiceLabel?.let { choiceLabel ->
-                        QuizStartDescriptionText(text = "·")
-                        QuizStartDescriptionText(text = choiceLabel)
+                    Text(
+                        text = summary.title,
+                        color = Gray950,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 24.sp,
+                            lineHeight = 34.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        QuizStartDescriptionText(text = summary.quizTypeLabel)
+                        summary.choiceLabel?.let { choiceLabel ->
+                            QuizStartDescriptionText(text = "·")
+                            QuizStartDescriptionText(text = choiceLabel)
+                        }
                     }
                 }
-            }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                QuizInfoTag(text = displaySummary.questionCountLabel)
-                QuizInfoTag(text = displaySummary.difficultyLabel)
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                displaySummary.scopeLabels.take(3).forEach { label ->
-                    QuizScopeChip(text = label)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    QuizInfoTag(text = summary.questionCountLabel)
+                    QuizInfoTag(text = summary.difficultyLabel)
                 }
-            }
 
-            if (summary == null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    summary.scopeLabels.take(3).forEach { label ->
+                        QuizScopeChip(text = label)
+                    }
+                }
+            } else {
                 Text(
                     text = when {
                         isLoading -> "퀴즈 정보를 불러오는 중이에요"
@@ -697,11 +686,6 @@ private enum class QuizStartTimerOption(
 ) {
     None("설정 안 함"),
     Custom("직접 입력"),
-}
-
-private enum class QuizStartTimerDialogSource {
-    PlayMode,
-    TimerOption,
 }
 
 private enum class QuizStartTimerDialogMode(

@@ -87,6 +87,52 @@ class QuizResultViewModelTest {
         assertThat(effect.await()).isEqualTo(QuizResultEffect.ShowMessage("다시 풀 오답이 없어요."))
     }
 
+    @Test
+    fun retryAll_whenServerMarksUnavailable_stillRequestsRetry() = runTest {
+        val repository = FakeQuizPlayRepository()
+        repository.quizResult = NetworkResult.Success(
+            result(
+                retryAvailable = RetryAvailable(
+                    retryAll = false,
+                    retryWrong = true,
+                    wrongCount = 1,
+                ),
+            ),
+        )
+        repository.retryAllResult = NetworkResult.Success(retryPlaySession())
+        val viewModel = QuizResultViewModel(repository)
+
+        viewModel.onIntent(QuizResultIntent.Load("result-1"))
+        advanceUntilIdle()
+        val effect = async { viewModel.effect.first() }
+
+        viewModel.onIntent(QuizResultIntent.RetryAll)
+        advanceUntilIdle()
+
+        assertThat(repository.retryAllResultId).isEqualTo("result-1")
+        assertThat(viewModel.state.value.isRetrying).isFalse()
+        assertThat(effect.await()).isInstanceOf(QuizResultEffect.NavigateToRetry::class.java)
+    }
+
+    @Test
+    fun retryAll_whenRepositoryThrows_resetsRetryingAndEmitsMessage() = runTest {
+        val repository = FakeQuizPlayRepository()
+        repository.quizResult = NetworkResult.Success(result())
+        repository.retryAllThrowable = IllegalStateException("broken retry")
+        val viewModel = QuizResultViewModel(repository)
+
+        viewModel.onIntent(QuizResultIntent.Load("result-1"))
+        advanceUntilIdle()
+        val effect = async { viewModel.effect.first() }
+
+        viewModel.onIntent(QuizResultIntent.RetryAll)
+        advanceUntilIdle()
+
+        assertThat(repository.retryAllResultId).isEqualTo("result-1")
+        assertThat(viewModel.state.value.isRetrying).isFalse()
+        assertThat(effect.await()).isEqualTo(QuizResultEffect.ShowMessage("다시 풀기를 시작할 수 없어요."))
+    }
+
     private class FakeQuizPlayRepository : QuizPlayRepository {
         var quizResult: NetworkResult<QuizResult> =
             NetworkResult.Failure(code = "TEST", message = "not configured")
@@ -98,6 +144,7 @@ class QuizResultViewModelTest {
         var retryWrongResultId: String? = null
         var retryAllRequest: QuizRetry? = null
         var retryWrongRequest: QuizRetry? = null
+        var retryAllThrowable: Throwable? = null
 
         override suspend fun getQuizSession(quizSessionId: String): NetworkResult<QuizSession> =
             NetworkResult.Failure(code = "TEST", message = "not configured")
@@ -119,6 +166,7 @@ class QuizResultViewModelTest {
         ): NetworkResult<QuizPlaySession> {
             retryAllResultId = resultId
             retryAllRequest = request
+            retryAllThrowable?.let { throwable -> throw throwable }
             return retryAllResult
         }
 

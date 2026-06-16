@@ -37,7 +37,7 @@ internal fun AuthTokenDataResponse.toTokenPair(): TokenPair = TokenPair(
 
 internal fun AuthUserResponse.toDomain(): AuthUser = AuthUser(
     id = id,
-    email = email,
+    email = email.orEmpty(),
     nickname = nickname,
     dotoriBalance = dotoriBalance,
     emailVerified = emailVerified,
