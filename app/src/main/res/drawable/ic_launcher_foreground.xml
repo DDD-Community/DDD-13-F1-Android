@@ -1,28 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path
-        android:fillColor="#FFF7EA"
-        android:pathData="M37.2,42.4C43.1,36.8 53.1,36.9 61.4,42.8C69.8,48.8 70.9,60.3 63.9,68.7C56.5,77.6 42.9,80.8 34.5,73.9C26.2,67 27.8,53.2 37.2,42.4Z" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M34.1,39.8C42.2,32.4 58.2,35.9 66.4,47.4"
-        android:strokeColor="#FFF7EA"
-        android:strokeLineCap="round"
-        android:strokeWidth="3" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M64.4,38.6C70.4,41.9 73.2,47.2 71.1,52.5"
-        android:strokeColor="#FFF7EA"
-        android:strokeLineCap="round"
-        android:strokeWidth="5" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M61.6,34.2L67.4,25.2"
-        android:strokeColor="#FFF7EA"
-        android:strokeLineCap="round"
-        android:strokeWidth="5" />
-</vector>
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:gravity="center"
+    android:src="@mipmap/ic_launcher_foreground" />
