@@ -12,6 +12,8 @@ fun MyPageSettingRoute(
     onNavigateToAccountSetting: () -> Unit,
     onNavigateToAlarmSetting: () -> Unit,
     onNavigateToInquiry: () -> Unit,
+    onNavigateToTerms: () -> Unit = {},
+    onNavigateToPrivacyPolicy: () -> Unit = {},
     viewModel: MyPageSettingViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(Unit) {
@@ -22,8 +24,8 @@ fun MyPageSettingRoute(
                 MyPageSettingEffect.GoToAccountSetting -> onNavigateToAccountSetting()
                 MyPageSettingEffect.GoToAlarmSetting -> onNavigateToAlarmSetting()
                 MyPageSettingEffect.GoToInquiry -> onNavigateToInquiry()
-                MyPageSettingEffect.GoToTerms -> { /* TODO: 웹뷰 또는 외부 링크 */ }
-                MyPageSettingEffect.GoToPrivacyPolicy -> { /* TODO: 웹뷰 또는 외부 링크 */ }
+                MyPageSettingEffect.GoToTerms -> onNavigateToTerms()
+                MyPageSettingEffect.GoToPrivacyPolicy -> onNavigateToPrivacyPolicy()
                 MyPageSettingEffect.GoToAppInfo -> { /* TODO: 앱 정보 화면 */ }
             }
         }

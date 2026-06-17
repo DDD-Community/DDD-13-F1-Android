@@ -149,28 +149,28 @@ fun LectureViewTopBar(
                         onEditClick()
                     },
                 )
-                DropdownMenuItem(
-                    leadingIcon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_detail_remove),
-                            contentDescription = null,
-                            tint = Color.Unspecified,
-                        )
-                    },
-                    text = {
-                        Text(
-                            "파트 삭제",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.Normal
-                            ),
-                            color = Negative,
-                        )
-                    },
-                    onClick = {
-                        showMoreMenu = false
-                        onDeletePartClick()
-                    },
-                )
+//                DropdownMenuItem(
+//                    leadingIcon = {
+//                        Icon(
+//                            painter = painterResource(R.drawable.ic_detail_remove),
+//                            contentDescription = null,
+//                            tint = Color.Unspecified,
+//                        )
+//                    },
+//                    text = {
+//                        Text(
+//                            "파트 삭제",
+//                            style = MaterialTheme.typography.bodyMedium.copy(
+//                                fontWeight = FontWeight.Normal
+//                            ),
+//                            color = Negative,
+//                        )
+//                    },
+//                    onClick = {
+//                        showMoreMenu = false
+//                        onDeletePartClick()
+//                    },
+//                )
             }
         }
     }

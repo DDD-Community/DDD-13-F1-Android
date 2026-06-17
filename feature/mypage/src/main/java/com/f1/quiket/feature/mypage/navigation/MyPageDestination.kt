@@ -21,3 +21,11 @@ data object AlarmSettingDestination : QuiketDestination {
 data object InquiryDestination : QuiketDestination {
     override val route: String = "main/mypage/setting/inquiry"
 }
+
+data object TermsDestination : QuiketDestination {
+    override val route: String = "main/mypage/setting/terms"
+}
+
+data object PrivacyPolicyDestination : QuiketDestination {
+    override val route: String = "main/mypage/setting/privacy-policy"
+}
