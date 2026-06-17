@@ -58,8 +58,8 @@ android {
 
     defaultConfig {
         applicationId = "com.f1.quiket"
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
 
         buildConfigField("String", "QUIKET_API_BASE_URL", quiketApiBaseUrl.asBuildConfigString())
         buildConfigField("String", "KAKAO_NATIVE_APP_KEY", kakaoNativeAppKey.asBuildConfigString())
