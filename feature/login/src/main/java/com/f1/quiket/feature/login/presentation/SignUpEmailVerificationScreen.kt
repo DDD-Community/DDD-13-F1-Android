@@ -380,22 +380,22 @@ private fun SignUpInputWithAction(
     errorMessage: String? = null,
     trailingIcon: (@Composable (() -> Unit))? = null,
 ) {
-    Row(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        Text(
+            text = title,
+            color = Gray950,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontWeight = FontWeight.Bold,
+            ),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
         ) {
-            Text(
-                text = title,
-                color = Gray950,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                ),
-            )
             BaseTextField(
                 value = value,
                 onValueChange = onValueChange,
@@ -405,17 +405,16 @@ private fun SignUpInputWithAction(
                 isError = isError,
                 errorMessage = errorMessage,
                 trailingIcon = trailingIcon,
+                modifier = Modifier.weight(1f),
+            )
+            QuiketPrimaryButton(
+                text = buttonText,
+                enabled = buttonEnabled,
+                fillMaxWidth = false,
+                onClick = onButtonClick,
+                modifier = Modifier.width(97.dp),
             )
         }
-        QuiketPrimaryButton(
-            text = buttonText,
-            enabled = buttonEnabled,
-            fillMaxWidth = false,
-            onClick = onButtonClick,
-            modifier = Modifier
-                .padding(top = 35.dp)
-                .width(97.dp),
-        )
     }
 }
 

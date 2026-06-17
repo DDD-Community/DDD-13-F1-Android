@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -46,7 +48,9 @@ fun SignUpTermsScreen(
     onBackClick: () -> Unit,
     onAllTermsClick: () -> Unit,
     onServiceTermsClick: () -> Unit,
+    onServiceTermsDetailClick: () -> Unit,
     onPrivacyTermsClick: () -> Unit,
+    onPrivacyTermsDetailClick: () -> Unit,
     onMarketingTermsClick: () -> Unit,
     onSubmitClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -83,7 +87,9 @@ fun SignUpTermsScreen(
                 termsState = termsState,
                 onAllTermsClick = onAllTermsClick,
                 onServiceTermsClick = onServiceTermsClick,
+                onServiceTermsDetailClick = onServiceTermsDetailClick,
                 onPrivacyTermsClick = onPrivacyTermsClick,
+                onPrivacyTermsDetailClick = onPrivacyTermsDetailClick,
                 onMarketingTermsClick = onMarketingTermsClick,
             )
         }
@@ -101,7 +107,7 @@ fun SignUpTermsScreen(
 }
 
 @Composable
-private fun SignUpTermsTopBar(
+internal fun SignUpTermsTopBar(
     title: String,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -197,7 +203,9 @@ private fun SignUpTermsList(
     termsState: SignUpTermsState,
     onAllTermsClick: () -> Unit,
     onServiceTermsClick: () -> Unit,
+    onServiceTermsDetailClick: () -> Unit,
     onPrivacyTermsClick: () -> Unit,
+    onPrivacyTermsDetailClick: () -> Unit,
     onMarketingTermsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -212,19 +220,18 @@ private fun SignUpTermsList(
         SignUpTermsItem(
             text = "서비스 이용 약관 (필수)",
             checked = termsState.serviceTermsAgreed,
-            showArrow = true,
             onClick = onServiceTermsClick,
+            onDetailClick = onServiceTermsDetailClick,
         )
         SignUpTermsItem(
             text = "필수 개인 정보 수집 및 이용 (필수)",
             checked = termsState.privacyTermsAgreed,
-            showArrow = true,
             onClick = onPrivacyTermsClick,
+            onDetailClick = onPrivacyTermsDetailClick,
         )
         SignUpTermsItem(
             text = "마케팅 프로모션 알림 수신 동의 (선택)",
             checked = termsState.marketingTermsAgreed,
-            showArrow = false,
             onClick = onMarketingTermsClick,
         )
     }
@@ -272,35 +279,53 @@ private fun SignUpAllTermsItem(
 private fun SignUpTermsItem(
     text: String,
     checked: Boolean,
-    showArrow: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onDetailClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(34.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(
-                role = Role.Checkbox,
-                onClick = onClick,
-            )
+            .heightIn(min = 34.dp)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SignUpTermsCheckbox(checked = checked)
-        Text(
-            text = text,
-            color = Gray700,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                fontWeight = FontWeight.Bold,
-            ),
+        Row(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 10.dp),
-        )
-        if (showArrow) {
-            SignUpTermsChevron()
+                .heightIn(min = 34.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(
+                    role = Role.Checkbox,
+                    onClick = onClick,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SignUpTermsCheckbox(checked = checked)
+            Text(
+                text = text,
+                color = Gray700,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                ),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 10.dp),
+            )
+        }
+        if (onDetailClick != null) {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(
+                        role = Role.Button,
+                        onClick = onDetailClick,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                SignUpTermsChevron()
+            }
         }
     }
 }
@@ -380,7 +405,9 @@ private fun SignUpTermsEmptyPreview() {
             onBackClick = {},
             onAllTermsClick = {},
             onServiceTermsClick = {},
+            onServiceTermsDetailClick = {},
             onPrivacyTermsClick = {},
+            onPrivacyTermsDetailClick = {},
             onMarketingTermsClick = {},
             onSubmitClick = {},
         )
@@ -400,7 +427,9 @@ private fun SignUpTermsAllAgreedPreview() {
             onBackClick = {},
             onAllTermsClick = {},
             onServiceTermsClick = {},
+            onServiceTermsDetailClick = {},
             onPrivacyTermsClick = {},
+            onPrivacyTermsDetailClick = {},
             onMarketingTermsClick = {},
             onSubmitClick = {},
         )
@@ -420,7 +449,9 @@ private fun SignUpTermsRequiredAgreedPreview() {
             onBackClick = {},
             onAllTermsClick = {},
             onServiceTermsClick = {},
+            onServiceTermsDetailClick = {},
             onPrivacyTermsClick = {},
+            onPrivacyTermsDetailClick = {},
             onMarketingTermsClick = {},
             onSubmitClick = {},
         )

@@ -14,6 +14,8 @@ sealed interface SignupTermsIntent : UiIntent {
     data object ToggleServiceTerms : SignupTermsIntent
     data object TogglePrivacyTerms : SignupTermsIntent
     data object ToggleMarketingTerms : SignupTermsIntent
+    data object AgreeServiceTerms : SignupTermsIntent
+    data object AgreePrivacyTerms : SignupTermsIntent
     data object Submit : SignupTermsIntent
 }
 

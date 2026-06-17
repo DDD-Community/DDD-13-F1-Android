@@ -44,6 +44,14 @@ class SignupTermsViewModel @Inject constructor(
                 copy(marketingTermsAgreed = !marketingTermsAgreed)
             }
 
+            SignupTermsIntent.AgreeServiceTerms -> updateTerms {
+                copy(serviceTermsAgreed = true)
+            }
+
+            SignupTermsIntent.AgreePrivacyTerms -> updateTerms {
+                copy(privacyTermsAgreed = true)
+            }
+
             SignupTermsIntent.Submit -> submit()
         }
     }
