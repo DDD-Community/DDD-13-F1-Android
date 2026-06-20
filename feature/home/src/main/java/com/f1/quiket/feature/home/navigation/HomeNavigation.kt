@@ -14,12 +14,12 @@ import com.f1.quiket.feature.floating.presentation.screen.addsubject.AddSubjectS
 import com.f1.quiket.feature.home.domain.model.QuizPlayMode
 import com.f1.quiket.feature.home.domain.model.QuizPlayType
 import com.f1.quiket.feature.home.domain.model.QuizTimerScope
-import com.f1.quiket.feature.home.presentation.CreateQuizRoute
-import com.f1.quiket.feature.home.presentation.ExamScheduleRoute
-import com.f1.quiket.feature.home.presentation.HomeRoute
-import com.f1.quiket.feature.home.presentation.QuizPlayAllRoute
-import com.f1.quiket.feature.home.presentation.QuizResultRoute
-import com.f1.quiket.feature.home.presentation.QuizStartRoute
+import com.f1.quiket.feature.home.presentation.route.CreateQuizRoute
+import com.f1.quiket.feature.home.presentation.route.ExamScheduleRoute
+import com.f1.quiket.feature.home.presentation.route.HomeRoute
+import com.f1.quiket.feature.home.presentation.screen.QuizPlayAllRoute
+import com.f1.quiket.feature.home.presentation.screen.QuizResultRoute
+import com.f1.quiket.feature.home.presentation.screen.QuizStartRoute
 
 fun NavGraphBuilder.homeGraph(
     navController: NavController,
