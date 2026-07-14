@@ -7,3 +7,11 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.kotlin.serialization) apply false
 }
+
+allprojects {
+    configurations.all {
+        resolutionStrategy {
+            force(libs.kotlinx.metadata.jvm)
+        }
+    }
+}
